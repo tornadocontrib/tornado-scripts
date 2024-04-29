@@ -13,19 +13,28 @@ export class TokenPriceOracle {
     this.oracle = oracle;
   }
 
-  fetchPrices(tokens: string[]): Promise<bigint[]> {
+  async fetchPrices(
+    tokens: {
+      tokenAddress: string;
+      decimals: number;
+    }[],
+  ): Promise<bigint[]> {
     // setup mock price for testnets
     if (!this.oracle) {
       return new Promise((resolve) => resolve(tokens.map(() => parseEther('0.0001'))));
     }
 
-    return multicall(
+    const prices = (await multicall(
       this.multicall,
-      tokens.map((token) => ({
+      tokens.map(({ tokenAddress }) => ({
         contract: this.oracle,
         name: 'getRateToEth',
-        params: [token, true],
+        params: [tokenAddress, true],
       })),
-    );
+    )) as bigint[];
+
+    return prices.map((price, index) => {
+      return (price * BigInt(10 ** tokens[index].decimals)) / BigInt(10 ** 18);
+    });
   }
 }

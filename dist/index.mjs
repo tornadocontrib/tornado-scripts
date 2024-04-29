@@ -2646,7 +2646,7 @@ function substring(str, length = 10) {
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
 }
 
-var __async$e = (__this, __arguments, generator) => {
+var __async$f = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -2667,7 +2667,7 @@ var __async$e = (__this, __arguments, generator) => {
   });
 };
 function multicall(Multicall2, calls) {
-  return __async$e(this, null, function* () {
+  return __async$f(this, null, function* () {
     const calldata = calls.map((call) => {
       var _a, _b, _c;
       const target = ((_a = call.contract) == null ? void 0 : _a.target) || call.address;
@@ -2712,7 +2712,7 @@ var __spreadValues$5 = (a, b) => {
 };
 var __spreadProps$4 = (a, b) => __defProps$4(a, __getOwnPropDescs$4(b));
 var __superGet$1 = (cls, obj, key) => __reflectGet$1(__getProtoOf$1(cls), key, obj);
-var __async$d = (__this, __arguments, generator) => {
+var __async$e = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -2758,7 +2758,7 @@ function getHttpAgent({
   }
 }
 function fetchData(_0) {
-  return __async$d(this, arguments, function* (url, options = {}) {
+  return __async$e(this, arguments, function* (url, options = {}) {
     var _a, _b, _c;
     const MAX_RETRY = (_a = options.maxRetry) != null ? _a : 3;
     const RETRY_ON = (_b = options.retryOn) != null ? _b : 500;
@@ -2850,7 +2850,7 @@ function fetchData(_0) {
     throw errorObject;
   });
 }
-const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$d(void 0, null, function* () {
+const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$e(void 0, null, function* () {
   let signal;
   if (_signal) {
     const controller = new AbortController();
@@ -2884,7 +2884,7 @@ const oracleMapper = /* @__PURE__ */ new Map();
 const multicallMapper = /* @__PURE__ */ new Map();
 function getGasOraclePlugin(networkKey, fetchOptions) {
   const gasStationApi = (fetchOptions == null ? void 0 : fetchOptions.gasStationApi) || "https://gasstation.polygon.technology/v2";
-  return new FetchUrlFeeDataNetworkPlugin(gasStationApi, (fetchFeeData, provider, request) => __async$d(this, null, function* () {
+  return new FetchUrlFeeDataNetworkPlugin(gasStationApi, (fetchFeeData, provider, request) => __async$e(this, null, function* () {
     if (!oracleMapper.has(networkKey)) {
       oracleMapper.set(networkKey, GasPriceOracle__factory.connect(fetchOptions == null ? void 0 : fetchOptions.gasPriceOracle, provider));
     }
@@ -2943,7 +2943,7 @@ function getGasOraclePlugin(networkKey, fetchOptions) {
   }));
 }
 function getProvider(rpcUrl, fetchOptions) {
-  return __async$d(this, null, function* () {
+  return __async$e(this, null, function* () {
     const fetchReq = new FetchRequest(rpcUrl);
     fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
     const _staticNetwork = yield new JsonRpcProvider(fetchReq).getNetwork();
@@ -2993,7 +2993,7 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   provider.pollingInterval = (fetchOptions == null ? void 0 : fetchOptions.pollingInterval) || pollInterval * 1e3;
   return provider;
 }
-const populateTransaction = (signer, tx) => __async$d(void 0, null, function* () {
+const populateTransaction = (signer, tx) => __async$e(void 0, null, function* () {
   const provider = signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
@@ -3002,7 +3002,7 @@ const populateTransaction = (signer, tx) => __async$d(void 0, null, function* ()
     throw new Error(errMsg);
   }
   const [feeData, nonce] = yield Promise.all([
-    (() => __async$d(void 0, null, function* () {
+    (() => __async$e(void 0, null, function* () {
       if (tx.maxFeePerGas && tx.maxPriorityFeePerGas) {
         return new FeeData(null, BigInt(tx.maxFeePerGas), BigInt(tx.maxPriorityFeePerGas));
       }
@@ -3024,7 +3024,7 @@ const populateTransaction = (signer, tx) => __async$d(void 0, null, function* ()
         );
       }
     }))(),
-    (() => __async$d(void 0, null, function* () {
+    (() => __async$e(void 0, null, function* () {
       if (tx.nonce) {
         return tx.nonce;
       }
@@ -3054,7 +3054,7 @@ const populateTransaction = (signer, tx) => __async$d(void 0, null, function* ()
     delete tx.maxFeePerGas;
     delete tx.maxPriorityFeePerGas;
   }
-  tx.gasLimit = tx.gasLimit || (yield (() => __async$d(void 0, null, function* () {
+  tx.gasLimit = tx.gasLimit || (yield (() => __async$e(void 0, null, function* () {
     try {
       const gasLimit = yield provider.estimateGas(tx);
       return gasLimit === BigInt(21e3) ? gasLimit : gasLimit * (BigInt(1e4) + BigInt(signer.gasLimitBump)) / BigInt(1e4);
@@ -3082,7 +3082,7 @@ class TornadoWallet extends Wallet {
     return new TornadoWallet(privateKey, provider, options);
   }
   populateTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$e(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
       this.nonce = txObject.nonce;
       return __superGet$1(TornadoWallet.prototype, this, "populateTransaction").call(this, txObject);
@@ -3098,7 +3098,7 @@ class TornadoVoidSigner extends VoidSigner {
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
   }
   populateTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$e(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
       this.nonce = txObject.nonce;
       return __superGet$1(TornadoVoidSigner.prototype, this, "populateTransaction").call(this, txObject);
@@ -3114,7 +3114,7 @@ class TornadoRpcSigner extends JsonRpcSigner {
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
   }
   sendUncheckedTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$e(this, null, function* () {
       return __superGet$1(TornadoRpcSigner.prototype, this, "sendUncheckedTransaction").call(this, yield populateTransaction(this, tx));
     });
   }
@@ -3125,7 +3125,7 @@ class TornadoBrowserProvider extends BrowserProvider {
     this.options = options;
   }
   getSigner(address) {
-    return __async$d(this, null, function* () {
+    return __async$e(this, null, function* () {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i;
       const signerAddress = (yield __superGet$1(TornadoBrowserProvider.prototype, this, "getSigner").call(this, address)).address;
       if (((_a = this.options) == null ? void 0 : _a.webChainId) && ((_b = this.options) == null ? void 0 : _b.connectWallet) && Number(yield __superGet$1(TornadoBrowserProvider.prototype, this, "send").call(this, "eth_chainId", [])) !== Number((_c = this.options) == null ? void 0 : _c.webChainId)) {
@@ -3353,7 +3353,7 @@ var __spreadValues$4 = (a, b) => {
   return a;
 };
 var __spreadProps$3 = (a, b) => __defProps$3(a, __getOwnPropDescs$3(b));
-var __async$c = (__this, __arguments, generator) => {
+var __async$d = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -3376,7 +3376,7 @@ var __async$c = (__this, __arguments, generator) => {
 const isEmptyArray = (arr) => !Array.isArray(arr) || !arr.length;
 const first = 1e3;
 function queryGraph(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     query,
@@ -3405,7 +3405,7 @@ function queryGraph(_0) {
   });
 }
 function getStatistic(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -3452,7 +3452,7 @@ function getStatistic(_0) {
   });
 }
 function getMeta(_0) {
-  return __async$c(this, arguments, function* ({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
+  return __async$d(this, arguments, function* ({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
     try {
       const {
         _meta: {
@@ -3497,7 +3497,7 @@ function getRegisters({
   });
 }
 function getAllRegisters(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -3586,7 +3586,7 @@ function getDeposits({
   });
 }
 function getAllDeposits(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -3683,7 +3683,7 @@ function getWithdrawals({
   });
 }
 function getAllWithdrawals(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -3759,7 +3759,7 @@ function getAllWithdrawals(_0) {
   });
 }
 function getNoteAccounts(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     address,
@@ -3812,7 +3812,7 @@ function getGraphEchoEvents({
   });
 }
 function getAllGraphEchoEvents(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -3901,7 +3901,7 @@ function getEncryptedNotes({
   });
 }
 function getAllEncryptedNotes(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -3986,7 +3986,7 @@ function getGovernanceEvents({
   });
 }
 function getAllGovernanceEvents(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$d(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -4145,7 +4145,7 @@ var graph = /*#__PURE__*/Object.freeze({
   queryGraph: queryGraph
 });
 
-var __async$b = (__this, __arguments, generator) => {
+var __async$c = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -4184,7 +4184,7 @@ class BatchBlockService {
     this.retryOn = retryOn;
   }
   getBlock(blockTag) {
-    return __async$b(this, null, function* () {
+    return __async$c(this, null, function* () {
       const blockObject = yield this.provider.getBlock(blockTag);
       if (!blockObject) {
         const errMsg = `No block for ${blockTag}`;
@@ -4194,9 +4194,9 @@ class BatchBlockService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((blocks, index) => __async$b(this, null, function* () {
+    return batchArray.map((blocks, index) => __async$c(this, null, function* () {
       yield sleep(20 * index);
-      return (() => __async$b(this, null, function* () {
+      return (() => __async$c(this, null, function* () {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -4213,7 +4213,7 @@ class BatchBlockService {
     }));
   }
   getBatchBlocks(blocks) {
-    return __async$b(this, null, function* () {
+    return __async$c(this, null, function* () {
       let blockCount = 0;
       const results = [];
       for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
@@ -4251,7 +4251,7 @@ class BatchTransactionService {
     this.retryOn = retryOn;
   }
   getTransaction(txHash) {
-    return __async$b(this, null, function* () {
+    return __async$c(this, null, function* () {
       const txObject = yield this.provider.getTransaction(txHash);
       if (!txObject) {
         const errMsg = `No transaction for ${txHash}`;
@@ -4261,9 +4261,9 @@ class BatchTransactionService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((txs, index) => __async$b(this, null, function* () {
+    return batchArray.map((txs, index) => __async$c(this, null, function* () {
       yield sleep(20 * index);
-      return (() => __async$b(this, null, function* () {
+      return (() => __async$c(this, null, function* () {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -4280,7 +4280,7 @@ class BatchTransactionService {
     }));
   }
   getBatchTransactions(txs) {
-    return __async$b(this, null, function* () {
+    return __async$c(this, null, function* () {
       let txCount = 0;
       const results = [];
       for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
@@ -4316,7 +4316,7 @@ class BatchEventsService {
     this.retryOn = retryOn;
   }
   getPastEvents(_0) {
-    return __async$b(this, arguments, function* ({ fromBlock, toBlock, type }) {
+    return __async$c(this, arguments, function* ({ fromBlock, toBlock, type }) {
       let err;
       let retries = 0;
       while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -4336,13 +4336,13 @@ class BatchEventsService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((event, index) => __async$b(this, null, function* () {
+    return batchArray.map((event, index) => __async$c(this, null, function* () {
       yield sleep(20 * index);
       return this.getPastEvents(event);
     }));
   }
   getBatchEvents(_0) {
-    return __async$b(this, arguments, function* ({ fromBlock, toBlock, type = "*" }) {
+    return __async$c(this, arguments, function* ({ fromBlock, toBlock, type = "*" }) {
       if (!toBlock) {
         toBlock = yield this.provider.getBlockNumber();
       }
@@ -4395,7 +4395,7 @@ var __spreadValues$3 = (a, b) => {
 };
 var __spreadProps$2 = (a, b) => __defProps$2(a, __getOwnPropDescs$2(b));
 var __superGet = (cls, obj, key) => __reflectGet(__getProtoOf(cls), key, obj);
-var __async$a = (__this, __arguments, generator) => {
+var __async$b = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -4470,7 +4470,7 @@ class BaseEventsService {
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return yield new Promise((resolve) => resolve(events));
     });
   }
@@ -4478,7 +4478,7 @@ class BaseEventsService {
    * Get saved or cached events
    */
   getEventsFromDB() {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return {
         events: [],
         lastBlock: null
@@ -4486,7 +4486,7 @@ class BaseEventsService {
     });
   }
   getEventsFromCache() {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return {
         events: [],
         lastBlock: null
@@ -4494,7 +4494,7 @@ class BaseEventsService {
     });
   }
   getSavedEvents() {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       let cachedEvents = yield this.getEventsFromDB();
       if (!cachedEvents || !cachedEvents.events.length) {
         cachedEvents = yield this.getEventsFromCache();
@@ -4506,7 +4506,7 @@ class BaseEventsService {
    * Get latest events
    */
   getEventsFromGraph(_0) {
-    return __async$a(this, arguments, function* ({
+    return __async$b(this, arguments, function* ({
       fromBlock,
       methodName = ""
     }) {
@@ -4526,7 +4526,7 @@ class BaseEventsService {
     });
   }
   getEventsFromRpc(_0) {
-    return __async$a(this, arguments, function* ({
+    return __async$b(this, arguments, function* ({
       fromBlock,
       toBlock
     }) {
@@ -4564,7 +4564,7 @@ class BaseEventsService {
     });
   }
   getLatestEvents(_0) {
-    return __async$a(this, arguments, function* ({ fromBlock }) {
+    return __async$b(this, arguments, function* ({ fromBlock }) {
       const allEvents = [];
       const graphEvents = yield this.getEventsFromGraph({ fromBlock });
       const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
@@ -4586,14 +4586,14 @@ class BaseEventsService {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveEvents(_0) {
-    return __async$a(this, arguments, function* ({ events, lastBlock }) {
+    return __async$b(this, arguments, function* ({ events, lastBlock }) {
     });
   }
   /**
    * Trigger saving and receiving latest events
    */
   updateEvents() {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       const savedEvents = yield this.getSavedEvents();
       let fromBlock = this.deployedBlock;
       if (savedEvents && savedEvents.lastBlock) {
@@ -4667,7 +4667,7 @@ class BaseDepositsService extends BaseEventsService {
     };
   }
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       const type = this.getType().toLowerCase();
       if (type === DEPOSIT) {
         const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
@@ -4746,7 +4746,7 @@ class BaseEchoService extends BaseEventsService {
     return "getAllGraphEchoEvents";
   }
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { who, data } = args;
         if (who && data) {
@@ -4764,7 +4764,7 @@ class BaseEchoService extends BaseEventsService {
     });
   }
   getEventsFromGraph(_0) {
-    return __async$a(this, arguments, function* ({ fromBlock }) {
+    return __async$b(this, arguments, function* ({ fromBlock }) {
       if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
         return {
           events: [],
@@ -4797,7 +4797,7 @@ class BaseEncryptedNotesService extends BaseEventsService {
     return "getAllEncryptedNotes";
   }
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { encryptedNote } = args;
         if (encryptedNote) {
@@ -4840,7 +4840,7 @@ class BaseGovernanceService extends BaseEventsService {
     return "getAllGovernanceEvents";
   }
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       const proposalEvents = [];
       const votedEvents = [];
       const delegatedEvents = [];
@@ -4907,7 +4907,7 @@ class BaseGovernanceService extends BaseEventsService {
     });
   }
   getEventsFromGraph(_0) {
-    return __async$a(this, arguments, function* ({ fromBlock }) {
+    return __async$b(this, arguments, function* ({ fromBlock }) {
       if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
         return {
           events: [],
@@ -4942,7 +4942,7 @@ class BaseRegistryService extends BaseEventsService {
     return "getAllRegisters";
   }
   formatEvents(events) {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const eventObjects = {
           blockNumber,
@@ -4957,13 +4957,13 @@ class BaseRegistryService extends BaseEventsService {
     });
   }
   fetchRelayers() {
-    return __async$a(this, null, function* () {
+    return __async$b(this, null, function* () {
       return (yield this.updateEvents()).events;
     });
   }
 }
 
-var __async$9 = (__this, __arguments, generator) => {
+var __async$a = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -4984,7 +4984,7 @@ var __async$9 = (__this, __arguments, generator) => {
   });
 };
 function existsAsync(fileOrDir) {
-  return __async$9(this, null, function* () {
+  return __async$a(this, null, function* () {
     try {
       yield stat(fileOrDir);
       return true;
@@ -5016,7 +5016,7 @@ function unzipAsync(data) {
   });
 }
 function saveUserFile(_0) {
-  return __async$9(this, arguments, function* ({
+  return __async$a(this, arguments, function* ({
     fileName,
     userDirectory,
     dataString
@@ -5034,7 +5034,7 @@ function saveUserFile(_0) {
   });
 }
 function loadSavedEvents(_0) {
-  return __async$9(this, arguments, function* ({
+  return __async$a(this, arguments, function* ({
     name,
     userDirectory,
     deployedBlock
@@ -5063,7 +5063,7 @@ function loadSavedEvents(_0) {
   });
 }
 function download(_0) {
-  return __async$9(this, arguments, function* ({ name, cacheDirectory }) {
+  return __async$a(this, arguments, function* ({ name, cacheDirectory }) {
     const fileName = `${name}.json`.toLowerCase();
     const zipName = `${fileName}.zip`;
     const zipPath = path.join(cacheDirectory, zipName);
@@ -5073,7 +5073,7 @@ function download(_0) {
   });
 }
 function loadCachedEvents(_0) {
-  return __async$9(this, arguments, function* ({
+  return __async$a(this, arguments, function* ({
     name,
     cacheDirectory,
     deployedBlock
@@ -5103,7 +5103,7 @@ function loadCachedEvents(_0) {
   });
 }
 
-var __async$8 = (__this, __arguments, generator) => {
+var __async$9 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -5188,7 +5188,7 @@ class NodeDepositsService extends BaseDepositsService {
     }
   }
   getEventsFromDB() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.userDirectory) {
         console.log(
           "Updating events for",
@@ -5219,7 +5219,7 @@ class NodeDepositsService extends BaseDepositsService {
     });
   }
   getEventsFromCache() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.cacheDirectory) {
         console.log(`cachedEvents count - ${0}`);
         console.log(`cachedEvents lastBlock - ${this.deployedBlock}
@@ -5241,7 +5241,7 @@ class NodeDepositsService extends BaseDepositsService {
     });
   }
   saveEvents(_0) {
-    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    return __async$9(this, arguments, function* ({ events, lastBlock }) {
       const instanceName = this.getInstanceName();
       console.log("\ntotalEvents count - ", events.length);
       console.log(
@@ -5320,7 +5320,7 @@ class NodeEchoService extends BaseEchoService {
     }
   }
   getEventsFromDB() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.userDirectory) {
         console.log(`Updating events for ${this.netId} chain echo events
 `);
@@ -5346,7 +5346,7 @@ class NodeEchoService extends BaseEchoService {
     });
   }
   getEventsFromCache() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.cacheDirectory) {
         console.log(`cachedEvents count - ${0}`);
         console.log(`cachedEvents lastBlock - ${this.deployedBlock}
@@ -5368,7 +5368,7 @@ class NodeEchoService extends BaseEchoService {
     });
   }
   saveEvents(_0) {
-    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    return __async$9(this, arguments, function* ({ events, lastBlock }) {
       const instanceName = this.getInstanceName();
       console.log("\ntotalEvents count - ", events.length);
       console.log(
@@ -5446,7 +5446,7 @@ class NodeEncryptedNotesService extends BaseEncryptedNotesService {
     }
   }
   getEventsFromDB() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.userDirectory) {
         console.log(`Updating events for ${this.netId} chain encrypted events
 `);
@@ -5472,7 +5472,7 @@ class NodeEncryptedNotesService extends BaseEncryptedNotesService {
     });
   }
   getEventsFromCache() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.cacheDirectory) {
         console.log(`cachedEvents count - ${0}`);
         console.log(`cachedEvents lastBlock - ${this.deployedBlock}
@@ -5494,7 +5494,7 @@ class NodeEncryptedNotesService extends BaseEncryptedNotesService {
     });
   }
   saveEvents(_0) {
-    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    return __async$9(this, arguments, function* ({ events, lastBlock }) {
       const instanceName = this.getInstanceName();
       console.log("\ntotalEvents count - ", events.length);
       console.log(
@@ -5577,7 +5577,7 @@ class NodeGovernanceService extends BaseGovernanceService {
     }
   }
   getEventsFromDB() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.userDirectory) {
         console.log(`Updating events for ${this.netId} chain governance events
 `);
@@ -5603,7 +5603,7 @@ class NodeGovernanceService extends BaseGovernanceService {
     });
   }
   getEventsFromCache() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.cacheDirectory) {
         console.log(`cachedEvents count - ${0}`);
         console.log(`cachedEvents lastBlock - ${this.deployedBlock}
@@ -5625,7 +5625,7 @@ class NodeGovernanceService extends BaseGovernanceService {
     });
   }
   saveEvents(_0) {
-    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    return __async$9(this, arguments, function* ({ events, lastBlock }) {
       const instanceName = this.getInstanceName();
       console.log("\ntotalEvents count - ", events.length);
       console.log(
@@ -5703,7 +5703,7 @@ class NodeRegistryService extends BaseRegistryService {
     }
   }
   getEventsFromDB() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.userDirectory) {
         console.log(`Updating events for ${this.netId} chain registry events
 `);
@@ -5729,7 +5729,7 @@ class NodeRegistryService extends BaseRegistryService {
     });
   }
   getEventsFromCache() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       if (!this.cacheDirectory) {
         console.log(`cachedEvents count - ${0}`);
         console.log(`cachedEvents lastBlock - ${this.deployedBlock}
@@ -5751,7 +5751,7 @@ class NodeRegistryService extends BaseRegistryService {
     });
   }
   saveEvents(_0) {
-    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    return __async$9(this, arguments, function* ({ events, lastBlock }) {
       const instanceName = this.getInstanceName();
       console.log("\ntotalEvents count - ", events.length);
       console.log(
@@ -6582,7 +6582,7 @@ ajv.addKeyword({
   errors: true
 });
 
-var __async$7 = (__this, __arguments, generator) => {
+var __async$8 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6607,13 +6607,13 @@ class Pedersen {
     this.pedersenPromise = this.initPedersen();
   }
   initPedersen() {
-    return __async$7(this, null, function* () {
+    return __async$8(this, null, function* () {
       this.pedersenHash = yield buildPedersenHash();
       this.babyJub = this.pedersenHash.babyJub;
     });
   }
   unpackPoint(buffer) {
-    return __async$7(this, null, function* () {
+    return __async$8(this, null, function* () {
       var _a, _b;
       yield this.pedersenPromise;
       return (_b = this.babyJub) == null ? void 0 : _b.unpackPoint((_a = this.pedersenHash) == null ? void 0 : _a.hash(buffer));
@@ -6626,13 +6626,13 @@ class Pedersen {
 }
 const pedersen = new Pedersen();
 function buffPedersenHash(buffer) {
-  return __async$7(this, null, function* () {
+  return __async$8(this, null, function* () {
     const [hash] = yield pedersen.unpackPoint(buffer);
     return pedersen.toStringBuffer(hash);
   });
 }
 
-var __async$6 = (__this, __arguments, generator) => {
+var __async$7 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6653,7 +6653,7 @@ var __async$6 = (__this, __arguments, generator) => {
   });
 };
 function createDeposit(_0) {
-  return __async$6(this, arguments, function* ({ nullifier, secret }) {
+  return __async$7(this, arguments, function* ({ nullifier, secret }) {
     const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
     const noteHex = toFixedHex(bytesToBN(preimage), 62);
     const commitment = BigInt(yield buffPedersenHash(preimage));
@@ -6713,7 +6713,7 @@ class Deposit {
     );
   }
   static createNote(_0) {
-    return __async$6(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
+    return __async$7(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
       if (!nullifier) {
         nullifier = rBigInt(31);
       }
@@ -6740,7 +6740,7 @@ class Deposit {
     });
   }
   static parseNote(noteString) {
-    return __async$6(this, null, function* () {
+    return __async$7(this, null, function* () {
       const noteRegex = new RegExp("tornado-(?<currency>\\w+)-(?<amount>[\\d.]+)-(?<netId>\\d+)-0x(?<note>[0-9a-fA-F]{124})", "g");
       const match = noteRegex.exec(noteString);
       if (!match) {
@@ -7000,7 +7000,7 @@ class TornadoFeeOracle {
   }
 }
 
-var __async$5 = (__this, __arguments, generator) => {
+var __async$6 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -7025,7 +7025,7 @@ class Mimc {
     this.mimcPromise = this.initMimc();
   }
   initMimc() {
-    return __async$5(this, null, function* () {
+    return __async$6(this, null, function* () {
       this.sponge = yield buildMimcSponge();
       this.hash = (left, right) => {
         var _a, _b;
@@ -7034,7 +7034,7 @@ class Mimc {
     });
   }
   getHash() {
-    return __async$5(this, null, function* () {
+    return __async$6(this, null, function* () {
       yield this.mimcPromise;
       return {
         sponge: this.sponge,
@@ -7045,7 +7045,7 @@ class Mimc {
 }
 const mimc = new Mimc();
 
-var __async$4 = (__this, __arguments, generator) => {
+var __async$5 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -7088,7 +7088,7 @@ class MerkleTreeService {
     this.merkleWorkerPath = merkleWorkerPath;
   }
   createTree(events) {
-    return __async$4(this, null, function* () {
+    return __async$5(this, null, function* () {
       const { hash: hashFunction } = yield mimc.getHash();
       if (this.merkleWorkerPath) {
         console.log("Using merkleWorker\n");
@@ -7140,7 +7140,7 @@ class MerkleTreeService {
     });
   }
   createPartialTree(_0) {
-    return __async$4(this, arguments, function* ({ edge, elements }) {
+    return __async$5(this, arguments, function* ({ edge, elements }) {
       const { hash: hashFunction } = yield mimc.getHash();
       if (this.merkleWorkerPath) {
         console.log("Using merkleWorker\n");
@@ -7194,7 +7194,7 @@ class MerkleTreeService {
     });
   }
   verifyTree(events) {
-    return __async$4(this, null, function* () {
+    return __async$5(this, null, function* () {
       console.log(
         `
 Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while
@@ -7279,6 +7279,26 @@ function parseRecoveryKey(value) {
   return value;
 }
 
+var __async$4 = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 class TokenPriceOracle {
   constructor(provider, multicall2, oracle) {
     this.provider = provider;
@@ -7286,17 +7306,22 @@ class TokenPriceOracle {
     this.oracle = oracle;
   }
   fetchPrices(tokens) {
-    if (!this.oracle) {
-      return new Promise((resolve) => resolve(tokens.map(() => parseEther("0.0001"))));
-    }
-    return multicall(
-      this.multicall,
-      tokens.map((token) => ({
-        contract: this.oracle,
-        name: "getRateToEth",
-        params: [token, true]
-      }))
-    );
+    return __async$4(this, null, function* () {
+      if (!this.oracle) {
+        return new Promise((resolve) => resolve(tokens.map(() => parseEther("0.0001"))));
+      }
+      const prices = yield multicall(
+        this.multicall,
+        tokens.map(({ tokenAddress }) => ({
+          contract: this.oracle,
+          name: "getRateToEth",
+          params: [tokenAddress, true]
+        }))
+      );
+      return prices.map((price, index) => {
+        return price * BigInt(10 ** tokens[index].decimals) / BigInt(10 ** 18);
+      });
+    });
   }
 }
 

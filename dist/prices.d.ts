@@ -5,5 +5,8 @@ export declare class TokenPriceOracle {
     multicall: Multicall;
     provider: Provider;
     constructor(provider: Provider, multicall: Multicall, oracle?: OffchainOracle);
-    fetchPrices(tokens: string[]): Promise<bigint[]>;
+    fetchPrices(tokens: {
+        tokenAddress: string;
+        decimals: number;
+    }[]): Promise<bigint[]>;
 }
