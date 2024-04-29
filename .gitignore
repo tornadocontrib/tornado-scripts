@@ -1,0 +1,7 @@
+node_modules
+.env
+/events
+/trees
+backup-tornado-*
+backup-tornadoInvoice-*
+backup-note-account-*
