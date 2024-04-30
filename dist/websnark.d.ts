@@ -24,4 +24,5 @@ export type snarkProofs = {
     proof: BytesLike;
     args: snarkArgs;
 };
+export declare function initGroth16(): Promise<void>;
 export declare function calculateSnarkProof(input: snarkInputs, circuit: object, provingKey: ArrayBuffer): Promise<snarkProofs>;

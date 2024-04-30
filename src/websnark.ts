@@ -39,18 +39,20 @@ export type snarkProofs = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let groth16: any;
 
-const groth16Promise = (async () => {
+export async function initGroth16() {
   if (!groth16) {
     groth16 = await websnarkGroth({ wasmInitialMemory: 2000 });
   }
-})();
+}
 
 export async function calculateSnarkProof(
   input: snarkInputs,
   circuit: object,
   provingKey: ArrayBuffer,
 ): Promise<snarkProofs> {
-  await groth16Promise;
+  if (!groth16) {
+    await initGroth16();
+  }
 
   const snarkInput = {
     root: input.root,
@@ -68,7 +70,7 @@ export async function calculateSnarkProof(
 
   console.log('Start generating SNARK proof', snarkInput);
   console.time('SNARK proof time');
-  const proofData = await websnarkUtils.genWitnessAndProve(groth16, snarkInput, circuit, provingKey);
+  const proofData = await websnarkUtils.genWitnessAndProve(await groth16, snarkInput, circuit, provingKey);
   const proof = websnarkUtils.toSolidityInput(proofData).proof as BytesLike;
   console.timeEnd('SNARK proof time');
 

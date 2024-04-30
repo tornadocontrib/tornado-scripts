@@ -7848,14 +7848,18 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 let groth16;
-const groth16Promise = (() => __async(void 0, null, function* () {
-  if (!groth16) {
-    groth16 = yield websnarkGroth({ wasmInitialMemory: 2e3 });
-  }
-}))();
+function initGroth16() {
+  return __async(this, null, function* () {
+    if (!groth16) {
+      groth16 = yield websnarkGroth({ wasmInitialMemory: 2e3 });
+    }
+  });
+}
 function calculateSnarkProof(input, circuit, provingKey) {
   return __async(this, null, function* () {
-    yield groth16Promise;
+    if (!groth16) {
+      yield initGroth16();
+    }
     const snarkInput = {
       root: input.root,
       nullifierHash: BigInt(input.nullifierHex).toString(),
@@ -7870,7 +7874,7 @@ function calculateSnarkProof(input, circuit, provingKey) {
     };
     console.log("Start generating SNARK proof", snarkInput);
     console.time("SNARK proof time");
-    const proofData = yield websnarkUtils__namespace.genWitnessAndProve(groth16, snarkInput, circuit, provingKey);
+    const proofData = yield websnarkUtils__namespace.genWitnessAndProve(yield groth16, snarkInput, circuit, provingKey);
     const proof = websnarkUtils__namespace.toSolidityInput(proofData).proof;
     console.timeEnd("SNARK proof time");
     const args = [
@@ -7988,6 +7992,7 @@ exports.getTokenBalances = getTokenBalances;
 exports.getWeightRandom = getWeightRandom;
 exports.getWithdrawals = getWithdrawals;
 exports.hexToBytes = hexToBytes;
+exports.initGroth16 = initGroth16;
 exports.isNode = isNode;
 exports.isRelayerUpdated = isRelayerUpdated;
 exports.jobsSchema = jobsSchema;

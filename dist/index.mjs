@@ -7827,14 +7827,18 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 let groth16;
-const groth16Promise = (() => __async(void 0, null, function* () {
-  if (!groth16) {
-    groth16 = yield websnarkGroth({ wasmInitialMemory: 2e3 });
-  }
-}))();
+function initGroth16() {
+  return __async(this, null, function* () {
+    if (!groth16) {
+      groth16 = yield websnarkGroth({ wasmInitialMemory: 2e3 });
+    }
+  });
+}
 function calculateSnarkProof(input, circuit, provingKey) {
   return __async(this, null, function* () {
-    yield groth16Promise;
+    if (!groth16) {
+      yield initGroth16();
+    }
     const snarkInput = {
       root: input.root,
       nullifierHash: BigInt(input.nullifierHex).toString(),
@@ -7849,7 +7853,7 @@ function calculateSnarkProof(input, circuit, provingKey) {
     };
     console.log("Start generating SNARK proof", snarkInput);
     console.time("SNARK proof time");
-    const proofData = yield websnarkUtils.genWitnessAndProve(groth16, snarkInput, circuit, provingKey);
+    const proofData = yield websnarkUtils.genWitnessAndProve(yield groth16, snarkInput, circuit, provingKey);
     const proof = websnarkUtils.toSolidityInput(proofData).proof;
     console.timeEnd("SNARK proof time");
     const args = [
@@ -7864,4 +7868,4 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-export { BaseDepositsService, BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, GasPriceOracle__factory, Invoice, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NodeDepositsService, NodeEchoService, NodeEncryptedNotesService, NodeGovernanceService, NodeRegistryService, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TreeCache, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, download, enabledChains, existsAsync, index as factories, fetch, fetchData, fetchGetUrlFunc, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGasOraclePlugin, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getStatistic, getStatusSchema, getSubdomains, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, isNode, isRelayerUpdated, jobsSchema, leBuff2Int, leInt2Buff, loadCachedEvents, loadSavedEvents, mimc, multicall, packEncryptedMessage, parseAddress, parseKey, parseMnemonic, parseNumber, parseRecoveryKey, parseRelayer, parseSemanticVersion, parseUrl, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, saveUserFile, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, zipAsync };
+export { BaseDepositsService, BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, GasPriceOracle__factory, Invoice, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NodeDepositsService, NodeEchoService, NodeEncryptedNotesService, NodeGovernanceService, NodeRegistryService, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TreeCache, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, download, enabledChains, existsAsync, index as factories, fetch, fetchData, fetchGetUrlFunc, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGasOraclePlugin, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getStatistic, getStatusSchema, getSubdomains, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, isRelayerUpdated, jobsSchema, leBuff2Int, leInt2Buff, loadCachedEvents, loadSavedEvents, mimc, multicall, packEncryptedMessage, parseAddress, parseKey, parseMnemonic, parseNumber, parseRecoveryKey, parseRelayer, parseSemanticVersion, parseUrl, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, saveUserFile, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, zipAsync };
