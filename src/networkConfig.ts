@@ -87,7 +87,7 @@ export type Config = {
   subgraphs: SubgraphUrls;
   tokens: TokenInstances;
   optionalTokens?: string[];
-  ensSubdomainKey: string;
+  relayerEnsSubdomain: string;
   // Should be in seconds
   pollInterval: number;
   constants: {
@@ -252,7 +252,7 @@ export const defaultConfig: networkConfig = {
         gasLimit: 700_000,
       },
     },
-    ensSubdomainKey: 'mainnet-tornado',
+    relayerEnsSubdomain: 'mainnet-tornado',
     pollInterval: 15,
     constants: {
       GOVERNANCE_BLOCK: 11474695,
@@ -320,7 +320,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'bsc-tornado',
+    relayerEnsSubdomain: 'bsc-tornado',
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 8159269,
@@ -378,7 +378,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'polygon-tornado',
+    relayerEnsSubdomain: 'polygon-tornado',
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 16257996,
@@ -444,7 +444,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'optimism-tornado',
+    relayerEnsSubdomain: 'optimism-tornado',
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 2243694,
@@ -509,7 +509,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'arbitrum-tornado',
+    relayerEnsSubdomain: 'arbitrum-tornado',
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 3430605,
@@ -574,7 +574,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'gnosis-tornado',
+    relayerEnsSubdomain: 'gnosis-tornado',
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 17754564,
@@ -629,7 +629,7 @@ export const defaultConfig: networkConfig = {
         decimals: 18,
       },
     },
-    ensSubdomainKey: 'avalanche-tornado',
+    relayerEnsSubdomain: 'avalanche-tornado',
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 4429813,
@@ -703,7 +703,7 @@ export const defaultConfig: networkConfig = {
         gasLimit: 700_000,
       },
     },
-    ensSubdomainKey: 'sepolia-tornado',
+    relayerEnsSubdomain: 'sepolia-tornado',
     pollInterval: 15,
     constants: {
       GOVERNANCE_BLOCK: 5594395,
@@ -786,5 +786,5 @@ export function getInstanceByAddress({ netId, address }: { netId: NetIdType; add
 export function getSubdomains() {
   const allConfig = getNetworkConfig();
 
-  return enabledChains.map((chain) => allConfig[chain].ensSubdomainKey);
+  return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
 }

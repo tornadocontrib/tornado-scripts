@@ -76,7 +76,7 @@ export type Config = {
     subgraphs: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
-    ensSubdomainKey: string;
+    relayerEnsSubdomain: string;
     pollInterval: number;
     constants: {
         GOVERNANCE_BLOCK?: number;

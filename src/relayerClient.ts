@@ -257,8 +257,8 @@ export class RelayerClient {
     subdomains: string[],
     debugRelayer: boolean = false,
   ): Promise<RelayerInfo | RelayerError> {
-    const { ensSubdomainKey } = this.config;
-    const subdomainIndex = subdomains.indexOf(ensSubdomainKey);
+    const { relayerEnsSubdomain } = this.config;
+    const subdomainIndex = subdomains.indexOf(relayerEnsSubdomain);
     const mainnetSubdomain = curr.records[0];
     const hostname = curr.records[subdomainIndex];
     const isHostWithProtocol = hostname.includes('http');

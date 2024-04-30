@@ -5955,7 +5955,7 @@ const defaultConfig = {
         gasLimit: 7e5
       }
     },
-    ensSubdomainKey: "mainnet-tornado",
+    relayerEnsSubdomain: "mainnet-tornado",
     pollInterval: 15,
     constants: {
       GOVERNANCE_BLOCK: 11474695,
@@ -6023,7 +6023,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "bsc-tornado",
+    relayerEnsSubdomain: "bsc-tornado",
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 8159269,
@@ -6081,7 +6081,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "polygon-tornado",
+    relayerEnsSubdomain: "polygon-tornado",
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 16257996,
@@ -6147,7 +6147,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "optimism-tornado",
+    relayerEnsSubdomain: "optimism-tornado",
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 2243694,
@@ -6212,7 +6212,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "arbitrum-tornado",
+    relayerEnsSubdomain: "arbitrum-tornado",
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 3430605,
@@ -6277,7 +6277,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "gnosis-tornado",
+    relayerEnsSubdomain: "gnosis-tornado",
     pollInterval: 15,
     constants: {
       NOTE_ACCOUNT_BLOCK: 17754564,
@@ -6332,7 +6332,7 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    ensSubdomainKey: "avalanche-tornado",
+    relayerEnsSubdomain: "avalanche-tornado",
     pollInterval: 10,
     constants: {
       NOTE_ACCOUNT_BLOCK: 4429813,
@@ -6406,7 +6406,7 @@ const defaultConfig = {
         gasLimit: 7e5
       }
     },
-    ensSubdomainKey: "sepolia-tornado",
+    relayerEnsSubdomain: "sepolia-tornado",
     pollInterval: 15,
     constants: {
       GOVERNANCE_BLOCK: 5594395,
@@ -6455,7 +6455,7 @@ function getInstanceByAddress({ netId, address }) {
 }
 function getSubdomains() {
   const allConfig = getNetworkConfig();
-  return enabledChains.map((chain) => allConfig[chain].ensSubdomainKey);
+  return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
 }
 
 const addressType = { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" };
@@ -7464,8 +7464,8 @@ class RelayerClient {
   filterRelayer(curr, relayer, subdomains, debugRelayer = false) {
     return __async$3(this, null, function* () {
       var _a;
-      const { ensSubdomainKey } = this.config;
-      const subdomainIndex = subdomains.indexOf(ensSubdomainKey);
+      const { relayerEnsSubdomain } = this.config;
+      const subdomainIndex = subdomains.indexOf(relayerEnsSubdomain);
       const mainnetSubdomain = curr.records[0];
       const hostname = curr.records[subdomainIndex];
       const isHostWithProtocol = hostname.includes("http");
