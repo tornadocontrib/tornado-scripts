@@ -77,6 +77,8 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   batchEventsService: BatchEventsService;
   fetchDataOptions?: fetchDataOptions;
 
+  saveEventsPromise?: Promise<void>;
+
   constructor({
     netId,
     provider,
@@ -315,7 +317,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     this.validateEvents({ events: allEvents, lastBlock });
 
-    await this.saveEvents({ events: allEvents, lastBlock });
+    this.saveEventsPromise = this.saveEvents({ events: allEvents, lastBlock });
 
     return {
       events: allEvents,
@@ -324,7 +326,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   }
 }
 
-export type BaseDepositsServiceConstructor = {
+export type BaseTornadoServiceConstructor = {
   netId: NetIdType;
   provider: Provider;
   graphApi?: string;
@@ -342,7 +344,7 @@ export type DepositsGraphParams = BaseGraphParams & {
   currency: string;
 };
 
-export class BaseDepositsService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
+export class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
   amount: string;
   currency: string;
   batchTransactionService: BatchTransactionService;
@@ -359,7 +361,7 @@ export class BaseDepositsService extends BaseEventsService<DepositsEvents | With
     currency,
     deployedBlock,
     fetchDataOptions,
-  }: BaseDepositsServiceConstructor) {
+  }: BaseTornadoServiceConstructor) {
     super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions });
 
     this.amount = amount;

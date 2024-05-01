@@ -3,11 +3,11 @@ import moment from 'moment';
 import { BatchBlockOnProgress, BatchEventOnProgress } from '../batch';
 import { saveUserFile, loadSavedEvents, loadCachedEvents } from '../data';
 import {
-  BaseDepositsService,
+  BaseTornadoService,
   BaseEncryptedNotesService,
   BaseGovernanceService,
   BaseRegistryService,
-  BaseDepositsServiceConstructor,
+  BaseTornadoServiceConstructor,
   BaseEncryptedNotesServiceConstructor,
   BaseGovernanceServiceConstructor,
   BaseRegistryServiceConstructor,
@@ -24,12 +24,12 @@ import type {
   EchoEvents,
 } from './types';
 
-export type NodeDepositsServiceConstructor = BaseDepositsServiceConstructor & {
+export type NodeTornadoServiceConstructor = BaseTornadoServiceConstructor & {
   cacheDirectory?: string;
   userDirectory?: string;
 };
 
-export class NodeDepositsService extends BaseDepositsService {
+export class NodeTornadoService extends BaseTornadoService {
   cacheDirectory?: string;
   userDirectory?: string;
 
@@ -46,7 +46,7 @@ export class NodeDepositsService extends BaseDepositsService {
     fetchDataOptions,
     cacheDirectory,
     userDirectory,
-  }: NodeDepositsServiceConstructor) {
+  }: NodeTornadoServiceConstructor) {
     super({
       netId,
       provider,

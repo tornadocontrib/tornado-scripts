@@ -1,14 +1,14 @@
 import { BatchBlockOnProgress, BatchEventOnProgress } from '../batch';
-import { BaseDepositsService, BaseEncryptedNotesService, BaseGovernanceService, BaseRegistryService, BaseDepositsServiceConstructor, BaseEncryptedNotesServiceConstructor, BaseGovernanceServiceConstructor, BaseRegistryServiceConstructor, BaseEchoServiceConstructor, BaseEchoService } from './base';
+import { BaseTornadoService, BaseEncryptedNotesService, BaseGovernanceService, BaseRegistryService, BaseTornadoServiceConstructor, BaseEncryptedNotesServiceConstructor, BaseGovernanceServiceConstructor, BaseRegistryServiceConstructor, BaseEchoServiceConstructor, BaseEchoService } from './base';
 import type { BaseEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, RegistersEvents, AllGovernanceEvents, EchoEvents } from './types';
-export type NodeDepositsServiceConstructor = BaseDepositsServiceConstructor & {
+export type NodeTornadoServiceConstructor = BaseTornadoServiceConstructor & {
     cacheDirectory?: string;
     userDirectory?: string;
 };
-export declare class NodeDepositsService extends BaseDepositsService {
+export declare class NodeTornadoService extends BaseTornadoService {
     cacheDirectory?: string;
     userDirectory?: string;
-    constructor({ netId, provider, graphApi, subgraphName, Tornado, type, amount, currency, deployedBlock, fetchDataOptions, cacheDirectory, userDirectory, }: NodeDepositsServiceConstructor);
+    constructor({ netId, provider, graphApi, subgraphName, Tornado, type, amount, currency, deployedBlock, fetchDataOptions, cacheDirectory, userDirectory, }: NodeTornadoServiceConstructor);
     updateEventProgress({ type, fromBlock, toBlock, count }: Parameters<BatchEventOnProgress>[0]): void;
     updateTransactionProgress({ currentIndex, totalIndex }: Parameters<BatchBlockOnProgress>[0]): void;
     updateBlockProgress({ currentIndex, totalIndex }: Parameters<BatchBlockOnProgress>[0]): void;

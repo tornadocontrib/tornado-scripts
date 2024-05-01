@@ -4638,7 +4638,7 @@ class BaseEventsService {
       });
       const lastBlock = newEvents ? newEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : null;
       this.validateEvents({ events: allEvents, lastBlock });
-      yield this.saveEvents({ events: allEvents, lastBlock });
+      this.saveEventsPromise = this.saveEvents({ events: allEvents, lastBlock });
       return {
         events: allEvents,
         lastBlock
@@ -4646,7 +4646,7 @@ class BaseEventsService {
     });
   }
 }
-class BaseDepositsService extends BaseEventsService {
+class BaseTornadoService extends BaseEventsService {
   constructor({
     netId,
     provider,
@@ -5144,7 +5144,7 @@ var __async$9 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-class NodeDepositsService extends BaseDepositsService {
+class NodeTornadoService extends BaseTornadoService {
   constructor({
     netId,
     provider,
@@ -7889,12 +7889,12 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-exports.BaseDepositsService = BaseDepositsService;
 exports.BaseEchoService = BaseEchoService;
 exports.BaseEncryptedNotesService = BaseEncryptedNotesService;
 exports.BaseEventsService = BaseEventsService;
 exports.BaseGovernanceService = BaseGovernanceService;
 exports.BaseRegistryService = BaseRegistryService;
+exports.BaseTornadoService = BaseTornadoService;
 exports.BatchBlockService = BatchBlockService;
 exports.BatchEventsService = BatchEventsService;
 exports.BatchTransactionService = BatchTransactionService;
@@ -7918,11 +7918,11 @@ exports.MerkleTreeService = MerkleTreeService;
 exports.Mimc = Mimc;
 exports.Multicall__factory = Multicall__factory;
 exports.NetId = NetId;
-exports.NodeDepositsService = NodeDepositsService;
 exports.NodeEchoService = NodeEchoService;
 exports.NodeEncryptedNotesService = NodeEncryptedNotesService;
 exports.NodeGovernanceService = NodeGovernanceService;
 exports.NodeRegistryService = NodeRegistryService;
+exports.NodeTornadoService = NodeTornadoService;
 exports.NoteAccount = NoteAccount;
 exports.OffchainOracle__factory = OffchainOracle__factory;
 exports.OvmGasPriceOracle__factory = OvmGasPriceOracle__factory;
