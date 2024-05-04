@@ -3092,7 +3092,7 @@ const populateTransaction = (signer, tx) => __async$e(void 0, null, function* ()
 class TornadoWallet extends ethers.Wallet {
   constructor(key, provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(key, provider);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 1e3;
+    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
     this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
     this.gasFailover = gasFailover != null ? gasFailover : false;
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
@@ -3113,7 +3113,7 @@ class TornadoWallet extends ethers.Wallet {
 class TornadoVoidSigner extends ethers.VoidSigner {
   constructor(address, provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(address, provider);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 1e3;
+    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
     this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
     this.gasFailover = gasFailover != null ? gasFailover : false;
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
@@ -3129,7 +3129,7 @@ class TornadoVoidSigner extends ethers.VoidSigner {
 class TornadoRpcSigner extends ethers.JsonRpcSigner {
   constructor(provider, address, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(provider, address);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 1e3;
+    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
     this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
     this.gasFailover = gasFailover != null ? gasFailover : false;
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;

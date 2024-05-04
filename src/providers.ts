@@ -518,8 +518,7 @@ export class TornadoWallet extends Wallet {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(key, provider);
-    // 10% bump from the recommended fee
-    this.gasPriceBump = gasPriceBump ?? 1000;
+    this.gasPriceBump = gasPriceBump ?? 0;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
@@ -553,8 +552,7 @@ export class TornadoVoidSigner extends VoidSigner {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(address, provider);
-    // 10% bump from the recommended fee
-    this.gasPriceBump = gasPriceBump ?? 1000;
+    this.gasPriceBump = gasPriceBump ?? 0;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
@@ -582,8 +580,7 @@ export class TornadoRpcSigner extends JsonRpcSigner {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(provider, address);
-    // 10% bump from the recommended fee
-    this.gasPriceBump = gasPriceBump ?? 1000;
+    this.gasPriceBump = gasPriceBump ?? 0;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
