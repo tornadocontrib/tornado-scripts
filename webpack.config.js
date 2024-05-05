@@ -14,14 +14,10 @@ const esbuildLoader = {
 
 const commonAlias = {
   fs: false,
-  'fs/promises': false,
   'path': false,
   'url': false,
   'worker_threads': false,
   'fflate': 'fflate/browser',
-  '@colors/colors': false,
-  'cli-table3': false,
-  'commander': false,
   'http-proxy-agent': false,
   'https-proxy-agent': false,
   'socks-proxy-agent': false,

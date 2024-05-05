@@ -7,6 +7,9 @@ import pkgJson from './package.json' assert { type: 'json' };
 const external = Object.keys(pkgJson.dependencies).concat(
   Object.keys(pkgJson.optionalDependencies),
   [
+    'http-proxy-agent',
+    'https-proxy-agent',
+    'socks-proxy-agent',
     '@tornado/websnark/src/utils',
     '@tornado/websnark/src/groth16',
   ]

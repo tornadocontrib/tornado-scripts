@@ -1,6 +1,6 @@
 {
   "name": "@tornado/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An SDK for building applications on top of Privacy Pools",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -37,7 +37,6 @@
     "@tornado/snarkjs": "^0.1.20",
     "@tornado/websnark": "^0.0.4",
     "ajv": "^8.12.0",
-    "bloomfilter.js": "^1.0.2",
     "bn.js": "^5.2.1",
     "circomlibjs": "0.1.7",
     "cross-fetch": "^4.0.0",
@@ -45,15 +44,7 @@
     "ffjavascript": "0.2.48",
     "fflate": "^0.8.2"
   },
-  "optionalDependencies": {
-    "@colors/colors": "1.5.0",
-    "cli-table3": "^0.6.4",
-    "commander": "^12.0.0",
-    "http-proxy-agent": "^7.0.2",
-    "https-proxy-agent": "^7.0.4",
-    "moment": "^2.30.1",
-    "socks-proxy-agent": "^8.0.3"
-  },
+  "optionalDependencies": {},
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-json": "^6.1.0",

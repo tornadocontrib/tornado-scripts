@@ -1,9 +1,6 @@
 import type { EventEmitter } from 'stream';
 import type { RequestOptions } from 'http';
 import crossFetch from 'cross-fetch';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import {
   FetchRequest,
   JsonRpcApiProvider,
@@ -72,6 +69,12 @@ export function getHttpAgent({
   torPort?: number;
   retry: number;
 }): NodeAgent | undefined {
+  /* eslint-disable @typescript-eslint/no-var-requires */
+  const { HttpProxyAgent } = require('http-proxy-agent');
+  const { HttpsProxyAgent } = require('https-proxy-agent');
+  const { SocksProxyAgent } = require('socks-proxy-agent');
+  /* eslint-enable @typescript-eslint/no-var-requires */
+
   if (torPort) {
     return new SocksProxyAgent(`socks5h://tor${retry}@127.0.0.1:${torPort}`);
   }
@@ -518,7 +521,8 @@ export class TornadoWallet extends Wallet {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(key, provider);
-    this.gasPriceBump = gasPriceBump ?? 0;
+    // 10% bump from the recommended fee
+    this.gasPriceBump = gasPriceBump ?? 1000;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
@@ -552,7 +556,8 @@ export class TornadoVoidSigner extends VoidSigner {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(address, provider);
-    this.gasPriceBump = gasPriceBump ?? 0;
+    // 10% bump from the recommended fee
+    this.gasPriceBump = gasPriceBump ?? 1000;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
@@ -580,7 +585,8 @@ export class TornadoRpcSigner extends JsonRpcSigner {
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(provider, address);
-    this.gasPriceBump = gasPriceBump ?? 0;
+    // 10% bump from the recommended fee
+    this.gasPriceBump = gasPriceBump ?? 1000;
     // 30% bump from the recommended gaslimit
     this.gasLimitBump = gasLimitBump ?? 3000;
     this.gasFailover = gasFailover ?? false;
