@@ -3388,7 +3388,7 @@ var __async$a = (__this, __arguments, generator) => {
   });
 };
 const isEmptyArray = (arr) => !Array.isArray(arr) || !arr.length;
-const first = 1e3;
+const GRAPHQL_LIMIT = 1e3;
 function queryGraph(_0) {
   return __async$a(this, arguments, function* ({
     graphApi,
@@ -3504,7 +3504,7 @@ function getRegisters({
     subgraphName,
     query: GET_REGISTERED,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2
@@ -3593,7 +3593,7 @@ function getDeposits({
     variables: {
       currency,
       amount,
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2
@@ -3690,7 +3690,7 @@ function getWithdrawals({
     variables: {
       currency,
       amount,
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2
@@ -3819,7 +3819,7 @@ function getGraphEchoEvents({
     subgraphName,
     query: GET_ECHO_EVENTS,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2
@@ -3908,7 +3908,7 @@ function getEncryptedNotes({
     subgraphName,
     query: GET_ENCRYPTED_NOTES,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2
@@ -3993,7 +3993,7 @@ function getGovernanceEvents({
     subgraphName,
     query: GET_GOVERNANCE_EVENTS,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock
     },
     fetchDataOptions: fetchDataOptions2

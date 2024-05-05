@@ -31,7 +31,8 @@ export * from './queries';
 
 const isEmptyArray = (arr: object) => !Array.isArray(arr) || !arr.length;
 
-const first = 1000;
+// https://thegraph.com/docs/en/developing/developer-faqs/#23-is-there-a-limit-to-how-many-objects-the-graph-can-return-per-query
+const GRAPHQL_LIMIT = 1000;
 
 export type queryGraphParams = {
   graphApi: string;
@@ -239,7 +240,7 @@ export function getRegisters({
     subgraphName,
     query: GET_REGISTERED,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
@@ -368,7 +369,7 @@ export function getDeposits({
     variables: {
       currency,
       amount,
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
@@ -506,7 +507,7 @@ export function getWithdrawals({
     variables: {
       currency,
       amount,
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
@@ -704,7 +705,7 @@ export function getGraphEchoEvents({
     subgraphName,
     query: GET_ECHO_EVENTS,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
@@ -830,7 +831,7 @@ export function getEncryptedNotes({
     subgraphName,
     query: GET_ENCRYPTED_NOTES,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
@@ -981,7 +982,7 @@ export function getGovernanceEvents({
     subgraphName,
     query: GET_GOVERNANCE_EVENTS,
     variables: {
-      first,
+      first: GRAPHQL_LIMIT,
       fromBlock,
     },
     fetchDataOptions,
