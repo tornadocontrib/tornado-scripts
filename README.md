@@ -2,7 +2,7 @@
 
 <img src="./logo2.png">
 
-# Tornado Core
+# Tornado Core (@tornado/core)
 
 🛠 An SDK for building applications on top of [Privacy Pools](https://www.forbes.com/sites/tomerniv/2023/09/07/privacy-pools-bridging-the-gap-between-blockchain-and-regulatory-compliance)
 
