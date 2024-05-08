@@ -130,9 +130,9 @@ export const defaultConfig: networkConfig = {
     networkName: 'Ethereum Mainnet',
     deployedBlock: 9116966,
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
-        url: 'https://tornadocash-rpc.com',
+        url: 'https://tornadocash-rpc.com/mainnet',
       },
       chainnodes: {
         name: 'Chainnodes RPC',
@@ -141,22 +141,6 @@ export const defaultConfig: networkConfig = {
       mevblockerRPC: {
         name: 'MevblockerRPC',
         url: 'https://rpc.mevblocker.io',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
-      },
-      noderealRPC: {
-        name: 'NodeReal RPC',
-        url: 'https://eth-mainnet.nodereal.io/v1/1659dfb40aa24bbb8153a677b98064d7',
-      },
-      notadegenRPC: {
-        name: 'NotADegen RPC',
-        url: 'https://rpc.notadegen.com/eth',
-      },
-      keydonixRPC: {
-        name: 'Keydonix RPC',
-        url: 'https://ethereum.keydonix.com/v1/mainnet',
       },
       oneRPC: {
         name: '1RPC',
@@ -287,21 +271,13 @@ export const defaultConfig: networkConfig = {
       theGraph,
     },
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
         url: 'https://tornadocash-rpc.com/bsc',
       },
       chainnodes: {
         name: 'Chainnodes RPC',
         url: 'https://bsc-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/bsc-mainnet',
-      },
-      noderealRPC: {
-        name: 'NodeReal RPC',
-        url: 'https://bsc-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3',
       },
       oneRPC: {
         name: '1RPC',
@@ -354,12 +330,8 @@ export const defaultConfig: networkConfig = {
     },
     rpcUrls: {
       chainnodes: {
-        name: 'Tornado RPC',
+        name: 'Chainnodes RPC',
         url: 'https://polygon-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/polygon-mainnet',
       },
       oneRpc: {
         name: '1RPC',
@@ -411,21 +383,13 @@ export const defaultConfig: networkConfig = {
       theGraph,
     },
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
         url: 'https://tornadocash-rpc.com/op',
       },
       chainnodes: {
         name: 'Chainnodes RPC',
         url: 'https://optimism-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607',
-      },
-      optimism: {
-        name: 'Optimism RPC',
-        url: 'https://mainnet.optimism.io',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/optimism-mainnet',
       },
       oneRpc: {
         name: '1RPC',
@@ -476,7 +440,7 @@ export const defaultConfig: networkConfig = {
       theGraph,
     },
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
         url: 'https://tornadocash-rpc.com/arbitrum',
       },
@@ -484,17 +448,13 @@ export const defaultConfig: networkConfig = {
         name: 'Chainnodes RPC',
         url: 'https://arbitrum-one.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607',
       },
-      arbitrum: {
-        name: 'Arbitrum RPC',
-        url: 'https://arb1.arbitrum.io/rpc',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
-      },
       oneRpc: {
         name: '1rpc',
         url: 'https://1rpc.io/arb',
+      },
+      Arbitrum: {
+        name: 'Arbitrum RPC',
+        url: 'https://arb1.arbitrum.io/rpc',
       },
     },
     tokens: {
@@ -541,21 +501,13 @@ export const defaultConfig: networkConfig = {
       theGraph,
     },
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
         url: 'https://tornadocash-rpc.com/gnosis',
       },
       chainnodes: {
         name: 'Chainnodes RPC',
         url: 'https://gnosis-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607',
-      },
-      gnosis: {
-        name: 'Gnosis RPC',
-        url: 'https://rpc.gnosischain.com',
-      },
-      stackup: {
-        name: 'Stackup RPC',
-        url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
       },
       blockPi: {
         name: 'BlockPi',
@@ -605,17 +557,17 @@ export const defaultConfig: networkConfig = {
       theGraph,
     },
     rpcUrls: {
-      oneRPC: {
-        name: 'OneRPC',
-        url: 'https://1rpc.io/avax/c',
-      },
-      avalancheRPC: {
+      publicRpc: {
         name: 'Avalanche RPC',
         url: 'https://api.avax.network/ext/bc/C/rpc',
       },
       meowRPC: {
         name: 'Meow RPC',
         url: 'https://avax.meowrpc.com',
+      },
+      oneRPC: {
+        name: 'OneRPC',
+        url: 'https://1rpc.io/avax/c',
       },
     },
     tokens: {
@@ -665,7 +617,7 @@ export const defaultConfig: networkConfig = {
       tornado,
     },
     rpcUrls: {
-      tornado: {
+      tornadoRPC: {
         name: 'Tornado RPC',
         url: 'https://tornadocash-rpc.com/sepolia',
       },
