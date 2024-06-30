@@ -5012,10 +5012,6 @@ const defaultConfig = {
         name: "Tornado RPC",
         url: "https://tornadocash-rpc.com/mainnet"
       },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
-      },
       mevblockerRPC: {
         name: "MevblockerRPC",
         url: "https://rpc.mevblocker.io"
@@ -5153,10 +5149,6 @@ const defaultConfig = {
         name: "Tornado RPC",
         url: "https://tornadocash-rpc.com/bsc"
       },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://bsc-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
-      },
       oneRPC: {
         name: "1RPC",
         url: "https://1rpc.io/bnb"
@@ -5207,10 +5199,6 @@ const defaultConfig = {
       theGraph
     },
     rpcUrls: {
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://polygon-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
-      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/matic"
@@ -5265,10 +5253,6 @@ const defaultConfig = {
         name: "Tornado RPC",
         url: "https://tornadocash-rpc.com/op"
       },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://optimism-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
-      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/op"
@@ -5318,14 +5302,6 @@ const defaultConfig = {
       theGraph
     },
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/arbitrum"
-      },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://arbitrum-one.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
-      },
       oneRpc: {
         name: "1rpc",
         url: "https://1rpc.io/arb"
@@ -5382,10 +5358,6 @@ const defaultConfig = {
       tornadoRPC: {
         name: "Tornado RPC",
         url: "https://tornadocash-rpc.com/gnosis"
-      },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://gnosis-mainnet.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
       },
       blockPi: {
         name: "BlockPi",
@@ -5502,10 +5474,6 @@ const defaultConfig = {
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
-      },
-      chainnodes: {
-        name: "Chainnodes RPC",
-        url: "https://sepolia.chainnodes.org/d692ae63-0a7e-43e0-9da9-fe4f4cc6c607"
       }
     },
     tokens: {
