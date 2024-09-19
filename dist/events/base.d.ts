@@ -3,7 +3,7 @@ import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegi
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
 import type { NetIdType } from '../networkConfig';
-import type { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
+import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
 export declare const DEPOSIT = "deposit";
 export declare const WITHDRAWAL = "withdrawal";
 export type BaseEventsServiceConstructor = {
@@ -38,7 +38,6 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     deployedBlock: number;
     batchEventsService: BatchEventsService;
     fetchDataOptions?: fetchDataOptions;
-    saveEventsPromise?: Promise<void>;
     constructor({ netId, provider, graphApi, subgraphName, contract, type, deployedBlock, fetchDataOptions, }: BaseEventsServiceConstructor);
     getInstanceName(): string;
     getType(): string;
@@ -53,8 +52,11 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
      * Get saved or cached events
      */
     getEventsFromDB(): Promise<BaseEvents<EventType>>;
-    getEventsFromCache(): Promise<BaseEvents<EventType>>;
-    getSavedEvents(): Promise<BaseEvents<EventType>>;
+    /**
+     * Events from remote cache (Either from local cache, CDN, or from IPFS)
+     */
+    getEventsFromCache(): Promise<CachedEvents<EventType>>;
+    getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>>;
     /**
      * Get latest events
      */

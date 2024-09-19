@@ -1,4 +1,3 @@
-const esbuild = require('esbuild');
 const path = require('path');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
@@ -8,7 +7,6 @@ const esbuildLoader = {
   options: {
     loader: 'ts',
     target: 'es2016',
-    implementation: esbuild
   }
 }
 

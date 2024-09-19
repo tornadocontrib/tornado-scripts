@@ -78,8 +78,6 @@ export type Config = {
   registryContract?: string;
   aggregatorContract?: string;
   reverseRecordsContract?: string;
-  gasPriceOracleContract?: string;
-  gasStationApi?: string;
   ovmGasPriceOracleContract?: string;
   tornadoSubgraph: string;
   registrySubgraph?: string;
@@ -314,7 +312,6 @@ export const defaultConfig: networkConfig = {
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
     offchainOracleContract: '0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8',
-    gasPriceOracleContract: '0xF81A8D8D3581985D3969fe53bFA67074aDFa8F3C',
     tornadoSubgraph: 'tornadocash/matic-tornado-subgraph',
     subgraphs: {
       tornado,

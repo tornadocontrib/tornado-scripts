@@ -3,7 +3,6 @@
 /* eslint-disable */
 export type { ENS } from "./ENS";
 export type { ERC20 } from "./ERC20";
-export type { GasPriceOracle } from "./GasPriceOracle";
 export type { Multicall } from "./Multicall";
 export type { OffchainOracle } from "./OffchainOracle";
 export type { OvmGasPriceOracle } from "./OvmGasPriceOracle";
@@ -11,7 +10,6 @@ export type { ReverseRecords } from "./ReverseRecords";
 export * as factories from "./factories";
 export { ENS__factory } from "./factories/ENS__factory";
 export { ERC20__factory } from "./factories/ERC20__factory";
-export { GasPriceOracle__factory } from "./factories/GasPriceOracle__factory";
 export { Multicall__factory } from "./factories/Multicall__factory";
 export { OffchainOracle__factory } from "./factories/OffchainOracle__factory";
 export { OvmGasPriceOracle__factory } from "./factories/OvmGasPriceOracle__factory";

@@ -17,17 +17,15 @@ import {
   Eip1193Provider,
   VoidSigner,
   Network,
-  parseUnits,
-  FetchUrlFeeDataNetworkPlugin,
   FeeData,
   EnsPlugin,
   GasCostPlugin,
 } from 'ethers';
 import type { RequestInfo, RequestInit, Response, HeadersInit } from 'node-fetch';
-import { GasPriceOracle, GasPriceOracle__factory, Multicall, Multicall__factory } from './typechain';
+// Temporary workaround until @types/node-fetch is compatible with @types/node
+import type { AbortSignal as FetchAbortSignal } from 'node-fetch/externals';
 import { isNode, sleep } from './utils';
 import type { Config, NetIdType } from './networkConfig';
-import { multicall } from './multicall';
 
 declare global {
   interface Window {
@@ -51,7 +49,7 @@ export type fetchDataOptions = RequestInit & {
   timeout?: number;
   proxy?: string;
   torPort?: number;
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   debug?: Function;
   returnResponse?: boolean;
 };
@@ -69,11 +67,11 @@ export function getHttpAgent({
   torPort?: number;
   retry: number;
 }): NodeAgent | undefined {
-  /* eslint-disable @typescript-eslint/no-var-requires */
+  /* eslint-disable @typescript-eslint/no-require-imports */
   const { HttpProxyAgent } = require('http-proxy-agent');
   const { HttpsProxyAgent } = require('https-proxy-agent');
   const { SocksProxyAgent } = require('socks-proxy-agent');
-  /* eslint-enable @typescript-eslint/no-var-requires */
+  /* eslint-enable @typescript-eslint/no-require-imports */
 
   if (torPort) {
     return new SocksProxyAgent(`socks5h://tor${retry}@127.0.0.1:${torPort}`);
@@ -128,7 +126,8 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
     if (!options.signal && options.timeout) {
       const controller = new AbortController();
 
-      options.signal = controller.signal;
+      // Temporary workaround until @types/node-fetch is compatible with @types/node
+      options.signal = controller.signal as FetchAbortSignal;
 
       // Define timeout in seconds
       timeout = setTimeout(() => {
@@ -223,7 +222,8 @@ export const fetchGetUrlFunc =
 
     if (_signal) {
       const controller = new AbortController();
-      signal = controller.signal;
+      // Temporary workaround until @types/node-fetch is compatible with @types/node
+      signal = controller.signal as FetchAbortSignal;
       _signal.addListener(() => {
         controller.abort();
       });
@@ -257,113 +257,18 @@ export const fetchGetUrlFunc =
   };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// caching to improve performance
-const oracleMapper = new Map();
-const multicallMapper = new Map();
-
 export type getProviderOptions = fetchDataOptions & {
   pollingInterval?: number;
-  gasPriceOracle?: string;
-  gasStationApi?: string;
 };
-
-export function getGasOraclePlugin(networkKey: string, fetchOptions?: getProviderOptions) {
-  const gasStationApi = fetchOptions?.gasStationApi || 'https://gasstation.polygon.technology/v2';
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return new FetchUrlFeeDataNetworkPlugin(gasStationApi, async (fetchFeeData, provider, request) => {
-    if (!oracleMapper.has(networkKey)) {
-      oracleMapper.set(networkKey, GasPriceOracle__factory.connect(fetchOptions?.gasPriceOracle as string, provider));
-    }
-    if (!multicallMapper.has(networkKey)) {
-      multicallMapper.set(
-        networkKey,
-        Multicall__factory.connect('0xcA11bde05977b3631167028862bE2a173976CA11', provider),
-      );
-    }
-    const Oracle = oracleMapper.get(networkKey) as GasPriceOracle;
-    const Multicall = multicallMapper.get(networkKey) as Multicall;
-
-    const [timestamp, heartbeat, feePerGas, priorityFeePerGas] = await multicall(Multicall, [
-      {
-        contract: Oracle,
-        name: 'timestamp',
-      },
-      {
-        contract: Oracle,
-        name: 'heartbeat',
-      },
-      {
-        contract: Oracle,
-        name: 'maxFeePerGas',
-      },
-      {
-        contract: Oracle,
-        name: 'maxPriorityFeePerGas',
-      },
-    ]);
-
-    const isOutdated = Number(timestamp) <= Date.now() / 1000 - Number(heartbeat);
-
-    if (!isOutdated) {
-      const maxPriorityFeePerGas = (priorityFeePerGas * BigInt(13)) / BigInt(10);
-      const maxFeePerGas = feePerGas * BigInt(2) + maxPriorityFeePerGas;
-
-      return {
-        gasPrice: maxFeePerGas,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-      };
-    }
-
-    const fetchReq = new FetchRequest(gasStationApi);
-    fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
-    if (isNode) {
-      // Prevent Cloudflare from blocking our request in node.js
-      fetchReq.setHeader('User-Agent', 'ethers');
-    }
-
-    const [
-      {
-        bodyJson: { fast },
-      },
-      { gasPrice },
-    ] = await Promise.all([fetchReq.send(), fetchFeeData()]);
-
-    return {
-      gasPrice,
-      maxFeePerGas: parseUnits(`${fast.maxFee}`, 9),
-      maxPriorityFeePerGas: parseUnits(`${fast.maxPriorityFee}`, 9),
-    };
-  });
-}
 
 export async function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider> {
   const fetchReq = new FetchRequest(rpcUrl);
   fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
-  // omit network plugins and mimic registerEth function (required for polygon)
-  const _staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
-  const ensPlugin = _staticNetwork.getPlugin('org.ethers.plugins.network.Ens');
-  const gasCostPlugin = _staticNetwork.getPlugin('org.ethers.plugins.network.GasCost');
-  const gasStationPlugin = <FetchUrlFeeDataNetworkPlugin>(
-    _staticNetwork.getPlugin('org.ethers.plugins.network.FetchUrlFeeDataPlugin')
-  );
-  const staticNetwork = new Network(_staticNetwork.name, _staticNetwork.chainId);
-  if (ensPlugin) {
-    staticNetwork.attachPlugin(ensPlugin);
-  }
-  if (gasCostPlugin) {
-    staticNetwork.attachPlugin(gasCostPlugin);
-  }
-  if (fetchOptions?.gasPriceOracle) {
-    staticNetwork.attachPlugin(getGasOraclePlugin(`${_staticNetwork.chainId}_${rpcUrl}`, fetchOptions));
-  } else if (gasStationPlugin) {
-    staticNetwork.attachPlugin(gasStationPlugin);
-  }
+  const staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
   const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
+    pollingInterval: fetchOptions?.pollingInterval || 1000,
   });
-  provider.pollingInterval = fetchOptions?.pollingInterval || 1000;
   return provider;
 }
 
@@ -373,7 +278,7 @@ export function getProviderWithNetId(
   config: Config,
   fetchOptions?: getProviderOptions,
 ): JsonRpcProvider {
-  const { networkName, reverseRecordsContract, gasPriceOracleContract, gasStationApi, pollInterval } = config;
+  const { networkName, reverseRecordsContract, pollInterval } = config;
   const hasEns = Boolean(reverseRecordsContract);
 
   const fetchReq = new FetchRequest(rpcUrl);
@@ -382,23 +287,12 @@ export function getProviderWithNetId(
   if (hasEns) {
     staticNetwork.attachPlugin(new EnsPlugin(null, Number(netId)));
   }
-
   staticNetwork.attachPlugin(new GasCostPlugin());
-
-  if (gasPriceOracleContract) {
-    staticNetwork.attachPlugin(
-      getGasOraclePlugin(`${netId}_${rpcUrl}`, {
-        gasPriceOracle: gasPriceOracleContract,
-        gasStationApi,
-      }),
-    );
-  }
 
   const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
+    pollingInterval: fetchOptions?.pollingInterval || pollInterval * 1000,
   });
-
-  provider.pollingInterval = fetchOptions?.pollingInterval || pollInterval * 1000;
 
   return provider;
 }

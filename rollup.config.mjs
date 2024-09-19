@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 const pkgJson = JSON.parse(readFileSync("./package.json"));
 
 const external = Object.keys(pkgJson.dependencies).concat(
-  Object.keys(pkgJson.optionalDependencies),
+  Object.keys(pkgJson.optionalDependencies || {}),
   [
     'http-proxy-agent',
     'https-proxy-agent',

@@ -3,6 +3,9 @@ export interface BaseEvents<T> {
     events: T[];
     lastBlock: number | null;
 }
+export interface CachedEvents<T> extends BaseEvents<T> {
+    fromCache: boolean;
+}
 export interface BaseGraphEvents<T> {
     events: T[];
     lastSyncBlock: number;

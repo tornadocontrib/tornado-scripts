@@ -67,8 +67,6 @@ export type Config = {
     registryContract?: string;
     aggregatorContract?: string;
     reverseRecordsContract?: string;
-    gasPriceOracleContract?: string;
-    gasStationApi?: string;
     ovmGasPriceOracleContract?: string;
     tornadoSubgraph: string;
     registrySubgraph?: string;
@@ -90,7 +88,7 @@ export type networkConfig = {
     [key in NetIdType]: Config;
 };
 export declare const defaultConfig: networkConfig;
-export declare const enabledChains: number[];
+export declare const enabledChains: NetIdType[];
 /**
  * Custom config object to extend default config
  *

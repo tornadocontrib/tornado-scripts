@@ -19,6 +19,7 @@ import { fetchDataOptions } from '../providers';
 import type { NetIdType } from '../networkConfig';
 import type {
   BaseEvents,
+  CachedEvents,
   MinimalEvents,
   DepositsEvents,
   WithdrawalsEvents,
@@ -76,8 +77,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   deployedBlock: number;
   batchEventsService: BatchEventsService;
   fetchDataOptions?: fetchDataOptions;
-
-  saveEventsPromise?: Promise<void>;
 
   constructor({
     netId,
@@ -153,14 +152,18 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     };
   }
 
-  async getEventsFromCache(): Promise<BaseEvents<EventType>> {
+  /**
+   * Events from remote cache (Either from local cache, CDN, or from IPFS)
+   */
+  async getEventsFromCache(): Promise<CachedEvents<EventType>> {
     return {
       events: [],
       lastBlock: null,
+      fromCache: true,
     };
   }
 
-  async getSavedEvents(): Promise<BaseEvents<EventType>> {
+  async getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>> {
     let cachedEvents = await this.getEventsFromDB();
 
     if (!cachedEvents || !cachedEvents.events.length) {
@@ -317,7 +320,10 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     this.validateEvents({ events: allEvents, lastBlock });
 
-    this.saveEventsPromise = this.saveEvents({ events: allEvents, lastBlock });
+    // If the events are loaded from cache or we have found new events, save them
+    if ((savedEvents as CachedEvents<EventType>).fromCache || newEvents.events.length) {
+      await this.saveEvents({ events: allEvents, lastBlock });
+    }
 
     return {
       events: allEvents,

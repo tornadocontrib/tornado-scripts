@@ -10,7 +10,7 @@ ajv.addKeyword({
     try {
       BigInt(data);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   },

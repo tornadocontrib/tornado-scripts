@@ -1,9 +1,6 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import type { EventEmitter } from 'stream';
 import type { RequestOptions } from 'http';
-import { JsonRpcApiProvider, JsonRpcProvider, Wallet, FetchGetUrlFunc, Provider, SigningKey, TransactionRequest, JsonRpcSigner, BrowserProvider, Networkish, Eip1193Provider, VoidSigner, FetchUrlFeeDataNetworkPlugin } from 'ethers';
+import { JsonRpcApiProvider, JsonRpcProvider, Wallet, FetchGetUrlFunc, Provider, SigningKey, TransactionRequest, JsonRpcSigner, BrowserProvider, Networkish, Eip1193Provider, VoidSigner } from 'ethers';
 import type { RequestInfo, RequestInit, Response, HeadersInit } from 'node-fetch';
 import type { Config, NetIdType } from './networkConfig';
 declare global {
@@ -36,10 +33,7 @@ export declare function fetchData(url: string, options?: fetchDataOptions): Prom
 export declare const fetchGetUrlFunc: (options?: fetchDataOptions) => FetchGetUrlFunc;
 export type getProviderOptions = fetchDataOptions & {
     pollingInterval?: number;
-    gasPriceOracle?: string;
-    gasStationApi?: string;
 };
-export declare function getGasOraclePlugin(networkKey: string, fetchOptions?: getProviderOptions): FetchUrlFeeDataNetworkPlugin;
 export declare function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider>;
 export declare function getProviderWithNetId(netId: NetIdType, rpcUrl: string, config: Config, fetchOptions?: getProviderOptions): JsonRpcProvider;
 export declare const populateTransaction: (signer: TornadoWallet | TornadoVoidSigner | TornadoRpcSigner, tx: TransactionRequest) => Promise<TransactionRequest>;
