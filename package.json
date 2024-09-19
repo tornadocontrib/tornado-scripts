@@ -1,6 +1,6 @@
 {
   "name": "@tornado/core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "An SDK for building applications on top of Privacy Pools",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -53,7 +53,7 @@
     "@types/circomlibjs": "^0.1.6",
     "@types/node": "^22.5.5",
     "@types/node-fetch": "^2.6.11",
-    "@typescript-eslint/eslint-plugin": "8.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.6.0",
     "@typescript-eslint/parser": "^8.6.0",
     "esbuild-loader": "^4.2.2",
     "eslint": "8.57.0",

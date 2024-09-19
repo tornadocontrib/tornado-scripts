@@ -2323,14 +2323,6 @@ var NetId = /* @__PURE__ */ ((NetId2) => {
   NetId2[NetId2["SEPOLIA"] = 11155111] = "SEPOLIA";
   return NetId2;
 })(NetId || {});
-const theGraph = {
-  name: "Hosted Graph",
-  url: "https://api.thegraph.com"
-};
-const tornado = {
-  name: "Tornado Subgraphs",
-  url: "https://tornadocash-rpc.com"
-};
 const defaultConfig = {
   [1 /* MAINNET */]: {
     rpcCallRetryAttempt: 15,
@@ -2348,13 +2340,25 @@ const defaultConfig = {
     networkName: "Ethereum Mainnet",
     deployedBlock: 9116966,
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/mainnet"
-      },
       mevblockerRPC: {
         name: "MevblockerRPC",
         url: "https://rpc.mevblocker.io"
+      },
+      keydonix: {
+        name: "keydonix",
+        url: "https://ethereum.keydonix.com/v1/mainnet"
+      },
+      SecureRpc: {
+        name: "SecureRpc",
+        url: "https://api.securerpc.com/v1"
+      },
+      meowrpc: {
+        name: "Meow RPC",
+        url: "https://eth.meowrpc.com"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/ethereum-mainnet"
       },
       oneRPC: {
         name: "1RPC",
@@ -2374,10 +2378,7 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/mainnet-tornado-subgraph",
     registrySubgraph: "tornadocash/tornado-relayer-registry",
     governanceSubgraph: "tornadocash/tornado-governance",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     tokens: {
       eth: {
         instanceAddress: {
@@ -2480,14 +2481,27 @@ const defaultConfig = {
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     tornadoSubgraph: "tornadocash/bsc-tornado-subgraph",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/bsc"
+      bnbchain: {
+        name: "BNB Chain",
+        url: "https://bsc-dataseed.bnbchain.org"
+      },
+      ninicoin: {
+        name: "ninicoin",
+        url: "https://bsc-dataseed1.ninicoin.io"
+      },
+      nodereal: {
+        name: "NodeReal",
+        url: "https://binance.nodereal.io"
+      },
+      meowrpc: {
+        name: "Meow RPC",
+        url: "https://bsc.meowrpc.com"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/bsc-mainnet"
       },
       oneRPC: {
         name: "1RPC",
@@ -2533,14 +2547,19 @@ const defaultConfig = {
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     tornadoSubgraph: "tornadocash/matic-tornado-subgraph",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/matic"
+      },
+      meowrpc: {
+        name: "Meow RPC",
+        url: "https://polygon.meowrpc.com"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/polygon-mainnet"
       }
     },
     tokens: {
@@ -2583,14 +2602,19 @@ const defaultConfig = {
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     ovmGasPriceOracleContract: "0x420000000000000000000000000000000000000F",
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/op"
+      optimism: {
+        name: "Optimism",
+        url: "https://mainnet.optimism.io"
+      },
+      meowrpc: {
+        name: "Meow RPC",
+        url: "https://optimism.meowrpc.com"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/optimism-mainnet"
       },
       oneRpc: {
         name: "1RPC",
@@ -2636,18 +2660,23 @@ const defaultConfig = {
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     tornadoSubgraph: "tornadocash/arbitrum-tornado-subgraph",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
-      oneRpc: {
-        name: "1rpc",
-        url: "https://1rpc.io/arb"
-      },
       Arbitrum: {
         name: "Arbitrum RPC",
         url: "https://arb1.arbitrum.io/rpc"
+      },
+      meowrpc: {
+        name: "Meow RPC",
+        url: "https://arbitrum.meowrpc.com"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/arbitrum-one"
+      },
+      oneRpc: {
+        name: "1rpc",
+        url: "https://1rpc.io/arb"
       }
     },
     tokens: {
@@ -2689,18 +2718,19 @@ const defaultConfig = {
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
-    subgraphs: {
-      tornado,
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/gnosis"
+      gnosis: {
+        name: "Gnosis",
+        url: "https://rpc.gnosischain.com"
       },
       blockPi: {
         name: "BlockPi",
         url: "https://gnosis.blockpi.network/v1/rpc/public"
+      },
+      oneRpc: {
+        name: "1rpc",
+        url: "https://1rpc.io/gnosis"
       }
     },
     tokens: {
@@ -2742,9 +2772,7 @@ const defaultConfig = {
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
-    subgraphs: {
-      theGraph
-    },
+    subgraphs: {},
     rpcUrls: {
       publicRpc: {
         name: "Avalanche RPC",
@@ -2802,17 +2830,23 @@ const defaultConfig = {
     aggregatorContract: "0x4088712AC9fad39ea133cdb9130E465d235e9642",
     reverseRecordsContract: "0xEc29700C0283e5Be64AcdFe8077d6cC95dE23C23",
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
-    subgraphs: {
-      tornado
-    },
+    subgraphs: {},
     rpcUrls: {
-      tornadoRPC: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/sepolia"
+      pandaops: {
+        name: "ethpandaops",
+        url: "https://rpc.sepolia.ethpandaops.io"
       },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
+      },
+      stackup: {
+        name: "Stackup",
+        url: "https://public.stackup.sh/api/v1/node/ethereum-sepolia"
+      },
+      onerpc: {
+        name: "1rpc",
+        url: "https://1rpc.io/sepolia"
       }
     },
     tokens: {
