@@ -184,6 +184,7 @@ export interface CachedRelayerInfo extends RelayerParams {
 export interface CachedRelayers {
     timestamp: number;
     relayers: CachedRelayerInfo[];
+    fromCache?: boolean;
 }
 export type BaseRegistryServiceConstructor = {
     netId: NetIdType;

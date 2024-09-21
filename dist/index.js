@@ -3344,7 +3344,8 @@ class BaseRegistryService extends BaseEventsService {
     return __async$8(this, null, function* () {
       return {
         timestamp: 0,
-        relayers: []
+        relayers: [],
+        fromCache: true
       };
     });
   }
@@ -3415,10 +3416,14 @@ class BaseRegistryService extends BaseEventsService {
    */
   updateRelayers() {
     return __async$8(this, null, function* () {
-      let { timestamp, relayers } = yield this.getSavedRelayers();
+      let { timestamp, relayers, fromCache } = yield this.getSavedRelayers();
+      let shouldSave = fromCache != null ? fromCache : false;
       if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
         console.log("\nUpdating relayers from registry\n");
         ({ timestamp, relayers } = yield this.getLatestRelayers());
+        shouldSave = true;
+      }
+      if (shouldSave) {
         yield this.saveRelayers({ timestamp, relayers });
       }
       return { timestamp, relayers };

@@ -31,7 +31,7 @@ import {
 } from '../batch';
 
 import type { fetchDataOptions } from '../providers';
-import type { NetIdType, Config, SubdomainMap } from '../networkConfig';
+import type { NetIdType, SubdomainMap } from '../networkConfig';
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 
 import type {
@@ -773,6 +773,7 @@ export interface CachedRelayerInfo extends RelayerParams {
 export interface CachedRelayers {
   timestamp: number;
   relayers: CachedRelayerInfo[];
+  fromCache?: boolean;
 }
 
 export type BaseRegistryServiceConstructor = {
@@ -858,6 +859,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     return {
       timestamp: 0,
       relayers: [],
+      fromCache: true,
     };
   }
 
@@ -939,13 +941,20 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
    * Get cached or latest relayer and save to local
    */
   async updateRelayers(): Promise<CachedRelayers> {
-    let { timestamp, relayers } = await this.getSavedRelayers();
+    // eslint-disable-next-line prefer-const
+    let { timestamp, relayers, fromCache } = await this.getSavedRelayers();
+
+    let shouldSave = fromCache ?? false;
 
     if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1000)) {
       console.log('\nUpdating relayers from registry\n');
 
       ({ timestamp, relayers } = await this.getLatestRelayers());
 
+      shouldSave = true;
+    }
+
+    if (shouldSave) {
       await this.saveRelayers({ timestamp, relayers });
     }
 
