@@ -1,4 +1,15 @@
-import { BaseContract, Provider, EventLog, TransactionResponse, getAddress, Block, ContractEventName } from 'ethers';
+import {
+  BaseContract,
+  Provider,
+  EventLog,
+  TransactionResponse,
+  getAddress,
+  Block,
+  ContractEventName,
+  namehash,
+  formatEther,
+} from 'ethers';
+
 import type {
   Tornado,
   TornadoRouter,
@@ -6,8 +17,11 @@ import type {
   Governance,
   RelayerRegistry,
   Echoer,
+  Aggregator,
 } from '@tornado/contracts';
+
 import * as graph from '../graphql';
+
 import {
   BatchEventsService,
   BatchBlockService,
@@ -15,8 +29,11 @@ import {
   BatchEventOnProgress,
   BatchBlockOnProgress,
 } from '../batch';
-import { fetchDataOptions } from '../providers';
-import type { NetIdType } from '../networkConfig';
+
+import type { fetchDataOptions } from '../providers';
+import type { NetIdType, Config, SubdomainMap } from '../networkConfig';
+import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
+
 import type {
   BaseEvents,
   CachedEvents,
@@ -741,27 +758,57 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
   }
 }
 
+/**
+ * Essential params:
+ * ensName, relayerAddress, hostnames
+ * Other data is for historic purpose from relayer registry
+ */
+export interface CachedRelayerInfo extends RelayerParams {
+  isRegistered?: boolean;
+  owner?: string;
+  stakeBalance?: string;
+  hostnames: SubdomainMap;
+}
+
+export interface CachedRelayers {
+  timestamp: number;
+  relayers: CachedRelayerInfo[];
+}
+
 export type BaseRegistryServiceConstructor = {
   netId: NetIdType;
   provider: Provider;
   graphApi?: string;
   subgraphName?: string;
   RelayerRegistry: RelayerRegistry;
+  Aggregator: Aggregator;
+  relayerEnsSubdomains: SubdomainMap;
   deployedBlock?: number;
   fetchDataOptions?: fetchDataOptions;
 };
 
 export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
+  Aggregator: Aggregator;
+  relayerEnsSubdomains: SubdomainMap;
+  updateInterval: number;
+
   constructor({
     netId,
     provider,
     graphApi,
     subgraphName,
     RelayerRegistry,
+    Aggregator,
+    relayerEnsSubdomains,
     deployedBlock,
     fetchDataOptions,
   }: BaseRegistryServiceConstructor) {
     super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions });
+
+    this.Aggregator = Aggregator;
+    this.relayerEnsSubdomains = relayerEnsSubdomains;
+
+    this.updateInterval = 86400;
   }
 
   getInstanceName() {
@@ -794,7 +841,114 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     });
   }
 
-  async fetchRelayers(): Promise<RegistersEvents[]> {
-    return (await this.updateEvents()).events;
+  /**
+   * Get saved or cached relayers
+   */
+  async getRelayersFromDB(): Promise<CachedRelayers> {
+    return {
+      timestamp: 0,
+      relayers: [],
+    };
+  }
+
+  /**
+   * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
+   */
+  async getRelayersFromCache(): Promise<CachedRelayers> {
+    return {
+      timestamp: 0,
+      relayers: [],
+    };
+  }
+
+  async getSavedRelayers(): Promise<CachedRelayers> {
+    let cachedRelayers = await this.getRelayersFromDB();
+
+    if (!cachedRelayers || !cachedRelayers.relayers.length) {
+      cachedRelayers = await this.getRelayersFromCache();
+    }
+
+    return cachedRelayers;
+  }
+
+  async getLatestRelayers(): Promise<CachedRelayers> {
+    const registerEvents = (await this.updateEvents()).events;
+
+    const subdomains = Object.values(this.relayerEnsSubdomains);
+
+    const registerSet = new Set();
+
+    const uniqueRegisters = registerEvents.reverse().filter(({ ensName }) => {
+      if (!registerSet.has(ensName)) {
+        registerSet.add(ensName);
+        return true;
+      }
+      return false;
+    });
+
+    const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
+
+    const [relayersData, timestamp] = await Promise.all([
+      this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains),
+      this.provider.getBlock('latest').then((b) => Number(b?.timestamp)),
+    ]);
+
+    const relayers = relayersData
+      .map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
+        const { ensName, relayerAddress } = uniqueRegisters[index];
+
+        const hostnames = {} as SubdomainMap;
+
+        records.forEach((record, recordIndex) => {
+          if (record) {
+            hostnames[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+          }
+        });
+
+        const isOwner = !relayerAddress || relayerAddress === owner;
+        const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+
+        const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
+
+        if (preCondition) {
+          return {
+            ensName,
+            relayerAddress,
+            isRegistered,
+            owner,
+            stakeBalance: formatEther(stakeBalance),
+            hostnames,
+          } as CachedRelayerInfo;
+        }
+      })
+      .filter((r) => r) as CachedRelayerInfo[];
+
+    return {
+      timestamp,
+      relayers,
+    };
+  }
+
+  /**
+   * Handle saving relayers
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async saveRelayers({ timestamp, relayers }: CachedRelayers) {}
+
+  /**
+   * Get cached or latest relayer and save to local
+   */
+  async updateRelayers(): Promise<CachedRelayers> {
+    let { timestamp, relayers } = await this.getSavedRelayers();
+
+    if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1000)) {
+      console.log('\nUpdating relayers from registry\n');
+
+      ({ timestamp, relayers } = await this.getLatestRelayers());
+
+      await this.saveRelayers({ timestamp, relayers });
+    }
+
+    return { timestamp, relayers };
   }
 }

@@ -87,6 +87,9 @@ export type Config = {
 export type networkConfig = {
     [key in NetIdType]: Config;
 };
+export type SubdomainMap = {
+    [key in NetIdType]: string;
+};
 export declare const defaultConfig: networkConfig;
 export declare const enabledChains: NetIdType[];
 /**
@@ -112,3 +115,4 @@ export declare function getInstanceByAddress({ netId, address }: {
     currency: string;
 } | undefined;
 export declare function getSubdomains(): string[];
+export declare function getRelayerEnsSubdomains(): SubdomainMap;

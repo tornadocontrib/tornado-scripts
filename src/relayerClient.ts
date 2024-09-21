@@ -1,43 +1,45 @@
-import { getAddress, namehash, parseEther } from 'ethers';
-import type { Aggregator } from '@tornado/contracts';
-import type { RelayerStructOutput } from '@tornado/contracts/dist/contracts/Governance/Aggregator/Aggregator';
+import { getAddress, parseEther } from 'ethers';
 import { sleep } from './utils';
 import { NetId, NetIdType, Config } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
 import { ajv, jobsSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
+import { CachedRelayerInfo } from './events/base';
+
+export const MIN_FEE = 0.1;
+
+export const MAX_FEE = 0.6;
 
 export const MIN_STAKE_BALANCE = parseEther('500');
 
 export interface RelayerParams {
   ensName: string;
-  relayerAddress?: string;
+  relayerAddress: string;
 }
 
-export interface Relayer {
+/**
+ * Info from relayer status
+ */
+export type RelayerInfo = RelayerParams & {
   netId: NetIdType;
   url: string;
   hostname: string;
   rewardAccount: string;
   instances: string[];
+  stakeBalance?: string;
   gasPrice?: number;
   ethPrices?: {
     [key in string]: string;
   };
   currentQueue: number;
   tornadoServiceFee: number;
-}
-
-export type RelayerInfo = Relayer & {
-  ensName: string;
-  stakeBalance: bigint;
-  relayerAddress: string;
 };
 
 export type RelayerError = {
   hostname: string;
   relayerAddress?: string;
   errorMessage?: string;
+  hasError: boolean;
 };
 
 export interface RelayerStatus {
@@ -117,18 +119,18 @@ export function isRelayerUpdated(relayerVersion: string, netId: NetIdType) {
   return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET); // Patch checking - also backwards compatibility for Mainnet
 }
 
-export function calculateScore({ stakeBalance, tornadoServiceFee }: RelayerInfo, minFee = 0.33, maxFee = 0.53) {
-  if (tornadoServiceFee < minFee) {
-    tornadoServiceFee = minFee;
-  } else if (tornadoServiceFee >= maxFee) {
+export function calculateScore({ stakeBalance, tornadoServiceFee }: RelayerInfo) {
+  if (tornadoServiceFee < MIN_FEE) {
+    tornadoServiceFee = MIN_FEE;
+  } else if (tornadoServiceFee >= MAX_FEE) {
     return BigInt(0);
   }
 
-  const serviceFeeCoefficient = (tornadoServiceFee - minFee) ** 2;
-  const feeDiffCoefficient = 1 / (maxFee - minFee) ** 2;
+  const serviceFeeCoefficient = (tornadoServiceFee - MIN_FEE) ** 2;
+  const feeDiffCoefficient = 1 / (MAX_FEE - MIN_FEE) ** 2;
   const coefficientsMultiplier = 1 - feeDiffCoefficient * serviceFeeCoefficient;
 
-  return BigInt(Math.floor(Number(stakeBalance) * coefficientsMultiplier));
+  return BigInt(Math.floor(Number(stakeBalance || '0') * coefficientsMultiplier));
 }
 
 export function getWeightRandom(weightsScores: bigint[], random: bigint) {
@@ -159,20 +161,13 @@ export function getSupportedInstances(instanceList: RelayerInstanceList) {
   return rawList.map((l) => getAddress(l));
 }
 
-export function pickWeightedRandomRelayer(relayers: RelayerInfo[], netId: NetIdType) {
-  let minFee: number, maxFee: number;
-
-  if (netId !== NetId.MAINNET) {
-    minFee = 0.01;
-    maxFee = 0.3;
-  }
-
-  const weightsScores = relayers.map((el) => calculateScore(el, minFee, maxFee));
+export function pickWeightedRandomRelayer(relayers: RelayerInfo[]) {
+  const weightsScores = relayers.map((el) => calculateScore(el));
   const totalWeight = weightsScores.reduce((acc, curr) => {
     return (acc = acc + curr);
   }, BigInt('0'));
 
-  const random = BigInt(Number(totalWeight) * Math.random());
+  const random = BigInt(Math.floor(Number(totalWeight) * Math.random()));
   const weightRandomIndex = getWeightRandom(weightsScores, random);
 
   return relayers[weightRandomIndex];
@@ -181,7 +176,6 @@ export function pickWeightedRandomRelayer(relayers: RelayerInfo[], netId: NetIdT
 export interface RelayerClientConstructor {
   netId: NetIdType;
   config: Config;
-  Aggregator: Aggregator;
   fetchDataOptions?: fetchDataOptions;
 }
 
@@ -192,14 +186,12 @@ export type RelayerClientWithdraw = snarkProofs & {
 export class RelayerClient {
   netId: NetIdType;
   config: Config;
-  Aggregator: Aggregator;
-  selectedRelayer?: Relayer;
+  selectedRelayer?: RelayerInfo;
   fetchDataOptions?: fetchDataOptions;
 
-  constructor({ netId, config, Aggregator, fetchDataOptions }: RelayerClientConstructor) {
+  constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor) {
     this.netId = netId;
     this.config = config;
-    this.Aggregator = Aggregator;
     this.fetchDataOptions = fetchDataOptions;
   }
 
@@ -251,101 +243,54 @@ export class RelayerClient {
     return status;
   }
 
-  async filterRelayer(
-    curr: RelayerStructOutput,
-    relayer: RelayerParams,
-    subdomains: string[],
-    debugRelayer: boolean = false,
-  ): Promise<RelayerInfo | RelayerError> {
-    const { relayerEnsSubdomain } = this.config;
-    const subdomainIndex = subdomains.indexOf(relayerEnsSubdomain);
-    const mainnetSubdomain = curr.records[0];
-    const hostname = curr.records[subdomainIndex];
-    const isHostWithProtocol = hostname.includes('http');
-
-    const { owner, balance: stakeBalance, isRegistered } = curr;
+  async filterRelayer(relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined> {
+    const hostname = relayer.hostnames[this.netId];
     const { ensName, relayerAddress } = relayer;
 
-    const isOwner = !relayerAddress || relayerAddress === owner;
-    const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+    if (!hostname) {
+      return;
+    }
 
-    const preCondition =
-      hostname && isOwner && mainnetSubdomain && isRegistered && hasMinBalance && !isHostWithProtocol;
+    try {
+      const status = await this.askRelayerStatus({ hostname, relayerAddress });
 
-    if (preCondition || debugRelayer) {
-      try {
-        const status = await this.askRelayerStatus({ hostname, relayerAddress });
-
-        return {
-          netId: status.netId,
-          url: status.url,
-          hostname,
-          ensName,
-          stakeBalance,
-          relayerAddress,
-          rewardAccount: getAddress(status.rewardAccount),
-          instances: getSupportedInstances(status.instances),
-          gasPrice: status.gasPrices?.fast,
-          ethPrices: status.ethPrices,
-          currentQueue: status.currentQueue,
-          tornadoServiceFee: status.tornadoServiceFee,
-        } as RelayerInfo;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        if (debugRelayer) {
-          throw err;
-        }
-        return {
-          hostname,
-          relayerAddress,
-          errorMessage: err.message,
-        } as RelayerError;
-      }
-    } else {
-      if (debugRelayer) {
-        const errMsg = `Relayer ${hostname} condition not met`;
-        throw new Error(errMsg);
-      }
+      return {
+        netId: status.netId,
+        url: status.url,
+        hostname,
+        ensName,
+        relayerAddress,
+        rewardAccount: getAddress(status.rewardAccount),
+        instances: getSupportedInstances(status.instances),
+        stakeBalance: relayer.stakeBalance,
+        gasPrice: status.gasPrices?.fast,
+        ethPrices: status.ethPrices,
+        currentQueue: status.currentQueue,
+        tornadoServiceFee: status.tornadoServiceFee,
+      } as RelayerInfo;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
       return {
         hostname,
         relayerAddress,
-        errorMessage: `Relayer ${hostname} condition not met`,
-      };
+        errorMessage: err.message,
+        hasError: true,
+      } as RelayerError;
     }
   }
 
-  async getValidRelayers(
-    // this should be ascending order of events
-    relayers: RelayerParams[],
-    subdomains: string[],
-    debugRelayer: boolean = false,
-  ): Promise<{
+  async getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
     validRelayers: RelayerInfo[];
     invalidRelayers: RelayerError[];
   }> {
-    const relayersSet = new Set();
-
-    const uniqueRelayers = relayers.reverse().filter(({ ensName }) => {
-      if (!relayersSet.has(ensName)) {
-        relayersSet.add(ensName);
-        return true;
-      }
-      return false;
-    });
-
-    const relayerNameHashes = uniqueRelayers.map((r) => namehash(r.ensName));
-
-    const relayersData = await this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains);
-
     const invalidRelayers: RelayerError[] = [];
 
-    const validRelayers = (
-      await Promise.all(
-        relayersData.map((curr, index) => this.filterRelayer(curr, uniqueRelayers[index], subdomains, debugRelayer)),
-      )
-    ).filter((r) => {
-      if ((r as RelayerError).errorMessage) {
-        invalidRelayers.push(r);
+    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
+      if (!r) {
+        return false;
+      }
+      if ((r as RelayerError).hasError) {
+        invalidRelayers.push(r as RelayerError);
         return false;
       }
       return true;
@@ -358,11 +303,11 @@ export class RelayerClient {
   }
 
   pickWeightedRandomRelayer(relayers: RelayerInfo[]) {
-    return pickWeightedRandomRelayer(relayers, this.netId);
+    return pickWeightedRandomRelayer(relayers);
   }
 
   async tornadoWithdraw({ contract, proof, args }: RelayerClientWithdraw) {
-    const { url } = this.selectedRelayer as Relayer;
+    const { url } = this.selectedRelayer as RelayerInfo;
 
     const withdrawResponse = (await fetchData(`${url}v1/tornadoWithdraw`, {
       ...this.fetchDataOptions,

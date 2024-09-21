@@ -102,6 +102,10 @@ export type networkConfig = {
   [key in NetIdType]: Config;
 };
 
+export type SubdomainMap = {
+  [key in NetIdType]: string;
+};
+
 export const defaultConfig: networkConfig = {
   [NetId.MAINNET]: {
     rpcCallRetryAttempt: 15,
@@ -611,10 +615,6 @@ export const defaultConfig: networkConfig = {
     tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
     subgraphs: {},
     rpcUrls: {
-      pandaops: {
-        name: 'ethpandaops',
-        url: 'https://rpc.sepolia.ethpandaops.io',
-      },
       sepolia: {
         name: 'Sepolia RPC',
         url: 'https://rpc.sepolia.org',
@@ -626,6 +626,10 @@ export const defaultConfig: networkConfig = {
       onerpc: {
         name: '1rpc',
         url: 'https://1rpc.io/sepolia',
+      },
+      ethpandaops: {
+        name: 'ethpandaops',
+        url: 'https://rpc.sepolia.ethpandaops.io',
       },
     },
     tokens: {
@@ -737,4 +741,13 @@ export function getSubdomains() {
   const allConfig = getNetworkConfig();
 
   return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
+}
+
+export function getRelayerEnsSubdomains() {
+  const allConfig = getNetworkConfig();
+
+  return Object.keys(allConfig).reduce((acc, chain) => {
+    acc[Number(chain)] = allConfig[Number(chain)].relayerEnsSubdomain;
+    return acc;
+  }, {} as SubdomainMap);
 }

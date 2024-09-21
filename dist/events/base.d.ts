@@ -1,8 +1,9 @@
 import { BaseContract, Provider, EventLog, ContractEventName } from 'ethers';
-import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer } from '@tornado/contracts';
+import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
-import { fetchDataOptions } from '../providers';
-import type { NetIdType } from '../networkConfig';
+import type { fetchDataOptions } from '../providers';
+import type { NetIdType, SubdomainMap } from '../networkConfig';
+import { RelayerParams } from '../relayerClient';
 import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
 export declare const DEPOSIT = "deposit";
 export declare const WITHDRAWAL = "withdrawal";
@@ -169,17 +170,37 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
         fromBlock: number;
     }): Promise<BaseEvents<AllGovernanceEvents>>;
 }
+/**
+ * Essential params:
+ * ensName, relayerAddress, hostnames
+ * Other data is for historic purpose from relayer registry
+ */
+export interface CachedRelayerInfo extends RelayerParams {
+    isRegistered?: boolean;
+    owner?: string;
+    stakeBalance?: string;
+    hostnames: SubdomainMap;
+}
+export interface CachedRelayers {
+    timestamp: number;
+    relayers: CachedRelayerInfo[];
+}
 export type BaseRegistryServiceConstructor = {
     netId: NetIdType;
     provider: Provider;
     graphApi?: string;
     subgraphName?: string;
     RelayerRegistry: RelayerRegistry;
+    Aggregator: Aggregator;
+    relayerEnsSubdomains: SubdomainMap;
     deployedBlock?: number;
     fetchDataOptions?: fetchDataOptions;
 };
 export declare class BaseRegistryService extends BaseEventsService<RegistersEvents> {
-    constructor({ netId, provider, graphApi, subgraphName, RelayerRegistry, deployedBlock, fetchDataOptions, }: BaseRegistryServiceConstructor);
+    Aggregator: Aggregator;
+    relayerEnsSubdomains: SubdomainMap;
+    updateInterval: number;
+    constructor({ netId, provider, graphApi, subgraphName, RelayerRegistry, Aggregator, relayerEnsSubdomains, deployedBlock, fetchDataOptions, }: BaseRegistryServiceConstructor);
     getInstanceName(): string;
     getType(): string;
     getGraphMethod(): string;
@@ -190,5 +211,22 @@ export declare class BaseRegistryService extends BaseEventsService<RegistersEven
         logIndex: number;
         transactionHash: string;
     }[]>;
-    fetchRelayers(): Promise<RegistersEvents[]>;
+    /**
+     * Get saved or cached relayers
+     */
+    getRelayersFromDB(): Promise<CachedRelayers>;
+    /**
+     * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
+     */
+    getRelayersFromCache(): Promise<CachedRelayers>;
+    getSavedRelayers(): Promise<CachedRelayers>;
+    getLatestRelayers(): Promise<CachedRelayers>;
+    /**
+     * Handle saving relayers
+     */
+    saveRelayers({ timestamp, relayers }: CachedRelayers): Promise<void>;
+    /**
+     * Get cached or latest relayer and save to local
+     */
+    updateRelayers(): Promise<CachedRelayers>;
 }

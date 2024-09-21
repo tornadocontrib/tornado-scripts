@@ -1722,13 +1722,9 @@ class BatchEventsService {
 }
 
 var __defProp$2 = Object.defineProperty;
-var __defProps$1 = Object.defineProperties;
-var __getOwnPropDescs$1 = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
-var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
 var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
-var __reflectGet = Reflect.get;
 var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __spreadValues$2 = (a, b) => {
   for (var prop in b || (b = {}))
@@ -1738,598 +1734,6 @@ var __spreadValues$2 = (a, b) => {
     for (var prop of __getOwnPropSymbols$2(b)) {
       if (__propIsEnum$2.call(b, prop))
         __defNormalProp$2(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$1 = (a, b) => __defProps$1(a, __getOwnPropDescs$1(b));
-var __superGet = (cls, obj, key) => __reflectGet(__getProtoOf(cls), key, obj);
-var __async$9 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-const DEPOSIT = "deposit";
-const WITHDRAWAL = "withdrawal";
-class BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    contract,
-    type = "",
-    deployedBlock = 0,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    this.netId = netId;
-    this.provider = provider;
-    this.graphApi = graphApi;
-    this.subgraphName = subgraphName;
-    this.fetchDataOptions = fetchDataOptions2;
-    this.contract = contract;
-    this.type = type;
-    this.deployedBlock = deployedBlock;
-    this.batchEventsService = new BatchEventsService({
-      provider,
-      contract,
-      onProgress: this.updateEventProgress
-    });
-  }
-  getInstanceName() {
-    return "";
-  }
-  getType() {
-    return this.type || "";
-  }
-  getGraphMethod() {
-    return "";
-  }
-  getGraphParams() {
-    return {
-      graphApi: this.graphApi || "",
-      subgraphName: this.subgraphName || "",
-      fetchDataOptions: this.fetchDataOptions,
-      onProgress: this.updateGraphProgress
-    };
-  }
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  updateEventProgress({ percentage, type, fromBlock, toBlock, count }) {
-  }
-  updateBlockProgress({ percentage, currentIndex, totalIndex }) {
-  }
-  updateTransactionProgress({ percentage, currentIndex, totalIndex }) {
-  }
-  updateGraphProgress({ type, fromBlock, toBlock, count }) {
-  }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      return yield new Promise((resolve) => resolve(events));
-    });
-  }
-  /**
-   * Get saved or cached events
-   */
-  getEventsFromDB() {
-    return __async$9(this, null, function* () {
-      return {
-        events: [],
-        lastBlock: null
-      };
-    });
-  }
-  /**
-   * Events from remote cache (Either from local cache, CDN, or from IPFS)
-   */
-  getEventsFromCache() {
-    return __async$9(this, null, function* () {
-      return {
-        events: [],
-        lastBlock: null,
-        fromCache: true
-      };
-    });
-  }
-  getSavedEvents() {
-    return __async$9(this, null, function* () {
-      let cachedEvents = yield this.getEventsFromDB();
-      if (!cachedEvents || !cachedEvents.events.length) {
-        cachedEvents = yield this.getEventsFromCache();
-      }
-      return cachedEvents;
-    });
-  }
-  /**
-   * Get latest events
-   */
-  getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({
-      fromBlock,
-      methodName = ""
-    }) {
-      if (!this.graphApi || !this.subgraphName) {
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
-      }
-      const { events, lastSyncBlock } = yield graph[methodName || this.getGraphMethod()](__spreadValues$2({
-        fromBlock
-      }, this.getGraphParams()));
-      return {
-        events,
-        lastBlock: lastSyncBlock
-      };
-    });
-  }
-  getEventsFromRpc(_0) {
-    return __async$9(this, arguments, function* ({
-      fromBlock,
-      toBlock
-    }) {
-      try {
-        if (!toBlock) {
-          toBlock = yield this.provider.getBlockNumber();
-        }
-        if (fromBlock >= toBlock) {
-          return {
-            events: [],
-            lastBlock: toBlock
-          };
-        }
-        this.updateEventProgress({ percentage: 0, type: this.getType() });
-        const events = yield this.formatEvents(
-          yield this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
-        );
-        if (!events.length) {
-          return {
-            events,
-            lastBlock: toBlock
-          };
-        }
-        return {
-          events,
-          lastBlock: toBlock
-        };
-      } catch (err) {
-        console.log(err);
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
-      }
-    });
-  }
-  getLatestEvents(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
-      const allEvents = [];
-      const graphEvents = yield this.getEventsFromGraph({ fromBlock });
-      const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
-      const rpcEvents = yield this.getEventsFromRpc({ fromBlock: lastSyncBlock });
-      allEvents.push(...graphEvents.events);
-      allEvents.push(...rpcEvents.events);
-      const lastBlock = rpcEvents ? rpcEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : fromBlock;
-      return {
-        events: allEvents,
-        lastBlock
-      };
-    });
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  validateEvents({ events, lastBlock }) {
-  }
-  /**
-   * Handle saving events
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  saveEvents(_0) {
-    return __async$9(this, arguments, function* ({ events, lastBlock }) {
-    });
-  }
-  /**
-   * Trigger saving and receiving latest events
-   */
-  updateEvents() {
-    return __async$9(this, null, function* () {
-      const savedEvents = yield this.getSavedEvents();
-      let fromBlock = this.deployedBlock;
-      if (savedEvents && savedEvents.lastBlock) {
-        fromBlock = savedEvents.lastBlock + 1;
-      }
-      const newEvents = yield this.getLatestEvents({ fromBlock });
-      const eventSet = /* @__PURE__ */ new Set();
-      let allEvents = [];
-      allEvents.push(...savedEvents.events);
-      allEvents.push(...newEvents.events);
-      allEvents = allEvents.sort((a, b) => {
-        if (a.blockNumber === b.blockNumber) {
-          return a.logIndex - b.logIndex;
-        }
-        return a.blockNumber - b.blockNumber;
-      }).filter(({ transactionHash, logIndex }) => {
-        const eventKey = `${transactionHash}_${logIndex}`;
-        const hasEvent = eventSet.has(eventKey);
-        eventSet.add(eventKey);
-        return !hasEvent;
-      });
-      const lastBlock = newEvents ? newEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : null;
-      this.validateEvents({ events: allEvents, lastBlock });
-      if (savedEvents.fromCache || newEvents.events.length) {
-        yield this.saveEvents({ events: allEvents, lastBlock });
-      }
-      return {
-        events: allEvents,
-        lastBlock
-      };
-    });
-  }
-}
-class BaseTornadoService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Tornado,
-    type,
-    amount,
-    currency,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions: fetchDataOptions2 });
-    this.amount = amount;
-    this.currency = currency;
-    this.batchTransactionService = new BatchTransactionService({
-      provider,
-      onProgress: this.updateTransactionProgress
-    });
-    this.batchBlockService = new BatchBlockService({
-      provider,
-      onProgress: this.updateBlockProgress
-    });
-  }
-  getInstanceName() {
-    return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
-  }
-  getGraphMethod() {
-    return `getAll${this.getType()}s`;
-  }
-  getGraphParams() {
-    return {
-      graphApi: this.graphApi || "",
-      subgraphName: this.subgraphName || "",
-      amount: this.amount,
-      currency: this.currency,
-      fetchDataOptions: this.fetchDataOptions,
-      onProgress: this.updateGraphProgress
-    };
-  }
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      const type = this.getType().toLowerCase();
-      if (type === DEPOSIT) {
-        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-          const { commitment, leafIndex, timestamp } = args;
-          return {
-            blockNumber,
-            logIndex,
-            transactionHash,
-            commitment,
-            leafIndex: Number(leafIndex),
-            timestamp: Number(timestamp)
-          };
-        });
-        const txs = yield this.batchTransactionService.getBatchTransactions([
-          ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash))
-        ]);
-        return formattedEvents.map((event) => {
-          const { from } = txs.find(({ hash }) => hash === event.transactionHash);
-          return __spreadProps$1(__spreadValues$2({}, event), {
-            from
-          });
-        });
-      } else {
-        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-          const { nullifierHash, to, fee } = args;
-          return {
-            blockNumber,
-            logIndex,
-            transactionHash,
-            nullifierHash: String(nullifierHash),
-            to: ethers.getAddress(to),
-            fee: String(fee)
-          };
-        });
-        const blocks = yield this.batchBlockService.getBatchBlocks([
-          ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber))
-        ]);
-        return formattedEvents.map((event) => {
-          const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
-          return __spreadProps$1(__spreadValues$2({}, event), {
-            timestamp
-          });
-        });
-      }
-    });
-  }
-  validateEvents({ events }) {
-    if (events.length && this.getType().toLowerCase() === DEPOSIT) {
-      const lastEvent = events[events.length - 1];
-      if (lastEvent.leafIndex !== events.length - 1) {
-        const errMsg = `Deposit events invalid wants ${events.length - 1} leafIndex have ${lastEvent.leafIndex}`;
-        throw new Error(errMsg);
-      }
-    }
-  }
-}
-class BaseEchoService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Echoer,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions: fetchDataOptions2 });
-  }
-  getInstanceName() {
-    return `echo_${this.netId}`;
-  }
-  getType() {
-    return "Echo";
-  }
-  getGraphMethod() {
-    return "getAllGraphEchoEvents";
-  }
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const { who, data } = args;
-        if (who && data) {
-          const eventObjects = {
-            blockNumber,
-            logIndex,
-            transactionHash
-          };
-          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-            address: who,
-            encryptedAccount: data
-          });
-        }
-      }).filter((e) => e);
-    });
-  }
-  getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
-      if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
-      }
-      return __superGet(BaseEchoService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
-    });
-  }
-}
-class BaseEncryptedNotesService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Router,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions: fetchDataOptions2 });
-  }
-  getInstanceName() {
-    return `encrypted_notes_${this.netId}`;
-  }
-  getType() {
-    return "EncryptedNote";
-  }
-  getGraphMethod() {
-    return "getAllEncryptedNotes";
-  }
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const { encryptedNote } = args;
-        if (encryptedNote) {
-          const eventObjects = {
-            blockNumber,
-            logIndex,
-            transactionHash
-          };
-          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-            encryptedNote
-          });
-        }
-      }).filter((e) => e);
-    });
-  }
-}
-class BaseGovernanceService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Governance,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions: fetchDataOptions2 });
-    this.batchTransactionService = new BatchTransactionService({
-      provider,
-      onProgress: this.updateTransactionProgress
-    });
-  }
-  getInstanceName() {
-    return `governance_${this.netId}`;
-  }
-  getType() {
-    return "*";
-  }
-  getGraphMethod() {
-    return "getAllGovernanceEvents";
-  }
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      const proposalEvents = [];
-      const votedEvents = [];
-      const delegatedEvents = [];
-      const undelegatedEvents = [];
-      events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
-        const eventObjects = {
-          blockNumber,
-          logIndex,
-          transactionHash,
-          event
-        };
-        if (event === "ProposalCreated") {
-          const { id, proposer, target, startTime, endTime, description } = args;
-          proposalEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            id: Number(id),
-            proposer,
-            target,
-            startTime: Number(startTime),
-            endTime: Number(endTime),
-            description
-          }));
-        }
-        if (event === "Voted") {
-          const { proposalId, voter, support, votes } = args;
-          votedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            proposalId: Number(proposalId),
-            voter,
-            support,
-            votes,
-            from: "",
-            input: ""
-          }));
-        }
-        if (event === "Delegated") {
-          const { account, to: delegateTo } = args;
-          delegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            account,
-            delegateTo
-          }));
-        }
-        if (event === "Undelegated") {
-          const { account, from: delegateFrom } = args;
-          undelegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            account,
-            delegateFrom
-          }));
-        }
-      });
-      if (votedEvents.length) {
-        this.updateTransactionProgress({ percentage: 0 });
-        const txs = yield this.batchTransactionService.getBatchTransactions([
-          ...new Set(votedEvents.map(({ transactionHash }) => transactionHash))
-        ]);
-        votedEvents.forEach((event, index) => {
-          let { data: input, from } = txs.find((t) => t.hash === event.transactionHash);
-          if (!input || input.length > 2048) {
-            input = "";
-          }
-          votedEvents[index].from = from;
-          votedEvents[index].input = input;
-        });
-      }
-      return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
-    });
-  }
-  getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
-      if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
-      }
-      return __superGet(BaseGovernanceService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
-    });
-  }
-}
-class BaseRegistryService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    RelayerRegistry,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions: fetchDataOptions2 });
-  }
-  getInstanceName() {
-    return `registered_${this.netId}`;
-  }
-  // Name of type used for events
-  getType() {
-    return "RelayerRegistered";
-  }
-  // Name of method used for graph
-  getGraphMethod() {
-    return "getAllRegisters";
-  }
-  formatEvents(events) {
-    return __async$9(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const eventObjects = {
-          blockNumber,
-          logIndex,
-          transactionHash
-        };
-        return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-          ensName: args.ensName,
-          relayerAddress: args.relayerAddress
-        });
-      });
-    });
-  }
-  fetchRelayers() {
-    return __async$9(this, null, function* () {
-      return (yield this.updateEvents()).events;
-    });
-  }
-}
-
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
-var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
-var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$1 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$1.call(b, prop))
-      __defNormalProp$1(a, prop, b[prop]);
-  if (__getOwnPropSymbols$1)
-    for (var prop of __getOwnPropSymbols$1(b)) {
-      if (__propIsEnum$1.call(b, prop))
-        __defNormalProp$1(a, prop, b[prop]);
     }
   return a;
 };
@@ -2853,10 +2257,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      pandaops: {
-        name: "ethpandaops",
-        url: "https://rpc.sepolia.ethpandaops.io"
-      },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
@@ -2868,6 +2268,10 @@ const defaultConfig = {
       onerpc: {
         name: "1rpc",
         url: "https://1rpc.io/sepolia"
+      },
+      ethpandaops: {
+        name: "ethpandaops",
+        url: "https://rpc.sepolia.ethpandaops.io"
       }
     },
     tokens: {
@@ -2911,10 +2315,10 @@ function addNetwork(newConfig) {
   enabledChains.push(
     ...Object.keys(newConfig).map((netId) => Number(netId)).filter((netId) => !enabledChains.includes(netId))
   );
-  exports.customConfig = __spreadValues$1(__spreadValues$1({}, exports.customConfig), newConfig);
+  exports.customConfig = __spreadValues$2(__spreadValues$2({}, exports.customConfig), newConfig);
 }
 function getNetworkConfig() {
-  const allConfig = __spreadValues$1(__spreadValues$1({}, defaultConfig), exports.customConfig);
+  const allConfig = __spreadValues$2(__spreadValues$2({}, defaultConfig), exports.customConfig);
   return enabledChains.reduce((acc, curr) => {
     acc[curr] = allConfig[curr];
     return acc;
@@ -2945,6 +2349,13 @@ function getInstanceByAddress({ netId, address }) {
 function getSubdomains() {
   const allConfig = getNetworkConfig();
   return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
+}
+function getRelayerEnsSubdomains() {
+  const allConfig = getNetworkConfig();
+  return Object.keys(allConfig).reduce((acc, chain) => {
+    acc[Number(chain)] = allConfig[Number(chain)].relayerEnsSubdomain;
+    return acc;
+  }, {});
 }
 
 const addressType = { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" };
@@ -3070,6 +2481,950 @@ ajv.addKeyword({
   },
   errors: true
 });
+
+var __defProp$1 = Object.defineProperty;
+var __defProps$1 = Object.defineProperties;
+var __getOwnPropDescs$1 = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
+var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$1 = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp$1.call(b, prop))
+      __defNormalProp$1(a, prop, b[prop]);
+  if (__getOwnPropSymbols$1)
+    for (var prop of __getOwnPropSymbols$1(b)) {
+      if (__propIsEnum$1.call(b, prop))
+        __defNormalProp$1(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps$1 = (a, b) => __defProps$1(a, __getOwnPropDescs$1(b));
+var __async$9 = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+const MIN_FEE = 0.1;
+const MAX_FEE = 0.6;
+const MIN_STAKE_BALANCE = ethers.parseEther("500");
+const semVerRegex = new RegExp("^(?<major>0|[1-9]\\d*)\\.(?<minor>0|[1-9]\\d*)\\.(?<patch>0|[1-9]\\d*)(?:-(?<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$");
+function parseSemanticVersion(version) {
+  const { groups } = semVerRegex.exec(version);
+  return groups;
+}
+function isRelayerUpdated(relayerVersion, netId) {
+  const { major, patch, prerelease } = parseSemanticVersion(relayerVersion);
+  const requiredMajor = netId === NetId.MAINNET ? "4" : "5";
+  const isUpdatedMajor = major === requiredMajor;
+  if (prerelease) return false;
+  return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET);
+}
+function calculateScore({ stakeBalance, tornadoServiceFee }) {
+  if (tornadoServiceFee < MIN_FEE) {
+    tornadoServiceFee = MIN_FEE;
+  } else if (tornadoServiceFee >= MAX_FEE) {
+    return BigInt(0);
+  }
+  const serviceFeeCoefficient = (tornadoServiceFee - MIN_FEE) ** 2;
+  const feeDiffCoefficient = 1 / (MAX_FEE - MIN_FEE) ** 2;
+  const coefficientsMultiplier = 1 - feeDiffCoefficient * serviceFeeCoefficient;
+  return BigInt(Math.floor(Number(stakeBalance || "0") * coefficientsMultiplier));
+}
+function getWeightRandom(weightsScores, random) {
+  for (let i = 0; i < weightsScores.length; i++) {
+    if (random < weightsScores[i]) {
+      return i;
+    }
+    random = random - weightsScores[i];
+  }
+  return Math.floor(Math.random() * weightsScores.length);
+}
+function getSupportedInstances(instanceList) {
+  const rawList = Object.values(instanceList).map(({ instanceAddress }) => {
+    return Object.values(instanceAddress);
+  }).flat();
+  return rawList.map((l) => ethers.getAddress(l));
+}
+function pickWeightedRandomRelayer(relayers) {
+  const weightsScores = relayers.map((el) => calculateScore(el));
+  const totalWeight = weightsScores.reduce((acc, curr) => {
+    return acc = acc + curr;
+  }, BigInt("0"));
+  const random = BigInt(Math.floor(Number(totalWeight) * Math.random()));
+  const weightRandomIndex = getWeightRandom(weightsScores, random);
+  return relayers[weightRandomIndex];
+}
+class RelayerClient {
+  constructor({ netId, config, fetchDataOptions: fetchDataOptions2 }) {
+    this.netId = netId;
+    this.config = config;
+    this.fetchDataOptions = fetchDataOptions2;
+  }
+  askRelayerStatus(_0) {
+    return __async$9(this, arguments, function* ({
+      hostname,
+      relayerAddress
+    }) {
+      var _a, _b;
+      const url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
+      const rawStatus = yield fetchData(`${url}status`, __spreadProps$1(__spreadValues$1({}, this.fetchDataOptions), {
+        headers: {
+          "Content-Type": "application/json, application/x-www-form-urlencoded"
+        },
+        timeout: ((_a = this.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
+        maxRetry: ((_b = this.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
+      }));
+      const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config));
+      if (!statusValidator(rawStatus)) {
+        throw new Error("Invalid status schema");
+      }
+      const status = __spreadProps$1(__spreadValues$1({}, rawStatus), {
+        url
+      });
+      if (status.currentQueue > 5) {
+        throw new Error("Withdrawal queue is overloaded");
+      }
+      if (status.netId !== this.netId) {
+        throw new Error("This relayer serves a different network");
+      }
+      if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
+        throw new Error("The Relayer reward address must match registered address");
+      }
+      if (!isRelayerUpdated(status.version, this.netId)) {
+        throw new Error("Outdated version.");
+      }
+      return status;
+    });
+  }
+  filterRelayer(relayer) {
+    return __async$9(this, null, function* () {
+      var _a;
+      const hostname = relayer.hostnames[this.netId];
+      const { ensName, relayerAddress } = relayer;
+      if (!hostname) {
+        return;
+      }
+      try {
+        const status = yield this.askRelayerStatus({ hostname, relayerAddress });
+        return {
+          netId: status.netId,
+          url: status.url,
+          hostname,
+          ensName,
+          relayerAddress,
+          rewardAccount: ethers.getAddress(status.rewardAccount),
+          instances: getSupportedInstances(status.instances),
+          stakeBalance: relayer.stakeBalance,
+          gasPrice: (_a = status.gasPrices) == null ? void 0 : _a.fast,
+          ethPrices: status.ethPrices,
+          currentQueue: status.currentQueue,
+          tornadoServiceFee: status.tornadoServiceFee
+        };
+      } catch (err) {
+        return {
+          hostname,
+          relayerAddress,
+          errorMessage: err.message,
+          hasError: true
+        };
+      }
+    });
+  }
+  getValidRelayers(relayers) {
+    return __async$9(this, null, function* () {
+      const invalidRelayers = [];
+      const validRelayers = (yield Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
+        if (!r) {
+          return false;
+        }
+        if (r.hasError) {
+          invalidRelayers.push(r);
+          return false;
+        }
+        return true;
+      });
+      return {
+        validRelayers,
+        invalidRelayers
+      };
+    });
+  }
+  pickWeightedRandomRelayer(relayers) {
+    return pickWeightedRandomRelayer(relayers);
+  }
+  tornadoWithdraw(_0) {
+    return __async$9(this, arguments, function* ({ contract, proof, args }) {
+      const { url } = this.selectedRelayer;
+      const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps$1(__spreadValues$1({}, this.fetchDataOptions), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contract,
+          proof,
+          args
+        })
+      }));
+      const { id, error } = withdrawResponse;
+      if (error) {
+        throw new Error(error);
+      }
+      let relayerStatus;
+      const jobUrl = `${url}v1/jobs/${id}`;
+      console.log(`Job submitted: ${jobUrl}
+`);
+      while (!relayerStatus || !["FAILED", "CONFIRMED"].includes(relayerStatus)) {
+        const jobResponse = yield fetchData(jobUrl, __spreadProps$1(__spreadValues$1({}, this.fetchDataOptions), {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }));
+        if (jobResponse.error) {
+          throw new Error(error);
+        }
+        const jobValidator = ajv.compile(jobsSchema);
+        if (!jobValidator(jobResponse)) {
+          const errMsg = `${jobUrl} has an invalid job response`;
+          throw new Error(errMsg);
+        }
+        const { status, txHash, confirmations, failedReason } = jobResponse;
+        if (relayerStatus !== status) {
+          if (status === "FAILED") {
+            const errMsg = `Job ${status}: ${jobUrl} failed reason: ${failedReason}`;
+            throw new Error(errMsg);
+          } else if (status === "SENT") {
+            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}
+`);
+          } else if (status === "MINED") {
+            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
+`);
+          } else if (status === "CONFIRMED") {
+            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
+`);
+          } else {
+            console.log(`Job ${status}: ${jobUrl}
+`);
+          }
+          relayerStatus = status;
+        }
+        yield sleep(3e3);
+      }
+    });
+  }
+}
+
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __reflectGet = Reflect.get;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __superGet = (cls, obj, key) => __reflectGet(__getProtoOf(cls), key, obj);
+var __async$8 = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+const DEPOSIT = "deposit";
+const WITHDRAWAL = "withdrawal";
+class BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    contract,
+    type = "",
+    deployedBlock = 0,
+    fetchDataOptions
+  }) {
+    this.netId = netId;
+    this.provider = provider;
+    this.graphApi = graphApi;
+    this.subgraphName = subgraphName;
+    this.fetchDataOptions = fetchDataOptions;
+    this.contract = contract;
+    this.type = type;
+    this.deployedBlock = deployedBlock;
+    this.batchEventsService = new BatchEventsService({
+      provider,
+      contract,
+      onProgress: this.updateEventProgress
+    });
+  }
+  getInstanceName() {
+    return "";
+  }
+  getType() {
+    return this.type || "";
+  }
+  getGraphMethod() {
+    return "";
+  }
+  getGraphParams() {
+    return {
+      graphApi: this.graphApi || "",
+      subgraphName: this.subgraphName || "",
+      fetchDataOptions: this.fetchDataOptions,
+      onProgress: this.updateGraphProgress
+    };
+  }
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  updateEventProgress({ percentage, type, fromBlock, toBlock, count }) {
+  }
+  updateBlockProgress({ percentage, currentIndex, totalIndex }) {
+  }
+  updateTransactionProgress({ percentage, currentIndex, totalIndex }) {
+  }
+  updateGraphProgress({ type, fromBlock, toBlock, count }) {
+  }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      return yield new Promise((resolve) => resolve(events));
+    });
+  }
+  /**
+   * Get saved or cached events
+   */
+  getEventsFromDB() {
+    return __async$8(this, null, function* () {
+      return {
+        events: [],
+        lastBlock: null
+      };
+    });
+  }
+  /**
+   * Events from remote cache (Either from local cache, CDN, or from IPFS)
+   */
+  getEventsFromCache() {
+    return __async$8(this, null, function* () {
+      return {
+        events: [],
+        lastBlock: null,
+        fromCache: true
+      };
+    });
+  }
+  getSavedEvents() {
+    return __async$8(this, null, function* () {
+      let cachedEvents = yield this.getEventsFromDB();
+      if (!cachedEvents || !cachedEvents.events.length) {
+        cachedEvents = yield this.getEventsFromCache();
+      }
+      return cachedEvents;
+    });
+  }
+  /**
+   * Get latest events
+   */
+  getEventsFromGraph(_0) {
+    return __async$8(this, arguments, function* ({
+      fromBlock,
+      methodName = ""
+    }) {
+      if (!this.graphApi || !this.subgraphName) {
+        return {
+          events: [],
+          lastBlock: fromBlock
+        };
+      }
+      const { events, lastSyncBlock } = yield graph[methodName || this.getGraphMethod()](__spreadValues({
+        fromBlock
+      }, this.getGraphParams()));
+      return {
+        events,
+        lastBlock: lastSyncBlock
+      };
+    });
+  }
+  getEventsFromRpc(_0) {
+    return __async$8(this, arguments, function* ({
+      fromBlock,
+      toBlock
+    }) {
+      try {
+        if (!toBlock) {
+          toBlock = yield this.provider.getBlockNumber();
+        }
+        if (fromBlock >= toBlock) {
+          return {
+            events: [],
+            lastBlock: toBlock
+          };
+        }
+        this.updateEventProgress({ percentage: 0, type: this.getType() });
+        const events = yield this.formatEvents(
+          yield this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
+        );
+        if (!events.length) {
+          return {
+            events,
+            lastBlock: toBlock
+          };
+        }
+        return {
+          events,
+          lastBlock: toBlock
+        };
+      } catch (err) {
+        console.log(err);
+        return {
+          events: [],
+          lastBlock: fromBlock
+        };
+      }
+    });
+  }
+  getLatestEvents(_0) {
+    return __async$8(this, arguments, function* ({ fromBlock }) {
+      const allEvents = [];
+      const graphEvents = yield this.getEventsFromGraph({ fromBlock });
+      const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
+      const rpcEvents = yield this.getEventsFromRpc({ fromBlock: lastSyncBlock });
+      allEvents.push(...graphEvents.events);
+      allEvents.push(...rpcEvents.events);
+      const lastBlock = rpcEvents ? rpcEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : fromBlock;
+      return {
+        events: allEvents,
+        lastBlock
+      };
+    });
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  validateEvents({ events, lastBlock }) {
+  }
+  /**
+   * Handle saving events
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  saveEvents(_0) {
+    return __async$8(this, arguments, function* ({ events, lastBlock }) {
+    });
+  }
+  /**
+   * Trigger saving and receiving latest events
+   */
+  updateEvents() {
+    return __async$8(this, null, function* () {
+      const savedEvents = yield this.getSavedEvents();
+      let fromBlock = this.deployedBlock;
+      if (savedEvents && savedEvents.lastBlock) {
+        fromBlock = savedEvents.lastBlock + 1;
+      }
+      const newEvents = yield this.getLatestEvents({ fromBlock });
+      const eventSet = /* @__PURE__ */ new Set();
+      let allEvents = [];
+      allEvents.push(...savedEvents.events);
+      allEvents.push(...newEvents.events);
+      allEvents = allEvents.sort((a, b) => {
+        if (a.blockNumber === b.blockNumber) {
+          return a.logIndex - b.logIndex;
+        }
+        return a.blockNumber - b.blockNumber;
+      }).filter(({ transactionHash, logIndex }) => {
+        const eventKey = `${transactionHash}_${logIndex}`;
+        const hasEvent = eventSet.has(eventKey);
+        eventSet.add(eventKey);
+        return !hasEvent;
+      });
+      const lastBlock = newEvents ? newEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : null;
+      this.validateEvents({ events: allEvents, lastBlock });
+      if (savedEvents.fromCache || newEvents.events.length) {
+        yield this.saveEvents({ events: allEvents, lastBlock });
+      }
+      return {
+        events: allEvents,
+        lastBlock
+      };
+    });
+  }
+}
+class BaseTornadoService extends BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    Tornado,
+    type,
+    amount,
+    currency,
+    deployedBlock,
+    fetchDataOptions
+  }) {
+    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions });
+    this.amount = amount;
+    this.currency = currency;
+    this.batchTransactionService = new BatchTransactionService({
+      provider,
+      onProgress: this.updateTransactionProgress
+    });
+    this.batchBlockService = new BatchBlockService({
+      provider,
+      onProgress: this.updateBlockProgress
+    });
+  }
+  getInstanceName() {
+    return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
+  }
+  getGraphMethod() {
+    return `getAll${this.getType()}s`;
+  }
+  getGraphParams() {
+    return {
+      graphApi: this.graphApi || "",
+      subgraphName: this.subgraphName || "",
+      amount: this.amount,
+      currency: this.currency,
+      fetchDataOptions: this.fetchDataOptions,
+      onProgress: this.updateGraphProgress
+    };
+  }
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      const type = this.getType().toLowerCase();
+      if (type === DEPOSIT) {
+        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+          const { commitment, leafIndex, timestamp } = args;
+          return {
+            blockNumber,
+            logIndex,
+            transactionHash,
+            commitment,
+            leafIndex: Number(leafIndex),
+            timestamp: Number(timestamp)
+          };
+        });
+        const txs = yield this.batchTransactionService.getBatchTransactions([
+          ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash))
+        ]);
+        return formattedEvents.map((event) => {
+          const { from } = txs.find(({ hash }) => hash === event.transactionHash);
+          return __spreadProps(__spreadValues({}, event), {
+            from
+          });
+        });
+      } else {
+        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+          const { nullifierHash, to, fee } = args;
+          return {
+            blockNumber,
+            logIndex,
+            transactionHash,
+            nullifierHash: String(nullifierHash),
+            to: ethers.getAddress(to),
+            fee: String(fee)
+          };
+        });
+        const blocks = yield this.batchBlockService.getBatchBlocks([
+          ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber))
+        ]);
+        return formattedEvents.map((event) => {
+          const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
+          return __spreadProps(__spreadValues({}, event), {
+            timestamp
+          });
+        });
+      }
+    });
+  }
+  validateEvents({ events }) {
+    if (events.length && this.getType().toLowerCase() === DEPOSIT) {
+      const lastEvent = events[events.length - 1];
+      if (lastEvent.leafIndex !== events.length - 1) {
+        const errMsg = `Deposit events invalid wants ${events.length - 1} leafIndex have ${lastEvent.leafIndex}`;
+        throw new Error(errMsg);
+      }
+    }
+  }
+}
+class BaseEchoService extends BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    Echoer,
+    deployedBlock,
+    fetchDataOptions
+  }) {
+    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions });
+  }
+  getInstanceName() {
+    return `echo_${this.netId}`;
+  }
+  getType() {
+    return "Echo";
+  }
+  getGraphMethod() {
+    return "getAllGraphEchoEvents";
+  }
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        const { who, data } = args;
+        if (who && data) {
+          const eventObjects = {
+            blockNumber,
+            logIndex,
+            transactionHash
+          };
+          return __spreadProps(__spreadValues({}, eventObjects), {
+            address: who,
+            encryptedAccount: data
+          });
+        }
+      }).filter((e) => e);
+    });
+  }
+  getEventsFromGraph(_0) {
+    return __async$8(this, arguments, function* ({ fromBlock }) {
+      if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
+        return {
+          events: [],
+          lastBlock: fromBlock
+        };
+      }
+      return __superGet(BaseEchoService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
+    });
+  }
+}
+class BaseEncryptedNotesService extends BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    Router,
+    deployedBlock,
+    fetchDataOptions
+  }) {
+    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions });
+  }
+  getInstanceName() {
+    return `encrypted_notes_${this.netId}`;
+  }
+  getType() {
+    return "EncryptedNote";
+  }
+  getGraphMethod() {
+    return "getAllEncryptedNotes";
+  }
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        const { encryptedNote } = args;
+        if (encryptedNote) {
+          const eventObjects = {
+            blockNumber,
+            logIndex,
+            transactionHash
+          };
+          return __spreadProps(__spreadValues({}, eventObjects), {
+            encryptedNote
+          });
+        }
+      }).filter((e) => e);
+    });
+  }
+}
+class BaseGovernanceService extends BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    Governance,
+    deployedBlock,
+    fetchDataOptions
+  }) {
+    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions });
+    this.batchTransactionService = new BatchTransactionService({
+      provider,
+      onProgress: this.updateTransactionProgress
+    });
+  }
+  getInstanceName() {
+    return `governance_${this.netId}`;
+  }
+  getType() {
+    return "*";
+  }
+  getGraphMethod() {
+    return "getAllGovernanceEvents";
+  }
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      const proposalEvents = [];
+      const votedEvents = [];
+      const delegatedEvents = [];
+      const undelegatedEvents = [];
+      events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
+        const eventObjects = {
+          blockNumber,
+          logIndex,
+          transactionHash,
+          event
+        };
+        if (event === "ProposalCreated") {
+          const { id, proposer, target, startTime, endTime, description } = args;
+          proposalEvents.push(__spreadProps(__spreadValues({}, eventObjects), {
+            id: Number(id),
+            proposer,
+            target,
+            startTime: Number(startTime),
+            endTime: Number(endTime),
+            description
+          }));
+        }
+        if (event === "Voted") {
+          const { proposalId, voter, support, votes } = args;
+          votedEvents.push(__spreadProps(__spreadValues({}, eventObjects), {
+            proposalId: Number(proposalId),
+            voter,
+            support,
+            votes,
+            from: "",
+            input: ""
+          }));
+        }
+        if (event === "Delegated") {
+          const { account, to: delegateTo } = args;
+          delegatedEvents.push(__spreadProps(__spreadValues({}, eventObjects), {
+            account,
+            delegateTo
+          }));
+        }
+        if (event === "Undelegated") {
+          const { account, from: delegateFrom } = args;
+          undelegatedEvents.push(__spreadProps(__spreadValues({}, eventObjects), {
+            account,
+            delegateFrom
+          }));
+        }
+      });
+      if (votedEvents.length) {
+        this.updateTransactionProgress({ percentage: 0 });
+        const txs = yield this.batchTransactionService.getBatchTransactions([
+          ...new Set(votedEvents.map(({ transactionHash }) => transactionHash))
+        ]);
+        votedEvents.forEach((event, index) => {
+          let { data: input, from } = txs.find((t) => t.hash === event.transactionHash);
+          if (!input || input.length > 2048) {
+            input = "";
+          }
+          votedEvents[index].from = from;
+          votedEvents[index].input = input;
+        });
+      }
+      return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
+    });
+  }
+  getEventsFromGraph(_0) {
+    return __async$8(this, arguments, function* ({ fromBlock }) {
+      if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
+        return {
+          events: [],
+          lastBlock: fromBlock
+        };
+      }
+      return __superGet(BaseGovernanceService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
+    });
+  }
+}
+class BaseRegistryService extends BaseEventsService {
+  constructor({
+    netId,
+    provider,
+    graphApi,
+    subgraphName,
+    RelayerRegistry,
+    Aggregator,
+    relayerEnsSubdomains,
+    deployedBlock,
+    fetchDataOptions
+  }) {
+    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions });
+    this.Aggregator = Aggregator;
+    this.relayerEnsSubdomains = relayerEnsSubdomains;
+    this.updateInterval = 86400;
+  }
+  getInstanceName() {
+    return `registered_${this.netId}`;
+  }
+  // Name of type used for events
+  getType() {
+    return "RelayerRegistered";
+  }
+  // Name of method used for graph
+  getGraphMethod() {
+    return "getAllRegisters";
+  }
+  formatEvents(events) {
+    return __async$8(this, null, function* () {
+      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        const eventObjects = {
+          blockNumber,
+          logIndex,
+          transactionHash
+        };
+        return __spreadProps(__spreadValues({}, eventObjects), {
+          ensName: args.ensName,
+          relayerAddress: args.relayerAddress
+        });
+      });
+    });
+  }
+  /**
+   * Get saved or cached relayers
+   */
+  getRelayersFromDB() {
+    return __async$8(this, null, function* () {
+      return {
+        timestamp: 0,
+        relayers: []
+      };
+    });
+  }
+  /**
+   * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
+   */
+  getRelayersFromCache() {
+    return __async$8(this, null, function* () {
+      return {
+        timestamp: 0,
+        relayers: []
+      };
+    });
+  }
+  getSavedRelayers() {
+    return __async$8(this, null, function* () {
+      let cachedRelayers = yield this.getRelayersFromDB();
+      if (!cachedRelayers || !cachedRelayers.relayers.length) {
+        cachedRelayers = yield this.getRelayersFromCache();
+      }
+      return cachedRelayers;
+    });
+  }
+  getLatestRelayers() {
+    return __async$8(this, null, function* () {
+      const registerEvents = (yield this.updateEvents()).events;
+      const subdomains = Object.values(this.relayerEnsSubdomains);
+      const registerSet = /* @__PURE__ */ new Set();
+      const uniqueRegisters = registerEvents.reverse().filter(({ ensName }) => {
+        if (!registerSet.has(ensName)) {
+          registerSet.add(ensName);
+          return true;
+        }
+        return false;
+      });
+      const relayerNameHashes = uniqueRegisters.map((r) => ethers.namehash(r.ensName));
+      const [relayersData, timestamp] = yield Promise.all([
+        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains),
+        this.provider.getBlock("latest").then((b) => Number(b == null ? void 0 : b.timestamp))
+      ]);
+      const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
+        const { ensName, relayerAddress } = uniqueRegisters[index];
+        const hostnames = {};
+        records.forEach((record, recordIndex) => {
+          if (record) {
+            hostnames[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+          }
+        });
+        const isOwner = !relayerAddress || relayerAddress === owner;
+        const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+        const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
+        if (preCondition) {
+          return {
+            ensName,
+            relayerAddress,
+            isRegistered,
+            owner,
+            stakeBalance: ethers.formatEther(stakeBalance),
+            hostnames
+          };
+        }
+      }).filter((r) => r);
+      return {
+        timestamp,
+        relayers
+      };
+    });
+  }
+  /**
+   * Handle saving relayers
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  saveRelayers(_0) {
+    return __async$8(this, arguments, function* ({ timestamp, relayers }) {
+    });
+  }
+  /**
+   * Get cached or latest relayer and save to local
+   */
+  updateRelayers() {
+    return __async$8(this, null, function* () {
+      let { timestamp, relayers } = yield this.getSavedRelayers();
+      if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
+        console.log("\nUpdating relayers from registry\n");
+        ({ timestamp, relayers } = yield this.getLatestRelayers());
+        yield this.saveRelayers({ timestamp, relayers });
+      }
+      return { timestamp, relayers };
+    });
+  }
+}
 
 const _abi$5 = [
   {
@@ -5408,7 +5763,7 @@ var index = /*#__PURE__*/Object.freeze({
   ReverseRecords__factory: ReverseRecords__factory
 });
 
-var __async$8 = (__this, __arguments, generator) => {
+var __async$7 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -5433,13 +5788,13 @@ class Pedersen {
     this.pedersenPromise = this.initPedersen();
   }
   initPedersen() {
-    return __async$8(this, null, function* () {
+    return __async$7(this, null, function* () {
       this.pedersenHash = yield circomlibjs.buildPedersenHash();
       this.babyJub = this.pedersenHash.babyJub;
     });
   }
   unpackPoint(buffer) {
-    return __async$8(this, null, function* () {
+    return __async$7(this, null, function* () {
       var _a, _b;
       yield this.pedersenPromise;
       return (_b = this.babyJub) == null ? void 0 : _b.unpackPoint((_a = this.pedersenHash) == null ? void 0 : _a.hash(buffer));
@@ -5452,13 +5807,13 @@ class Pedersen {
 }
 const pedersen = new Pedersen();
 function buffPedersenHash(buffer) {
-  return __async$8(this, null, function* () {
+  return __async$7(this, null, function* () {
     const [hash] = yield pedersen.unpackPoint(buffer);
     return pedersen.toStringBuffer(hash);
   });
 }
 
-var __async$7 = (__this, __arguments, generator) => {
+var __async$6 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -5479,7 +5834,7 @@ var __async$7 = (__this, __arguments, generator) => {
   });
 };
 function createDeposit(_0) {
-  return __async$7(this, arguments, function* ({ nullifier, secret }) {
+  return __async$6(this, arguments, function* ({ nullifier, secret }) {
     const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
     const noteHex = toFixedHex(bytesToBN(preimage), 62);
     const commitment = BigInt(yield buffPedersenHash(preimage));
@@ -5539,7 +5894,7 @@ class Deposit {
     );
   }
   static createNote(_0) {
-    return __async$7(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
+    return __async$6(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
       if (!nullifier) {
         nullifier = rBigInt(31);
       }
@@ -5566,7 +5921,7 @@ class Deposit {
     });
   }
   static parseNote(noteString) {
-    return __async$7(this, null, function* () {
+    return __async$6(this, null, function* () {
       const noteRegex = new RegExp("tornado-(?<currency>\\w+)-(?<amount>[\\d.]+)-(?<netId>\\d+)-0x(?<note>[0-9a-fA-F]{124})", "g");
       const match = noteRegex.exec(noteString);
       if (!match) {
@@ -5825,7 +6180,7 @@ class TornadoFeeOracle {
   }
 }
 
-var __async$6 = (__this, __arguments, generator) => {
+var __async$5 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -5850,7 +6205,7 @@ class Mimc {
     this.mimcPromise = this.initMimc();
   }
   initMimc() {
-    return __async$6(this, null, function* () {
+    return __async$5(this, null, function* () {
       this.sponge = yield circomlibjs.buildMimcSponge();
       this.hash = (left, right) => {
         var _a, _b;
@@ -5859,7 +6214,7 @@ class Mimc {
     });
   }
   getHash() {
-    return __async$6(this, null, function* () {
+    return __async$5(this, null, function* () {
       yield this.mimcPromise;
       return {
         sponge: this.sponge,
@@ -5870,7 +6225,7 @@ class Mimc {
 }
 const mimc = new Mimc();
 
-var __async$5 = (__this, __arguments, generator) => {
+var __async$4 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -5913,7 +6268,7 @@ class MerkleTreeService {
     this.merkleWorkerPath = merkleWorkerPath;
   }
   createTree(events) {
-    return __async$5(this, null, function* () {
+    return __async$4(this, null, function* () {
       const { hash: hashFunction } = yield mimc.getHash();
       if (this.merkleWorkerPath) {
         console.log("Using merkleWorker\n");
@@ -5965,7 +6320,7 @@ class MerkleTreeService {
     });
   }
   createPartialTree(_0) {
-    return __async$5(this, arguments, function* ({ edge, elements }) {
+    return __async$4(this, arguments, function* ({ edge, elements }) {
       const { hash: hashFunction } = yield mimc.getHash();
       if (this.merkleWorkerPath) {
         console.log("Using merkleWorker\n");
@@ -6019,7 +6374,7 @@ class MerkleTreeService {
     });
   }
   verifyTree(events) {
-    return __async$5(this, null, function* () {
+    return __async$4(this, null, function* () {
       console.log(
         `
 Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while
@@ -6039,7 +6394,7 @@ Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCa
   }
 }
 
-var __async$4 = (__this, __arguments, generator) => {
+var __async$3 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6060,7 +6415,7 @@ var __async$4 = (__this, __arguments, generator) => {
   });
 };
 function multicall(Multicall2, calls) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     const calldata = calls.map((call) => {
       var _a, _b, _c;
       const target = ((_a = call.contract) == null ? void 0 : _a.target) || call.address;
@@ -6083,7 +6438,7 @@ function multicall(Multicall2, calls) {
   });
 }
 
-var __async$3 = (__this, __arguments, generator) => {
+var __async$2 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6110,7 +6465,7 @@ class TokenPriceOracle {
     this.oracle = oracle;
   }
   fetchPrices(tokens) {
-    return __async$3(this, null, function* () {
+    return __async$2(this, null, function* () {
       if (!this.oracle) {
         return new Promise((resolve) => resolve(tokens.map(() => ethers.parseEther("0.0001"))));
       }
@@ -6125,288 +6480,6 @@ class TokenPriceOracle {
       return prices.map((price, index) => {
         return price * BigInt(10 ** tokens[index].decimals) / BigInt(10 ** 18);
       });
-    });
-  }
-}
-
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __async$2 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-const MIN_STAKE_BALANCE = ethers.parseEther("500");
-const semVerRegex = new RegExp("^(?<major>0|[1-9]\\d*)\\.(?<minor>0|[1-9]\\d*)\\.(?<patch>0|[1-9]\\d*)(?:-(?<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$");
-function parseSemanticVersion(version) {
-  const { groups } = semVerRegex.exec(version);
-  return groups;
-}
-function isRelayerUpdated(relayerVersion, netId) {
-  const { major, patch, prerelease } = parseSemanticVersion(relayerVersion);
-  const requiredMajor = netId === NetId.MAINNET ? "4" : "5";
-  const isUpdatedMajor = major === requiredMajor;
-  if (prerelease) return false;
-  return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET);
-}
-function calculateScore({ stakeBalance, tornadoServiceFee }, minFee = 0.33, maxFee = 0.53) {
-  if (tornadoServiceFee < minFee) {
-    tornadoServiceFee = minFee;
-  } else if (tornadoServiceFee >= maxFee) {
-    return BigInt(0);
-  }
-  const serviceFeeCoefficient = (tornadoServiceFee - minFee) ** 2;
-  const feeDiffCoefficient = 1 / (maxFee - minFee) ** 2;
-  const coefficientsMultiplier = 1 - feeDiffCoefficient * serviceFeeCoefficient;
-  return BigInt(Math.floor(Number(stakeBalance) * coefficientsMultiplier));
-}
-function getWeightRandom(weightsScores, random) {
-  for (let i = 0; i < weightsScores.length; i++) {
-    if (random < weightsScores[i]) {
-      return i;
-    }
-    random = random - weightsScores[i];
-  }
-  return Math.floor(Math.random() * weightsScores.length);
-}
-function getSupportedInstances(instanceList) {
-  const rawList = Object.values(instanceList).map(({ instanceAddress }) => {
-    return Object.values(instanceAddress);
-  }).flat();
-  return rawList.map((l) => ethers.getAddress(l));
-}
-function pickWeightedRandomRelayer(relayers, netId) {
-  let minFee, maxFee;
-  if (netId !== NetId.MAINNET) {
-    minFee = 0.01;
-    maxFee = 0.3;
-  }
-  const weightsScores = relayers.map((el) => calculateScore(el, minFee, maxFee));
-  const totalWeight = weightsScores.reduce((acc, curr) => {
-    return acc = acc + curr;
-  }, BigInt("0"));
-  const random = BigInt(Number(totalWeight) * Math.random());
-  const weightRandomIndex = getWeightRandom(weightsScores, random);
-  return relayers[weightRandomIndex];
-}
-class RelayerClient {
-  constructor({ netId, config, Aggregator, fetchDataOptions: fetchDataOptions2 }) {
-    this.netId = netId;
-    this.config = config;
-    this.Aggregator = Aggregator;
-    this.fetchDataOptions = fetchDataOptions2;
-  }
-  askRelayerStatus(_0) {
-    return __async$2(this, arguments, function* ({
-      hostname,
-      relayerAddress
-    }) {
-      var _a, _b;
-      const url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
-      const rawStatus = yield fetchData(`${url}status`, __spreadProps(__spreadValues({}, this.fetchDataOptions), {
-        headers: {
-          "Content-Type": "application/json, application/x-www-form-urlencoded"
-        },
-        timeout: ((_a = this.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
-        maxRetry: ((_b = this.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
-      }));
-      const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config));
-      if (!statusValidator(rawStatus)) {
-        throw new Error("Invalid status schema");
-      }
-      const status = __spreadProps(__spreadValues({}, rawStatus), {
-        url
-      });
-      if (status.currentQueue > 5) {
-        throw new Error("Withdrawal queue is overloaded");
-      }
-      if (status.netId !== this.netId) {
-        throw new Error("This relayer serves a different network");
-      }
-      if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
-        throw new Error("The Relayer reward address must match registered address");
-      }
-      if (!isRelayerUpdated(status.version, this.netId)) {
-        throw new Error("Outdated version.");
-      }
-      return status;
-    });
-  }
-  filterRelayer(curr, relayer, subdomains, debugRelayer = false) {
-    return __async$2(this, null, function* () {
-      var _a;
-      const { relayerEnsSubdomain } = this.config;
-      const subdomainIndex = subdomains.indexOf(relayerEnsSubdomain);
-      const mainnetSubdomain = curr.records[0];
-      const hostname = curr.records[subdomainIndex];
-      const isHostWithProtocol = hostname.includes("http");
-      const { owner, balance: stakeBalance, isRegistered } = curr;
-      const { ensName, relayerAddress } = relayer;
-      const isOwner = !relayerAddress || relayerAddress === owner;
-      const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
-      const preCondition = hostname && isOwner && mainnetSubdomain && isRegistered && hasMinBalance && !isHostWithProtocol;
-      if (preCondition || debugRelayer) {
-        try {
-          const status = yield this.askRelayerStatus({ hostname, relayerAddress });
-          return {
-            netId: status.netId,
-            url: status.url,
-            hostname,
-            ensName,
-            stakeBalance,
-            relayerAddress,
-            rewardAccount: ethers.getAddress(status.rewardAccount),
-            instances: getSupportedInstances(status.instances),
-            gasPrice: (_a = status.gasPrices) == null ? void 0 : _a.fast,
-            ethPrices: status.ethPrices,
-            currentQueue: status.currentQueue,
-            tornadoServiceFee: status.tornadoServiceFee
-          };
-        } catch (err) {
-          if (debugRelayer) {
-            throw err;
-          }
-          return {
-            hostname,
-            relayerAddress,
-            errorMessage: err.message
-          };
-        }
-      } else {
-        if (debugRelayer) {
-          const errMsg = `Relayer ${hostname} condition not met`;
-          throw new Error(errMsg);
-        }
-        return {
-          hostname,
-          relayerAddress,
-          errorMessage: `Relayer ${hostname} condition not met`
-        };
-      }
-    });
-  }
-  getValidRelayers(relayers, subdomains, debugRelayer = false) {
-    return __async$2(this, null, function* () {
-      const relayersSet = /* @__PURE__ */ new Set();
-      const uniqueRelayers = relayers.reverse().filter(({ ensName }) => {
-        if (!relayersSet.has(ensName)) {
-          relayersSet.add(ensName);
-          return true;
-        }
-        return false;
-      });
-      const relayerNameHashes = uniqueRelayers.map((r) => ethers.namehash(r.ensName));
-      const relayersData = yield this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains);
-      const invalidRelayers = [];
-      const validRelayers = (yield Promise.all(
-        relayersData.map((curr, index) => this.filterRelayer(curr, uniqueRelayers[index], subdomains, debugRelayer))
-      )).filter((r) => {
-        if (r.errorMessage) {
-          invalidRelayers.push(r);
-          return false;
-        }
-        return true;
-      });
-      return {
-        validRelayers,
-        invalidRelayers
-      };
-    });
-  }
-  pickWeightedRandomRelayer(relayers) {
-    return pickWeightedRandomRelayer(relayers, this.netId);
-  }
-  tornadoWithdraw(_0) {
-    return __async$2(this, arguments, function* ({ contract, proof, args }) {
-      const { url } = this.selectedRelayer;
-      const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps(__spreadValues({}, this.fetchDataOptions), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contract,
-          proof,
-          args
-        })
-      }));
-      const { id, error } = withdrawResponse;
-      if (error) {
-        throw new Error(error);
-      }
-      let relayerStatus;
-      const jobUrl = `${url}v1/jobs/${id}`;
-      console.log(`Job submitted: ${jobUrl}
-`);
-      while (!relayerStatus || !["FAILED", "CONFIRMED"].includes(relayerStatus)) {
-        const jobResponse = yield fetchData(jobUrl, __spreadProps(__spreadValues({}, this.fetchDataOptions), {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }));
-        if (jobResponse.error) {
-          throw new Error(error);
-        }
-        const jobValidator = ajv.compile(jobsSchema);
-        if (!jobValidator(jobResponse)) {
-          const errMsg = `${jobUrl} has an invalid job response`;
-          throw new Error(errMsg);
-        }
-        const { status, txHash, confirmations, failedReason } = jobResponse;
-        if (relayerStatus !== status) {
-          if (status === "FAILED") {
-            const errMsg = `Job ${status}: ${jobUrl} failed reason: ${failedReason}`;
-            throw new Error(errMsg);
-          } else if (status === "SENT") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}
-`);
-          } else if (status === "MINED") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
-`);
-          } else if (status === "CONFIRMED") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
-`);
-          } else {
-            console.log(`Job ${status}: ${jobUrl}
-`);
-          }
-          relayerStatus = status;
-        }
-        yield sleep(3e3);
-      }
     });
   }
 }
@@ -6580,6 +6653,8 @@ exports.GET_REGISTERED = GET_REGISTERED;
 exports.GET_STATISTIC = GET_STATISTIC;
 exports.GET_WITHDRAWALS = GET_WITHDRAWALS;
 exports.Invoice = Invoice;
+exports.MAX_FEE = MAX_FEE;
+exports.MIN_FEE = MIN_FEE;
 exports.MIN_STAKE_BALANCE = MIN_STAKE_BALANCE;
 exports.MerkleTreeService = MerkleTreeService;
 exports.Mimc = Mimc;
@@ -6642,6 +6717,7 @@ exports.getNoteAccounts = getNoteAccounts;
 exports.getProvider = getProvider;
 exports.getProviderWithNetId = getProviderWithNetId;
 exports.getRegisters = getRegisters;
+exports.getRelayerEnsSubdomains = getRelayerEnsSubdomains;
 exports.getStatistic = getStatistic;
 exports.getStatusSchema = getStatusSchema;
 exports.getSubdomains = getSubdomains;
