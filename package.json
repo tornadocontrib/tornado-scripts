@@ -1,6 +1,6 @@
 {
   "name": "@tornado/core",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "An SDK for building applications on top of Privacy Pools",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -32,10 +32,10 @@
   ],
   "dependencies": {
     "@metamask/eth-sig-util": "^7.0.3",
-    "@tornado/contracts": "git+https://codeberg.org/tornadocash/tornado-contracts.git#6741664a898c1654e742459a2c20e52e4bc104fa",
-    "@tornado/fixed-merkle-tree": "git+https://codeberg.org/tornadocash/fixed-merkle-tree.git#5c3fca4cb11255760ad5f4fd95d7c6eb45c1fc99",
-    "@tornado/snarkjs": "git+https://codeberg.org/tornadocash/snarkjs.git#d3915a760c437cde7bd317f9ea2c627954900656",
-    "@tornado/websnark": "git+https://codeberg.org/tornadocash/websnark.git#b0c9fce5359ceba55167a2ad01a29d1e137843ec",
+    "@tornado/contracts": "^1.0.0",
+    "@tornado/fixed-merkle-tree": "^0.7.3",
+    "@tornado/snarkjs": "^0.1.20",
+    "@tornado/websnark": "^0.0.4",
     "ajv": "^8.17.1",
     "bn.js": "^5.2.1",
     "circomlibjs": "0.1.7",
