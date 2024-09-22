@@ -899,13 +899,12 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
       .map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
 
-        const hostnames = {} as SubdomainMap;
-
-        records.forEach((record, recordIndex) => {
+        const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
-            hostnames[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+            acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
           }
-        });
+          return acc;
+        }, {} as SubdomainMap);
 
         const isOwner = !relayerAddress || relayerAddress === owner;
         const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;

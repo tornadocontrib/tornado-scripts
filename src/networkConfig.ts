@@ -746,8 +746,8 @@ export function getSubdomains() {
 export function getRelayerEnsSubdomains() {
   const allConfig = getNetworkConfig();
 
-  return Object.keys(allConfig).reduce((acc, chain) => {
-    acc[Number(chain)] = allConfig[Number(chain)].relayerEnsSubdomain;
+  return enabledChains.reduce((acc, chain) => {
+    acc[chain] = allConfig[chain].relayerEnsSubdomain;
     return acc;
   }, {} as SubdomainMap);
 }

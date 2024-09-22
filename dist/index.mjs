@@ -2331,8 +2331,8 @@ function getSubdomains() {
 }
 function getRelayerEnsSubdomains() {
   const allConfig = getNetworkConfig();
-  return Object.keys(allConfig).reduce((acc, chain) => {
-    acc[Number(chain)] = allConfig[Number(chain)].relayerEnsSubdomain;
+  return enabledChains.reduce((acc, chain) => {
+    acc[chain] = allConfig[chain].relayerEnsSubdomain;
     return acc;
   }, {});
 }
@@ -3356,12 +3356,12 @@ class BaseRegistryService extends BaseEventsService {
       ]);
       const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
-        const hostnames = {};
-        records.forEach((record, recordIndex) => {
+        const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
-            hostnames[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+            acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
           }
-        });
+          return acc;
+        }, {});
         const isOwner = !relayerAddress || relayerAddress === owner;
         const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
         const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
