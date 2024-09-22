@@ -82,7 +82,7 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
      */
     updateEvents(): Promise<{
         events: EventType[];
-        lastBlock: number | null;
+        lastBlock: number;
     }>;
 }
 export type BaseTornadoServiceConstructor = {

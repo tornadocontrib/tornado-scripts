@@ -244,13 +244,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
         await this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() }),
       );
 
-      if (!events.length) {
-        return {
-          events,
-          lastBlock: toBlock,
-        };
-      }
-
       return {
         events,
         lastBlock: toBlock,
@@ -265,22 +258,13 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   }
 
   async getLatestEvents({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<EventType>> {
-    const allEvents = [];
     const graphEvents = await this.getEventsFromGraph({ fromBlock });
     const lastSyncBlock =
       graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
     const rpcEvents = await this.getEventsFromRpc({ fromBlock: lastSyncBlock });
-    allEvents.push(...graphEvents.events);
-    allEvents.push(...rpcEvents.events);
-    const lastBlock = rpcEvents
-      ? rpcEvents.lastBlock
-      : allEvents[allEvents.length - 1]
-        ? allEvents[allEvents.length - 1].blockNumber
-        : fromBlock;
-
     return {
-      events: allEvents,
-      lastBlock,
+      events: [...graphEvents.events, ...rpcEvents.events],
+      lastBlock: rpcEvents.lastBlock,
     };
   }
 
@@ -311,12 +295,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     const eventSet = new Set();
 
-    let allEvents: EventType[] = [];
-
-    allEvents.push(...savedEvents.events);
-    allEvents.push(...newEvents.events);
-
-    allEvents = allEvents
+    const allEvents: EventType[] = [...savedEvents.events, ...newEvents.events]
       .sort((a, b) => {
         if (a.blockNumber === b.blockNumber) {
           return a.logIndex - b.logIndex;
@@ -329,11 +308,8 @@ export class BaseEventsService<EventType extends MinimalEvents> {
         eventSet.add(eventKey);
         return !hasEvent;
       });
-    const lastBlock = newEvents
-      ? newEvents.lastBlock
-      : allEvents[allEvents.length - 1]
-        ? allEvents[allEvents.length - 1].blockNumber
-        : null;
+
+    const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
 
     this.validateEvents({ events: allEvents, lastBlock });
 

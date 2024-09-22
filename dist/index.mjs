@@ -2886,12 +2886,6 @@ class BaseEventsService {
         const events = yield this.formatEvents(
           yield this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
         );
-        if (!events.length) {
-          return {
-            events,
-            lastBlock: toBlock
-          };
-        }
         return {
           events,
           lastBlock: toBlock
@@ -2907,16 +2901,12 @@ class BaseEventsService {
   }
   getLatestEvents(_0) {
     return __async$8(this, arguments, function* ({ fromBlock }) {
-      const allEvents = [];
       const graphEvents = yield this.getEventsFromGraph({ fromBlock });
       const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
       const rpcEvents = yield this.getEventsFromRpc({ fromBlock: lastSyncBlock });
-      allEvents.push(...graphEvents.events);
-      allEvents.push(...rpcEvents.events);
-      const lastBlock = rpcEvents ? rpcEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : fromBlock;
       return {
-        events: allEvents,
-        lastBlock
+        events: [...graphEvents.events, ...rpcEvents.events],
+        lastBlock: rpcEvents.lastBlock
       };
     });
   }
@@ -2936,6 +2926,7 @@ class BaseEventsService {
    */
   updateEvents() {
     return __async$8(this, null, function* () {
+      var _a;
       const savedEvents = yield this.getSavedEvents();
       let fromBlock = this.deployedBlock;
       if (savedEvents && savedEvents.lastBlock) {
@@ -2943,10 +2934,7 @@ class BaseEventsService {
       }
       const newEvents = yield this.getLatestEvents({ fromBlock });
       const eventSet = /* @__PURE__ */ new Set();
-      let allEvents = [];
-      allEvents.push(...savedEvents.events);
-      allEvents.push(...newEvents.events);
-      allEvents = allEvents.sort((a, b) => {
+      const allEvents = [...savedEvents.events, ...newEvents.events].sort((a, b) => {
         if (a.blockNumber === b.blockNumber) {
           return a.logIndex - b.logIndex;
         }
@@ -2957,7 +2945,7 @@ class BaseEventsService {
         eventSet.add(eventKey);
         return !hasEvent;
       });
-      const lastBlock = newEvents ? newEvents.lastBlock : allEvents[allEvents.length - 1] ? allEvents[allEvents.length - 1].blockNumber : null;
+      const lastBlock = newEvents.lastBlock || ((_a = allEvents[allEvents.length - 1]) == null ? void 0 : _a.blockNumber);
       this.validateEvents({ events: allEvents, lastBlock });
       if (savedEvents.fromCache || newEvents.events.length) {
         yield this.saveEvents({ events: allEvents, lastBlock });
