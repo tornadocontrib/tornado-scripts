@@ -856,7 +856,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
 
     const registerSet = new Set();
 
-    const uniqueRegisters = registerEvents.reverse().filter(({ ensName }) => {
+    const uniqueRegisters = registerEvents.filter(({ ensName }) => {
       if (!registerSet.has(ensName)) {
         registerSet.add(ensName);
         return true;

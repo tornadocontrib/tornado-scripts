@@ -3330,7 +3330,7 @@ class BaseRegistryService extends BaseEventsService {
       const registerEvents = (yield this.updateEvents()).events;
       const subdomains = Object.values(this.relayerEnsSubdomains);
       const registerSet = /* @__PURE__ */ new Set();
-      const uniqueRegisters = registerEvents.reverse().filter(({ ensName }) => {
+      const uniqueRegisters = registerEvents.filter(({ ensName }) => {
         if (!registerSet.has(ensName)) {
           registerSet.add(ensName);
           return true;
