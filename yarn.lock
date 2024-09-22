@@ -889,10 +889,10 @@
     "@noble/hashes" "~1.4.0"
     "@scure/base" "~1.1.6"
 
-"@tornado/contracts@^1.0.0":
-  version "1.0.0"
-  resolved "https://git.tornado.ws/api/packages/tornado-packages/npm/%40tornado%2Fcontracts/-/1.0.0/contracts-1.0.0.tgz#4ee8aada3d12bca94b641fbb3d6f552ec3838cbe"
-  integrity sha512-kdYoEV+9Wm6sTpY4x4I1AB1cNYZ5yS/DehDxzv0cq06a6/80vncnpG22gM9CxkKqqsQb40O8yDSPxIDEFFwi3w==
+"@tornado/contracts@^1.0.1":
+  version "1.0.1"
+  resolved "https://git.tornado.ws/api/packages/tornado-packages/npm/%40tornado%2Fcontracts/-/1.0.1/contracts-1.0.1.tgz#4ce0bb721c602155f087bc5526afb22b2dd05b31"
+  integrity sha512-5PHi2y/WybAF4uMjLenOEtqmaJ+sHkGYJJ9bHlOPlzbKooVzqVPpESKg1MEjofSpTLGG8XZAKEsXedyHX7+6qw==
   dependencies:
     "@openzeppelin/contracts" "5.0.2"
     "@openzeppelin/contracts-v3" "npm:@openzeppelin/contracts@3.2.0-rc.0"
