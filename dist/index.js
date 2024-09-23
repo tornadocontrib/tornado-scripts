@@ -3153,7 +3153,7 @@ class BaseEncryptedNotesService extends BaseEventsService {
     return __async$8(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { encryptedNote } = args;
-        if (encryptedNote) {
+        if (encryptedNote && encryptedNote !== "0x") {
           const eventObjects = {
             blockNumber,
             logIndex,

@@ -575,7 +575,7 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
       .map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { encryptedNote } = args;
 
-        if (encryptedNote) {
+        if (encryptedNote && encryptedNote !== '0x') {
           const eventObjects = {
             blockNumber,
             logIndex,
