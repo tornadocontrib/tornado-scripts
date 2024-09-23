@@ -29,7 +29,7 @@ module.exports = [
     },
     entry: './src/index.ts',
     output: {
-      filename: 'index.umd.js',
+      filename: 'tornado.umd.js',
       path: path.resolve(__dirname, './dist'),
       library: 'Tornado',
       libraryTarget: 'umd'
@@ -46,6 +46,28 @@ module.exports = [
     optimization: {
       minimize: false,
     }
+  },
+  {
+    mode: 'production',
+    module: {
+      rules: [esbuildLoader]
+    },
+    entry: './src/index.ts',
+    output: {
+      filename: 'tornado.umd.min.js',
+      path: path.resolve(__dirname, './dist'),
+      library: 'Tornado',
+      libraryTarget: 'umd'
+    },
+    plugins: [
+      new NodePolyfillPlugin(),
+    ],
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+      alias: {
+        ...commonAlias,
+      }
+    },
   },
   {
     mode: 'production',
@@ -70,5 +92,26 @@ module.exports = [
     optimization: {
       minimize: false,
     }
+  },
+  {
+    mode: 'production',
+    module: {
+      rules: [esbuildLoader]
+    },
+    entry: './src/merkleTreeWorker.ts',
+    output: {
+      filename: 'merkleTreeWorker.umd.min.js',
+      path: path.resolve(__dirname, './dist'),
+      libraryTarget: 'umd'
+    },
+    plugins: [
+      new NodePolyfillPlugin(),
+    ],
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+      alias: {
+        ...commonAlias,
+      }
+    },
   }
 ];

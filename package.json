@@ -1,12 +1,12 @@
 {
   "name": "@tornado/core",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "An SDK for building applications on top of Privacy Pools",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
-  "jsdelivr": "./dist/index.umd.js",
+  "unpkg": "./dist/tornado.umd.min.js",
+  "jsdelivr": "./dist/tornado.umd.min.js",
   "scripts": {
     "typechain": "typechain --target ethers-v6 --out-dir src/typechain src/abi/*.json",
     "types": "tsc --declaration --emitDeclarationOnly",
