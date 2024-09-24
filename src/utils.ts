@@ -54,7 +54,7 @@ export function bufferToBytes(b: Buffer) {
 }
 
 export function bytesToBase64(bytes: Uint8Array) {
-  return btoa(String.fromCharCode.apply(null, Array.from(bytes)));
+  return btoa(bytes.reduce((data, byte) => data + String.fromCharCode(byte), ''));
 }
 
 export function base64ToBytes(base64: string) {
@@ -142,4 +142,8 @@ export function substring(str: string, length: number = 10) {
   }
 
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
+}
+
+export async function digest(bytes: Uint8Array, algo: string = 'SHA-384') {
+  return new Uint8Array(await crypto.subtle.digest(algo, bytes));
 }

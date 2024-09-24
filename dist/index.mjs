@@ -10,6 +10,26 @@ import { MerkleTree, PartialMerkleTree } from '@tornado/fixed-merkle-tree';
 import * as websnarkUtils from '@tornado/websnark/src/utils';
 import websnarkGroth from '@tornado/websnark/src/groth16';
 
+var __async$d = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
@@ -43,7 +63,7 @@ function bufferToBytes(b) {
   return new Uint8Array(b.buffer);
 }
 function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode.apply(null, Array.from(bytes)));
+  return btoa(bytes.reduce((data, byte) => data + String.fromCharCode(byte), ""));
 }
 function base64ToBytes(base64) {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -97,6 +117,11 @@ function substring(str, length = 10) {
     return str;
   }
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
+}
+function digest(bytes, algo = "SHA-384") {
+  return __async$d(this, null, function* () {
+    return new Uint8Array(yield crypto.subtle.digest(algo, bytes));
+  });
 }
 
 var __defProp$4 = Object.defineProperty;
@@ -297,11 +322,15 @@ function getProvider(rpcUrl, fetchOptions) {
     const fetchReq = new FetchRequest(rpcUrl);
     fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
     const staticNetwork = yield new JsonRpcProvider(fetchReq).getNetwork();
-    const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
+    const chainId = Number(staticNetwork.chainId);
+    if ((fetchOptions == null ? void 0 : fetchOptions.netId) && fetchOptions.netId !== chainId) {
+      const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
+      throw new Error(errMsg);
+    }
+    return new JsonRpcProvider(fetchReq, staticNetwork, {
       staticNetwork,
       pollingInterval: (fetchOptions == null ? void 0 : fetchOptions.pollingInterval) || 1e3
     });
-    return provider;
   });
 }
 function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
@@ -6602,4 +6631,4 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSubdomains, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, isRelayerUpdated, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, parseSemanticVersion, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSubdomains, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, isRelayerUpdated, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, parseSemanticVersion, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };

@@ -32,6 +32,7 @@ export declare function getHttpAgent({ fetchUrl, proxyUrl, torPort, retry, }: {
 export declare function fetchData(url: string, options?: fetchDataOptions): Promise<any>;
 export declare const fetchGetUrlFunc: (options?: fetchDataOptions) => FetchGetUrlFunc;
 export type getProviderOptions = fetchDataOptions & {
+    netId?: NetIdType;
     pollingInterval?: number;
 };
 export declare function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider>;

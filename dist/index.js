@@ -31,6 +31,26 @@ function _interopNamespaceDefault(e) {
 
 var websnarkUtils__namespace = /*#__PURE__*/_interopNamespaceDefault(websnarkUtils);
 
+var __async$d = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
@@ -64,7 +84,7 @@ function bufferToBytes(b) {
   return new Uint8Array(b.buffer);
 }
 function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode.apply(null, Array.from(bytes)));
+  return btoa(bytes.reduce((data, byte) => data + String.fromCharCode(byte), ""));
 }
 function base64ToBytes(base64) {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -118,6 +138,11 @@ function substring(str, length = 10) {
     return str;
   }
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
+}
+function digest(bytes, algo = "SHA-384") {
+  return __async$d(this, null, function* () {
+    return new Uint8Array(yield crypto.subtle.digest(algo, bytes));
+  });
 }
 
 var __defProp$4 = Object.defineProperty;
@@ -318,11 +343,15 @@ function getProvider(rpcUrl, fetchOptions) {
     const fetchReq = new ethers.FetchRequest(rpcUrl);
     fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
     const staticNetwork = yield new ethers.JsonRpcProvider(fetchReq).getNetwork();
-    const provider = new ethers.JsonRpcProvider(fetchReq, staticNetwork, {
+    const chainId = Number(staticNetwork.chainId);
+    if ((fetchOptions == null ? void 0 : fetchOptions.netId) && fetchOptions.netId !== chainId) {
+      const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
+      throw new Error(errMsg);
+    }
+    return new ethers.JsonRpcProvider(fetchReq, staticNetwork, {
       staticNetwork,
       pollingInterval: (fetchOptions == null ? void 0 : fetchOptions.pollingInterval) || 1e3
     });
-    return provider;
   });
 }
 function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
@@ -6686,6 +6715,7 @@ exports.createDeposit = createDeposit;
 exports.crypto = crypto;
 exports.defaultConfig = defaultConfig;
 exports.defaultUserAgent = defaultUserAgent;
+exports.digest = digest;
 exports.enabledChains = enabledChains;
 exports.factories = index;
 exports.fetch = fetch;

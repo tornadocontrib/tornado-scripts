@@ -258,18 +258,29 @@ export const fetchGetUrlFunc =
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type getProviderOptions = fetchDataOptions & {
+  // NetId to check against rpc
+  netId?: NetIdType;
   pollingInterval?: number;
 };
 
 export async function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider> {
   const fetchReq = new FetchRequest(rpcUrl);
+
   fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
+
   const staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
-  const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
+
+  const chainId = Number(staticNetwork.chainId);
+
+  if (fetchOptions?.netId && fetchOptions.netId !== chainId) {
+    const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
+    throw new Error(errMsg);
+  }
+
+  return new JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
     pollingInterval: fetchOptions?.pollingInterval || 1000,
   });
-  return provider;
 }
 
 export function getProviderWithNetId(
