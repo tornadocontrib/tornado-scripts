@@ -93,6 +93,7 @@ export interface RelayerTornadoJobs {
   failedReason?: string;
 }
 
+/**
 const semVerRegex =
   /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
@@ -118,6 +119,7 @@ export function isRelayerUpdated(relayerVersion: string, netId: NetIdType) {
   if (prerelease) return false;
   return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET); // Patch checking - also backwards compatibility for Mainnet
 }
+**/
 
 export function calculateScore({ stakeBalance, tornadoServiceFee }: RelayerInfo) {
   if (tornadoServiceFee < MIN_FEE) {
@@ -234,10 +236,6 @@ export class RelayerClient {
 
     if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
       throw new Error('The Relayer reward address must match registered address');
-    }
-
-    if (!isRelayerUpdated(status.version, this.netId)) {
-      throw new Error('Outdated version.');
     }
 
     return status;

@@ -79,15 +79,33 @@ export interface RelayerTornadoJobs {
     confirmations?: number;
     failedReason?: string;
 }
+/**
+const semVerRegex =
+  /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
 export interface semanticVersion {
-    major: string;
-    minor: string;
-    patch: string;
-    prerelease?: string;
-    buildmetadata?: string;
+  major: string;
+  minor: string;
+  patch: string;
+  prerelease?: string;
+  buildmetadata?: string;
 }
-export declare function parseSemanticVersion(version: string): semanticVersion;
-export declare function isRelayerUpdated(relayerVersion: string, netId: NetIdType): boolean;
+
+export function parseSemanticVersion(version: string) {
+  const { groups } = semVerRegex.exec(version) as RegExpExecArray;
+  return groups as unknown as semanticVersion;
+}
+
+export function isRelayerUpdated(relayerVersion: string, netId: NetIdType) {
+  const { major, patch, prerelease } = parseSemanticVersion(relayerVersion);
+  // Save backwards compatibility with V4 relayers for Ethereum Mainnet
+  const requiredMajor = netId === NetId.MAINNET ? '4' : '5';
+  const isUpdatedMajor = major === requiredMajor;
+
+  if (prerelease) return false;
+  return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET); // Patch checking - also backwards compatibility for Mainnet
+}
+**/
 export declare function calculateScore({ stakeBalance, tornadoServiceFee }: RelayerInfo): bigint;
 export declare function getWeightRandom(weightsScores: bigint[], random: bigint): number;
 export type RelayerInstanceList = {

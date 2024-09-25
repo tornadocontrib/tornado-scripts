@@ -74,6 +74,7 @@ export type Config = {
     subgraphs: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
+    disabledTokens?: string[];
     relayerEnsSubdomain: string;
     pollInterval: number;
     constants: {
@@ -107,12 +108,9 @@ export declare let customConfig: networkConfig;
 export declare function addNetwork(newConfig: networkConfig): void;
 export declare function getNetworkConfig(): networkConfig;
 export declare function getConfig(netId: NetIdType): Config;
-export declare function getInstanceByAddress({ netId, address }: {
-    netId: NetIdType;
-    address: string;
-}): {
+export declare function getActiveTokens(config: Config): string[];
+export declare function getInstanceByAddress(config: Config, address: string): {
     amount: string;
     currency: string;
 } | undefined;
-export declare function getSubdomains(): string[];
 export declare function getRelayerEnsSubdomains(): SubdomainMap;

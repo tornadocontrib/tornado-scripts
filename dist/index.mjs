@@ -1884,6 +1884,8 @@ const defaultConfig = {
         gasLimit: 7e5
       }
     },
+    // Inactive tokens to filter from schema verification and syncing events
+    disabledTokens: ["cdai", "usdt", "usdc"],
     relayerEnsSubdomain: "mainnet-tornado",
     pollInterval: 15,
     constants: {
@@ -2341,9 +2343,16 @@ function getConfig(netId) {
   }
   return chainConfig;
 }
-function getInstanceByAddress({ netId, address }) {
-  const { tokens } = getConfig(netId);
+function getActiveTokens(config) {
+  const { tokens, disabledTokens } = config;
+  return Object.keys(tokens).filter((t) => !(disabledTokens == null ? void 0 : disabledTokens.includes(t)));
+}
+function getInstanceByAddress(config, address) {
+  const { tokens, disabledTokens } = config;
   for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
+    if (disabledTokens == null ? void 0 : disabledTokens.includes(currency)) {
+      continue;
+    }
     for (const [amount, instance] of Object.entries(instanceAddress)) {
       if (instance === address) {
         return {
@@ -2353,10 +2362,6 @@ function getInstanceByAddress({ netId, address }) {
       }
     }
   }
-}
-function getSubdomains() {
-  const allConfig = getNetworkConfig();
-  return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
 }
 function getRelayerEnsSubdomains() {
   const allConfig = getNetworkConfig();
@@ -2397,7 +2402,7 @@ const statusSchema = {
   required: ["rewardAccount", "instances", "netId", "tornadoServiceFee", "version", "health"]
 };
 function getStatusSchema(netId, config) {
-  const { tokens, optionalTokens = [], nativeCurrency } = config;
+  const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
   const schema = JSON.parse(JSON.stringify(statusSchema));
   const instances = Object.keys(tokens).reduce(
     (acc, token) => {
@@ -2428,7 +2433,7 @@ function getStatusSchema(netId, config) {
         instanceProperties.properties.symbol = { enum: [symbol] };
       }
       acc.properties[token] = instanceProperties;
-      if (!optionalTokens.includes(token)) {
+      if (!(optionalTokens == null ? void 0 : optionalTokens.includes(token)) && !(disabledTokens == null ? void 0 : disabledTokens.includes(token))) {
         acc.required.push(token);
       }
       return acc;
@@ -2532,18 +2537,6 @@ var __async$9 = (__this, __arguments, generator) => {
 const MIN_FEE = 0.1;
 const MAX_FEE = 0.6;
 const MIN_STAKE_BALANCE = parseEther("500");
-const semVerRegex = new RegExp("^(?<major>0|[1-9]\\d*)\\.(?<minor>0|[1-9]\\d*)\\.(?<patch>0|[1-9]\\d*)(?:-(?<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$");
-function parseSemanticVersion(version) {
-  const { groups } = semVerRegex.exec(version);
-  return groups;
-}
-function isRelayerUpdated(relayerVersion, netId) {
-  const { major, patch, prerelease } = parseSemanticVersion(relayerVersion);
-  const requiredMajor = netId === NetId.MAINNET ? "4" : "5";
-  const isUpdatedMajor = major === requiredMajor;
-  if (prerelease) return false;
-  return isUpdatedMajor && (Number(patch) >= 5 || netId !== NetId.MAINNET);
-}
 function calculateScore({ stakeBalance, tornadoServiceFee }) {
   if (tornadoServiceFee < MIN_FEE) {
     tornadoServiceFee = MIN_FEE;
@@ -2614,9 +2607,6 @@ class RelayerClient {
       }
       if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
         throw new Error("The Relayer reward address must match registered address");
-      }
-      if (!isRelayerUpdated(status.version, this.netId)) {
-        throw new Error("Outdated version.");
       }
       return status;
     });
@@ -6631,4 +6621,4 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSubdomains, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, isRelayerUpdated, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, parseSemanticVersion, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };

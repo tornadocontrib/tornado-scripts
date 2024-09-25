@@ -85,6 +85,7 @@ export type Config = {
   subgraphs: SubgraphUrls;
   tokens: TokenInstances;
   optionalTokens?: string[];
+  disabledTokens?: string[];
   relayerEnsSubdomain: string;
   // Should be in seconds
   pollInterval: number;
@@ -234,6 +235,8 @@ export const defaultConfig: networkConfig = {
         gasLimit: 700_000,
       },
     },
+    // Inactive tokens to filter from schema verification and syncing events
+    disabledTokens: ['cdai', 'usdt', 'usdc'],
     relayerEnsSubdomain: 'mainnet-tornado',
     pollInterval: 15,
     constants: {
@@ -722,10 +725,19 @@ export function getConfig(netId: NetIdType) {
   return chainConfig;
 }
 
-export function getInstanceByAddress({ netId, address }: { netId: NetIdType; address: string }) {
-  const { tokens } = getConfig(netId);
+export function getActiveTokens(config: Config) {
+  const { tokens, disabledTokens } = config;
+
+  return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
+}
+
+export function getInstanceByAddress(config: Config, address: string) {
+  const { tokens, disabledTokens } = config;
 
   for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
+    if (disabledTokens?.includes(currency)) {
+      continue;
+    }
     for (const [amount, instance] of Object.entries(instanceAddress)) {
       if (instance === address) {
         return {
@@ -735,12 +747,6 @@ export function getInstanceByAddress({ netId, address }: { netId: NetIdType; add
       }
     }
   }
-}
-
-export function getSubdomains() {
-  const allConfig = getNetworkConfig();
-
-  return enabledChains.map((chain) => allConfig[chain].relayerEnsSubdomain);
 }
 
 export function getRelayerEnsSubdomains() {

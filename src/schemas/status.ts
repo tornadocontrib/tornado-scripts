@@ -111,7 +111,7 @@ const statusSchema: statusSchema = {
 };
 
 export function getStatusSchema(netId: NetIdType, config: Config) {
-  const { tokens, optionalTokens = [], nativeCurrency } = config;
+  const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
 
   // deep copy schema
   const schema = JSON.parse(JSON.stringify(statusSchema)) as statusSchema;
@@ -148,7 +148,7 @@ export function getStatusSchema(netId: NetIdType, config: Config) {
       }
 
       acc.properties[token] = instanceProperties;
-      if (!optionalTokens.includes(token)) {
+      if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
         acc.required.push(token);
       }
       return acc;
