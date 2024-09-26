@@ -30,7 +30,7 @@ import {
   BatchBlockOnProgress,
 } from '../batch';
 
-import type { fetchDataOptions } from '../providers';
+import { fetchData, fetchDataOptions } from '../providers';
 import type { NetIdType, SubdomainMap } from '../networkConfig';
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 
@@ -734,6 +734,28 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
   }
 }
 
+export async function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]) {
+  await Promise.all(
+    relayers
+      .filter((r) => r.tovarishUrl)
+      .map(async (relayer) => {
+        try {
+          relayer.tovarishNetworks = await fetchData(relayer.tovarishUrl as string, {
+            ...registryService.fetchDataOptions,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            timeout: registryService.fetchDataOptions?.torPort ? 10000 : 3000,
+            maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0,
+          });
+        } catch {
+          // Ignore error and disable relayer
+          relayer.tovarishNetworks = [];
+        }
+      }),
+  );
+}
+
 /**
  * Essential params:
  * ensName, relayerAddress, hostnames
@@ -744,6 +766,8 @@ export interface CachedRelayerInfo extends RelayerParams {
   owner?: string;
   stakeBalance?: string;
   hostnames: SubdomainMap;
+  tovarishUrl?: string;
+  tovarishNetworks?: number[];
 }
 
 export interface CachedRelayers {
@@ -867,7 +891,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
 
     const [relayersData, timestamp] = await Promise.all([
-      this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains),
+      this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat('tovarish-relayer')),
       this.provider.getBlock('latest').then((b) => Number(b?.timestamp)),
     ]);
 
@@ -875,8 +899,16 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
       .map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
 
+        let tovarishUrl = undefined;
+
         const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
+            // tovarish-relayer.relayer.eth
+            if (recordIndex === records.length - 1) {
+              tovarishUrl = record;
+              return acc;
+            }
+
             acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
           }
           return acc;
@@ -895,10 +927,13 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
             owner,
             stakeBalance: formatEther(stakeBalance),
             hostnames,
+            tovarishUrl,
           } as CachedRelayerInfo;
         }
       })
       .filter((r) => r) as CachedRelayerInfo[];
+
+    await getTovarishNetworks(this, relayers);
 
     return {
       timestamp,

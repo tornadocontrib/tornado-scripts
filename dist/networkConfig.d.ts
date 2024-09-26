@@ -109,6 +109,7 @@ export declare function addNetwork(newConfig: networkConfig): void;
 export declare function getNetworkConfig(): networkConfig;
 export declare function getConfig(netId: NetIdType): Config;
 export declare function getActiveTokens(config: Config): string[];
+export declare function getActiveTokenInstances(config: Config): TokenInstances;
 export declare function getInstanceByAddress(config: Config, address: string): {
     amount: string;
     currency: string;

@@ -2347,6 +2347,15 @@ function getActiveTokens(config) {
   const { tokens, disabledTokens } = config;
   return Object.keys(tokens).filter((t) => !(disabledTokens == null ? void 0 : disabledTokens.includes(t)));
 }
+function getActiveTokenInstances(config) {
+  const { tokens, disabledTokens } = config;
+  return Object.entries(tokens).reduce((acc, [token, instances]) => {
+    if (!(disabledTokens == null ? void 0 : disabledTokens.includes(token))) {
+      acc[token] = instances;
+    }
+    return acc;
+  }, {});
+}
 function getInstanceByAddress(config, address) {
   const { tokens, disabledTokens } = config;
   for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
@@ -2535,7 +2544,7 @@ var __async$9 = (__this, __arguments, generator) => {
   });
 };
 const MIN_FEE = 0.1;
-const MAX_FEE = 0.6;
+const MAX_FEE = 0.9;
 const MIN_STAKE_BALANCE = parseEther("500");
 function calculateScore({ stakeBalance, tornadoServiceFee }) {
   if (tornadoServiceFee < MIN_FEE) {
@@ -2783,13 +2792,13 @@ class BaseEventsService {
     contract,
     type = "",
     deployedBlock = 0,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
     this.netId = netId;
     this.provider = provider;
     this.graphApi = graphApi;
     this.subgraphName = subgraphName;
-    this.fetchDataOptions = fetchDataOptions;
+    this.fetchDataOptions = fetchDataOptions2;
     this.contract = contract;
     this.type = type;
     this.deployedBlock = deployedBlock;
@@ -2987,9 +2996,9 @@ class BaseTornadoService extends BaseEventsService {
     amount,
     currency,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.amount = amount;
     this.currency = currency;
     this.batchTransactionService = new BatchTransactionService({
@@ -3083,9 +3092,9 @@ class BaseEchoService extends BaseEventsService {
     subgraphName,
     Echoer,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions: fetchDataOptions2 });
   }
   getInstanceName() {
     return `echo_${this.netId}`;
@@ -3134,9 +3143,9 @@ class BaseEncryptedNotesService extends BaseEventsService {
     subgraphName,
     Router,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions: fetchDataOptions2 });
   }
   getInstanceName() {
     return `encrypted_notes_${this.netId}`;
@@ -3173,9 +3182,9 @@ class BaseGovernanceService extends BaseEventsService {
     subgraphName,
     Governance,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3269,6 +3278,26 @@ class BaseGovernanceService extends BaseEventsService {
     });
   }
 }
+function getTovarishNetworks(registryService, relayers) {
+  return __async$8(this, null, function* () {
+    yield Promise.all(
+      relayers.filter((r) => r.tovarishUrl).map((relayer) => __async$8(this, null, function* () {
+        var _a, _b;
+        try {
+          relayer.tovarishNetworks = yield fetchData(relayer.tovarishUrl, __spreadProps(__spreadValues({}, registryService.fetchDataOptions), {
+            headers: {
+              "Content-Type": "application/json"
+            },
+            timeout: ((_a = registryService.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
+            maxRetry: ((_b = registryService.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
+          }));
+        } catch (e) {
+          relayer.tovarishNetworks = [];
+        }
+      }))
+    );
+  });
+}
 class BaseRegistryService extends BaseEventsService {
   constructor({
     netId,
@@ -3279,9 +3308,9 @@ class BaseRegistryService extends BaseEventsService {
     Aggregator,
     relayerEnsSubdomains,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.Aggregator = Aggregator;
     this.relayerEnsSubdomains = relayerEnsSubdomains;
     this.updateInterval = 86400;
@@ -3358,13 +3387,18 @@ class BaseRegistryService extends BaseEventsService {
       });
       const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
       const [relayersData, timestamp] = yield Promise.all([
-        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains),
+        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat("tovarish-relayer")),
         this.provider.getBlock("latest").then((b) => Number(b == null ? void 0 : b.timestamp))
       ]);
       const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
+        let tovarishUrl = void 0;
         const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
+            if (recordIndex === records.length - 1) {
+              tovarishUrl = record;
+              return acc;
+            }
             acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
           }
           return acc;
@@ -3379,10 +3413,12 @@ class BaseRegistryService extends BaseEventsService {
             isRegistered,
             owner,
             stakeBalance: formatEther(stakeBalance),
-            hostnames
+            hostnames,
+            tovarishUrl
           };
         }
       }).filter((r) => r);
+      yield getTovarishNetworks(this, relayers);
       return {
         timestamp,
         relayers
@@ -6621,4 +6657,4 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };

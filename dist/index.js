@@ -2368,6 +2368,15 @@ function getActiveTokens(config) {
   const { tokens, disabledTokens } = config;
   return Object.keys(tokens).filter((t) => !(disabledTokens == null ? void 0 : disabledTokens.includes(t)));
 }
+function getActiveTokenInstances(config) {
+  const { tokens, disabledTokens } = config;
+  return Object.entries(tokens).reduce((acc, [token, instances]) => {
+    if (!(disabledTokens == null ? void 0 : disabledTokens.includes(token))) {
+      acc[token] = instances;
+    }
+    return acc;
+  }, {});
+}
 function getInstanceByAddress(config, address) {
   const { tokens, disabledTokens } = config;
   for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
@@ -2556,7 +2565,7 @@ var __async$9 = (__this, __arguments, generator) => {
   });
 };
 const MIN_FEE = 0.1;
-const MAX_FEE = 0.6;
+const MAX_FEE = 0.9;
 const MIN_STAKE_BALANCE = ethers.parseEther("500");
 function calculateScore({ stakeBalance, tornadoServiceFee }) {
   if (tornadoServiceFee < MIN_FEE) {
@@ -2804,13 +2813,13 @@ class BaseEventsService {
     contract,
     type = "",
     deployedBlock = 0,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
     this.netId = netId;
     this.provider = provider;
     this.graphApi = graphApi;
     this.subgraphName = subgraphName;
-    this.fetchDataOptions = fetchDataOptions;
+    this.fetchDataOptions = fetchDataOptions2;
     this.contract = contract;
     this.type = type;
     this.deployedBlock = deployedBlock;
@@ -3008,9 +3017,9 @@ class BaseTornadoService extends BaseEventsService {
     amount,
     currency,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Tornado, type, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.amount = amount;
     this.currency = currency;
     this.batchTransactionService = new BatchTransactionService({
@@ -3104,9 +3113,9 @@ class BaseEchoService extends BaseEventsService {
     subgraphName,
     Echoer,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Echoer, deployedBlock, fetchDataOptions: fetchDataOptions2 });
   }
   getInstanceName() {
     return `echo_${this.netId}`;
@@ -3155,9 +3164,9 @@ class BaseEncryptedNotesService extends BaseEventsService {
     subgraphName,
     Router,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Router, deployedBlock, fetchDataOptions: fetchDataOptions2 });
   }
   getInstanceName() {
     return `encrypted_notes_${this.netId}`;
@@ -3194,9 +3203,9 @@ class BaseGovernanceService extends BaseEventsService {
     subgraphName,
     Governance,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: Governance, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3290,6 +3299,26 @@ class BaseGovernanceService extends BaseEventsService {
     });
   }
 }
+function getTovarishNetworks(registryService, relayers) {
+  return __async$8(this, null, function* () {
+    yield Promise.all(
+      relayers.filter((r) => r.tovarishUrl).map((relayer) => __async$8(this, null, function* () {
+        var _a, _b;
+        try {
+          relayer.tovarishNetworks = yield fetchData(relayer.tovarishUrl, __spreadProps(__spreadValues({}, registryService.fetchDataOptions), {
+            headers: {
+              "Content-Type": "application/json"
+            },
+            timeout: ((_a = registryService.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
+            maxRetry: ((_b = registryService.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
+          }));
+        } catch (e) {
+          relayer.tovarishNetworks = [];
+        }
+      }))
+    );
+  });
+}
 class BaseRegistryService extends BaseEventsService {
   constructor({
     netId,
@@ -3300,9 +3329,9 @@ class BaseRegistryService extends BaseEventsService {
     Aggregator,
     relayerEnsSubdomains,
     deployedBlock,
-    fetchDataOptions
+    fetchDataOptions: fetchDataOptions2
   }) {
-    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions });
+    super({ netId, provider, graphApi, subgraphName, contract: RelayerRegistry, deployedBlock, fetchDataOptions: fetchDataOptions2 });
     this.Aggregator = Aggregator;
     this.relayerEnsSubdomains = relayerEnsSubdomains;
     this.updateInterval = 86400;
@@ -3379,13 +3408,18 @@ class BaseRegistryService extends BaseEventsService {
       });
       const relayerNameHashes = uniqueRegisters.map((r) => ethers.namehash(r.ensName));
       const [relayersData, timestamp] = yield Promise.all([
-        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains),
+        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat("tovarish-relayer")),
         this.provider.getBlock("latest").then((b) => Number(b == null ? void 0 : b.timestamp))
       ]);
       const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
+        let tovarishUrl = void 0;
         const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
+            if (recordIndex === records.length - 1) {
+              tovarishUrl = record;
+              return acc;
+            }
             acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
           }
           return acc;
@@ -3400,10 +3434,12 @@ class BaseRegistryService extends BaseEventsService {
             isRegistered,
             owner,
             stakeBalance: ethers.formatEther(stakeBalance),
-            hostnames
+            hostnames,
+            tovarishUrl
           };
         }
       }).filter((r) => r);
+      yield getTovarishNetworks(this, relayers);
       return {
         timestamp,
         relayers
@@ -6711,6 +6747,7 @@ exports.factories = index;
 exports.fetch = fetch;
 exports.fetchData = fetchData;
 exports.fetchGetUrlFunc = fetchGetUrlFunc;
+exports.getActiveTokenInstances = getActiveTokenInstances;
 exports.getActiveTokens = getActiveTokens;
 exports.getAllDeposits = getAllDeposits;
 exports.getAllEncryptedNotes = getAllEncryptedNotes;
@@ -6736,6 +6773,7 @@ exports.getStatistic = getStatistic;
 exports.getStatusSchema = getStatusSchema;
 exports.getSupportedInstances = getSupportedInstances;
 exports.getTokenBalances = getTokenBalances;
+exports.getTovarishNetworks = getTovarishNetworks;
 exports.getWeightRandom = getWeightRandom;
 exports.getWithdrawals = getWithdrawals;
 exports.hexToBytes = hexToBytes;

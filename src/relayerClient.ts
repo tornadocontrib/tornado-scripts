@@ -8,7 +8,7 @@ import { CachedRelayerInfo } from './events/base';
 
 export const MIN_FEE = 0.1;
 
-export const MAX_FEE = 0.6;
+export const MAX_FEE = 0.9;
 
 export const MIN_STAKE_BALANCE = parseEther('500');
 
@@ -74,6 +74,10 @@ export interface RelayerStatus {
   };
   currentQueue: number;
 }
+
+export type TornadoWithdrawParams = snarkProofs & {
+  contract: string;
+};
 
 export interface RelayerTornadoWithdraw {
   id?: string;
@@ -180,10 +184,6 @@ export interface RelayerClientConstructor {
   config: Config;
   fetchDataOptions?: fetchDataOptions;
 }
-
-export type RelayerClientWithdraw = snarkProofs & {
-  contract: string;
-};
 
 export class RelayerClient {
   netId: NetIdType;
@@ -304,7 +304,7 @@ export class RelayerClient {
     return pickWeightedRandomRelayer(relayers);
   }
 
-  async tornadoWithdraw({ contract, proof, args }: RelayerClientWithdraw) {
+  async tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams) {
     const { url } = this.selectedRelayer as RelayerInfo;
 
     const withdrawResponse = (await fetchData(`${url}v1/tornadoWithdraw`, {

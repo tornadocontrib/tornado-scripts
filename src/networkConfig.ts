@@ -725,10 +725,21 @@ export function getConfig(netId: NetIdType) {
   return chainConfig;
 }
 
-export function getActiveTokens(config: Config) {
+export function getActiveTokens(config: Config): string[] {
   const { tokens, disabledTokens } = config;
 
   return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
+}
+
+export function getActiveTokenInstances(config: Config): TokenInstances {
+  const { tokens, disabledTokens } = config;
+
+  return Object.entries(tokens).reduce((acc, [token, instances]) => {
+    if (!disabledTokens?.includes(token)) {
+      acc[token] = instances;
+    }
+    return acc;
+  }, {} as TokenInstances);
 }
 
 export function getInstanceByAddress(config: Config, address: string) {

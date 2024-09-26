@@ -3,7 +3,7 @@ import { fetchDataOptions } from './providers';
 import type { snarkProofs } from './websnark';
 import { CachedRelayerInfo } from './events/base';
 export declare const MIN_FEE = 0.1;
-export declare const MAX_FEE = 0.6;
+export declare const MAX_FEE = 0.9;
 export declare const MIN_STAKE_BALANCE: bigint;
 export interface RelayerParams {
     ensName: string;
@@ -63,6 +63,9 @@ export interface RelayerStatus {
     };
     currentQueue: number;
 }
+export type TornadoWithdrawParams = snarkProofs & {
+    contract: string;
+};
 export interface RelayerTornadoWithdraw {
     id?: string;
     error?: string;
@@ -122,9 +125,6 @@ export interface RelayerClientConstructor {
     config: Config;
     fetchDataOptions?: fetchDataOptions;
 }
-export type RelayerClientWithdraw = snarkProofs & {
-    contract: string;
-};
 export declare class RelayerClient {
     netId: NetIdType;
     config: Config;
@@ -141,5 +141,5 @@ export declare class RelayerClient {
         invalidRelayers: RelayerError[];
     }>;
     pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
-    tornadoWithdraw({ contract, proof, args }: RelayerClientWithdraw): Promise<void>;
+    tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams): Promise<void>;
 }

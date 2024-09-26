@@ -1,7 +1,7 @@
 import { BaseContract, Provider, EventLog, ContractEventName } from 'ethers';
 import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
-import type { fetchDataOptions } from '../providers';
+import { fetchDataOptions } from '../providers';
 import type { NetIdType, SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
@@ -170,6 +170,7 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
         fromBlock: number;
     }): Promise<BaseEvents<AllGovernanceEvents>>;
 }
+export declare function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]): Promise<void>;
 /**
  * Essential params:
  * ensName, relayerAddress, hostnames
@@ -180,6 +181,8 @@ export interface CachedRelayerInfo extends RelayerParams {
     owner?: string;
     stakeBalance?: string;
     hostnames: SubdomainMap;
+    tovarishUrl?: string;
+    tovarishNetworks?: number[];
 }
 export interface CachedRelayers {
     timestamp: number;

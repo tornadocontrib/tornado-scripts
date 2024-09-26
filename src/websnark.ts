@@ -3,15 +3,14 @@ import * as websnarkUtils from '@tornado/websnark/src/utils';
 // @ts-expect-error no-websnark-types
 import websnarkGroth from '@tornado/websnark/src/groth16';
 import type { Element } from '@tornado/fixed-merkle-tree';
-import type { AddressLike, BytesLike, BigNumberish } from 'ethers';
 import { toFixedHex } from './utils';
 
 export type snarkInputs = {
   // Public snark inputs
   root: Element;
   nullifierHex: string;
-  recipient: AddressLike;
-  relayer: AddressLike;
+  recipient: string;
+  relayer: string;
   fee: bigint;
   refund: bigint;
 
@@ -22,18 +21,9 @@ export type snarkInputs = {
   pathIndices: Element[];
 };
 
-export type snarkArgs = [
-  _root: BytesLike,
-  _nullifierHash: BytesLike,
-  _recipient: AddressLike,
-  _relayer: AddressLike,
-  _fee: BigNumberish,
-  _refund: BigNumberish,
-];
-
 export type snarkProofs = {
-  proof: BytesLike;
-  args: snarkArgs;
+  proof: string;
+  args: string[];
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,17 +61,17 @@ export async function calculateSnarkProof(
   console.log('Start generating SNARK proof', snarkInput);
   console.time('SNARK proof time');
   const proofData = await websnarkUtils.genWitnessAndProve(await groth16, snarkInput, circuit, provingKey);
-  const proof = websnarkUtils.toSolidityInput(proofData).proof as BytesLike;
+  const proof = websnarkUtils.toSolidityInput(proofData).proof;
   console.timeEnd('SNARK proof time');
 
   const args = [
-    toFixedHex(input.root, 32) as BytesLike,
-    toFixedHex(input.nullifierHex, 32) as BytesLike,
+    toFixedHex(input.root, 32),
+    toFixedHex(input.nullifierHex, 32),
     input.recipient,
     input.relayer,
-    toFixedHex(input.fee, 32) as BigNumberish,
-    toFixedHex(input.refund, 32) as BigNumberish,
-  ] as snarkArgs;
+    toFixedHex(input.fee, 32),
+    toFixedHex(input.refund, 32),
+  ];
 
   return { proof, args };
 }
