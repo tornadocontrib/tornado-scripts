@@ -21,9 +21,18 @@ export type snarkInputs = {
   pathIndices: Element[];
 };
 
+export type snarkArgs = [
+  _root: string,
+  _nullifierHash: string,
+  _recipient: string,
+  _relayer: string,
+  _fee: string,
+  _refund: string,
+];
+
 export type snarkProofs = {
   proof: string;
-  args: string[];
+  args: snarkArgs;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +80,7 @@ export async function calculateSnarkProof(
     input.relayer,
     toFixedHex(input.fee, 32),
     toFixedHex(input.refund, 32),
-  ];
+  ] as snarkArgs;
 
   return { proof, args };
 }

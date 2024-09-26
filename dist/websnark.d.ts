@@ -11,9 +11,17 @@ export type snarkInputs = {
     pathElements: Element[];
     pathIndices: Element[];
 };
+export type snarkArgs = [
+    _root: string,
+    _nullifierHash: string,
+    _recipient: string,
+    _relayer: string,
+    _fee: string,
+    _refund: string
+];
 export type snarkProofs = {
     proof: string;
-    args: string[];
+    args: snarkArgs;
 };
 export declare function initGroth16(): Promise<void>;
 export declare function calculateSnarkProof(input: snarkInputs, circuit: object, provingKey: ArrayBuffer): Promise<snarkProofs>;
