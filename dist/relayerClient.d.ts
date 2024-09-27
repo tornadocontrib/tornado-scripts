@@ -131,8 +131,9 @@ export declare class RelayerClient {
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
     constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
-    askRelayerStatus({ hostname, relayerAddress, }: {
+    askRelayerStatus({ hostname, url, relayerAddress, }: {
         hostname: string;
+        url?: string;
         relayerAddress?: string;
     }): Promise<RelayerStatus>;
     filterRelayer(relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined>;

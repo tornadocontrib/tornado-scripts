@@ -2590,10 +2590,15 @@ class RelayerClient {
   askRelayerStatus(_0) {
     return __async$9(this, arguments, function* ({
       hostname,
+      url,
       relayerAddress
     }) {
       var _a, _b;
-      const url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
+      if (!url) {
+        url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
+      } else if (!url.endsWith("/")) {
+        url += "/";
+      }
       const rawStatus = yield fetchData(`${url}status`, __spreadProps$1(__spreadValues$1({}, this.fetchDataOptions), {
         headers: {
           "Content-Type": "application/json, application/x-www-form-urlencoded"
