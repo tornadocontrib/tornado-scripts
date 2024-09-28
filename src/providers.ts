@@ -17,7 +17,6 @@ import {
   Eip1193Provider,
   VoidSigner,
   Network,
-  FeeData,
   EnsPlugin,
   GasCostPlugin,
 } from 'ethers';
@@ -322,87 +321,52 @@ export const populateTransaction = async (
   }
 
   const [feeData, nonce] = await Promise.all([
-    (async () => {
-      if (tx.maxFeePerGas && tx.maxPriorityFeePerGas) {
-        return new FeeData(null, BigInt(tx.maxFeePerGas), BigInt(tx.maxPriorityFeePerGas));
-      }
-
-      if (tx.gasPrice) {
-        return new FeeData(BigInt(tx.gasPrice), null, null);
-      }
-
-      const fetchedFeeData = await provider.getFeeData();
-
-      if (fetchedFeeData.maxFeePerGas && fetchedFeeData.maxPriorityFeePerGas) {
-        return new FeeData(
-          null,
-          (fetchedFeeData.maxFeePerGas * (BigInt(10000) + BigInt(signer.gasPriceBump))) / BigInt(10000),
-          fetchedFeeData.maxPriorityFeePerGas,
-        );
-      } else {
-        return new FeeData(
-          ((fetchedFeeData.gasPrice as bigint) * (BigInt(10000) + BigInt(signer.gasPriceBump))) / BigInt(10000),
-          null,
-          null,
-        );
-      }
-    })(),
-    (async () => {
-      if (tx.nonce) {
-        return tx.nonce;
-      }
-
-      let fetchedNonce = await provider.getTransactionCount(signer.address, 'pending');
-
-      // Deal with cached nonce results
-      if (signer.bumpNonce && signer.nonce && signer.nonce >= fetchedNonce) {
-        console.log(
-          `populateTransaction: bumping nonce from ${fetchedNonce} to ${fetchedNonce + 1} for ${signer.address}`,
-        );
-        fetchedNonce++;
-      }
-
-      return fetchedNonce;
-    })(),
+    tx.maxFeePerGas || tx.gasPrice ? undefined : provider.getFeeData(),
+    tx.nonce ?? provider.getTransactionCount(signer.address, 'pending'),
   ]);
 
-  tx.nonce = nonce;
+  if (feeData) {
+    // EIP-1559
+    if (feeData.maxFeePerGas) {
+      if (!tx.type) {
+        tx.type = 2;
+      }
 
-  // EIP-1559
-  if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-    tx.maxFeePerGas = feeData.maxFeePerGas;
-    tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
-    if (!tx.type) {
-      tx.type = 2;
+      tx.maxFeePerGas = (feeData.maxFeePerGas * (BigInt(10000) + BigInt(signer.gasPriceBump))) / BigInt(10000);
+      tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+      delete tx.gasPrice;
+    } else if (feeData.gasPrice) {
+      if (!tx.type) {
+        tx.type = 0;
+      }
+      tx.gasPrice = feeData.gasPrice;
+      delete tx.maxFeePerGas;
+      delete tx.maxPriorityFeePerGas;
     }
-    delete tx.gasPrice;
-  } else if (feeData.gasPrice) {
-    tx.gasPrice = feeData.gasPrice;
-    if (!tx.type) {
-      tx.type = 0;
-    }
-    delete tx.maxFeePerGas;
-    delete tx.maxPriorityFeePerGas;
   }
 
-  // gasLimit
-  tx.gasLimit =
-    tx.gasLimit ||
-    (await (async () => {
-      try {
-        const gasLimit = await provider.estimateGas(tx);
-        return gasLimit === BigInt(21000)
+  if (nonce) {
+    tx.nonce = nonce;
+  }
+
+  if (!tx.gasLimit) {
+    try {
+      const gasLimit = await provider.estimateGas(tx);
+
+      tx.gasLimit =
+        gasLimit === BigInt(21000)
           ? gasLimit
           : (gasLimit * (BigInt(10000) + BigInt(signer.gasLimitBump))) / BigInt(10000);
-      } catch (err) {
-        if (signer.gasFailover) {
-          console.log('populateTransaction: warning gas estimation failed falling back to 3M gas');
-          // Gas failover
-          return BigInt('3000000');
-        }
-        throw err;
+    } catch (error) {
+      if (signer.gasFailover) {
+        console.log('populateTransaction: warning gas estimation failed falling back to 3M gas');
+        // Gas failover
+        tx.gasLimit = BigInt('3000000');
+      } else {
+        throw error;
       }
-    })());
+    }
+  }
 
   return tx;
 };

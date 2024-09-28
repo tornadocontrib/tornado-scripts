@@ -1,4 +1,4 @@
-import { FetchRequest, Network, EnsPlugin, GasCostPlugin, JsonRpcProvider, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, FeeData, getAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
+import { FetchRequest, Network, EnsPlugin, GasCostPlugin, JsonRpcProvider, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
 import crossFetch from 'cross-fetch';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -350,6 +350,7 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   return provider;
 }
 const populateTransaction = (signer, tx) => __async$c(void 0, null, function* () {
+  var _a;
   const provider = signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
@@ -358,70 +359,42 @@ const populateTransaction = (signer, tx) => __async$c(void 0, null, function* ()
     throw new Error(errMsg);
   }
   const [feeData, nonce] = yield Promise.all([
-    (() => __async$c(void 0, null, function* () {
-      if (tx.maxFeePerGas && tx.maxPriorityFeePerGas) {
-        return new FeeData(null, BigInt(tx.maxFeePerGas), BigInt(tx.maxPriorityFeePerGas));
-      }
-      if (tx.gasPrice) {
-        return new FeeData(BigInt(tx.gasPrice), null, null);
-      }
-      const fetchedFeeData = yield provider.getFeeData();
-      if (fetchedFeeData.maxFeePerGas && fetchedFeeData.maxPriorityFeePerGas) {
-        return new FeeData(
-          null,
-          fetchedFeeData.maxFeePerGas * (BigInt(1e4) + BigInt(signer.gasPriceBump)) / BigInt(1e4),
-          fetchedFeeData.maxPriorityFeePerGas
-        );
-      } else {
-        return new FeeData(
-          fetchedFeeData.gasPrice * (BigInt(1e4) + BigInt(signer.gasPriceBump)) / BigInt(1e4),
-          null,
-          null
-        );
-      }
-    }))(),
-    (() => __async$c(void 0, null, function* () {
-      if (tx.nonce) {
-        return tx.nonce;
-      }
-      let fetchedNonce = yield provider.getTransactionCount(signer.address, "pending");
-      if (signer.bumpNonce && signer.nonce && signer.nonce >= fetchedNonce) {
-        console.log(
-          `populateTransaction: bumping nonce from ${fetchedNonce} to ${fetchedNonce + 1} for ${signer.address}`
-        );
-        fetchedNonce++;
-      }
-      return fetchedNonce;
-    }))()
+    tx.maxFeePerGas || tx.gasPrice ? void 0 : provider.getFeeData(),
+    (_a = tx.nonce) != null ? _a : provider.getTransactionCount(signer.address, "pending")
   ]);
-  tx.nonce = nonce;
-  if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-    tx.maxFeePerGas = feeData.maxFeePerGas;
-    tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
-    if (!tx.type) {
-      tx.type = 2;
+  if (feeData) {
+    if (feeData.maxFeePerGas) {
+      if (!tx.type) {
+        tx.type = 2;
+      }
+      tx.maxFeePerGas = feeData.maxFeePerGas * (BigInt(1e4) + BigInt(signer.gasPriceBump)) / BigInt(1e4);
+      tx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+      delete tx.gasPrice;
+    } else if (feeData.gasPrice) {
+      if (!tx.type) {
+        tx.type = 0;
+      }
+      tx.gasPrice = feeData.gasPrice;
+      delete tx.maxFeePerGas;
+      delete tx.maxPriorityFeePerGas;
     }
-    delete tx.gasPrice;
-  } else if (feeData.gasPrice) {
-    tx.gasPrice = feeData.gasPrice;
-    if (!tx.type) {
-      tx.type = 0;
-    }
-    delete tx.maxFeePerGas;
-    delete tx.maxPriorityFeePerGas;
   }
-  tx.gasLimit = tx.gasLimit || (yield (() => __async$c(void 0, null, function* () {
+  if (nonce) {
+    tx.nonce = nonce;
+  }
+  if (!tx.gasLimit) {
     try {
       const gasLimit = yield provider.estimateGas(tx);
-      return gasLimit === BigInt(21e3) ? gasLimit : gasLimit * (BigInt(1e4) + BigInt(signer.gasLimitBump)) / BigInt(1e4);
-    } catch (err) {
+      tx.gasLimit = gasLimit === BigInt(21e3) ? gasLimit : gasLimit * (BigInt(1e4) + BigInt(signer.gasLimitBump)) / BigInt(1e4);
+    } catch (error) {
       if (signer.gasFailover) {
         console.log("populateTransaction: warning gas estimation failed falling back to 3M gas");
-        return BigInt("3000000");
+        tx.gasLimit = BigInt("3000000");
+      } else {
+        throw error;
       }
-      throw err;
     }
-  }))());
+  }
   return tx;
 });
 class TornadoWallet extends Wallet {
@@ -2594,10 +2567,12 @@ class RelayerClient {
       relayerAddress
     }) {
       var _a, _b;
-      if (!url) {
+      if (!url && hostname) {
         url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
-      } else if (!url.endsWith("/")) {
+      } else if (url && !url.endsWith("/")) {
         url += "/";
+      } else {
+        url = "";
       }
       const rawStatus = yield fetchData(`${url}status`, __spreadProps$1(__spreadValues$1({}, this.fetchDataOptions), {
         headers: {

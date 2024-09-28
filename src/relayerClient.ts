@@ -202,16 +202,18 @@ export class RelayerClient {
     url,
     relayerAddress,
   }: {
-    hostname: string;
+    hostname?: string;
     // optional url if entered manually
     url?: string;
     // relayerAddress from registry contract to prevent cheating
     relayerAddress?: string;
   }): Promise<RelayerStatus> {
-    if (!url) {
+    if (!url && hostname) {
       url = `https://${!hostname.endsWith('/') ? hostname + '/' : hostname}`;
-    } else if (!url.endsWith('/')) {
+    } else if (url && !url.endsWith('/')) {
       url += '/';
+    } else {
+      url = '';
     }
 
     const rawStatus = (await fetchData(`${url}status`, {

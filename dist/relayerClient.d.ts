@@ -132,7 +132,7 @@ export declare class RelayerClient {
     fetchDataOptions?: fetchDataOptions;
     constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
     askRelayerStatus({ hostname, url, relayerAddress, }: {
-        hostname: string;
+        hostname?: string;
         url?: string;
         relayerAddress?: string;
     }): Promise<RelayerStatus>;
