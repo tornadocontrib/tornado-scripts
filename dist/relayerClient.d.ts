@@ -1,7 +1,7 @@
 import { NetIdType, Config } from './networkConfig';
 import { fetchDataOptions } from './providers';
 import type { snarkProofs } from './websnark';
-import { CachedRelayerInfo } from './events/base';
+import type { CachedRelayerInfo } from './events';
 export declare const MIN_FEE = 0.1;
 export declare const MAX_FEE = 0.9;
 export declare const MIN_STAKE_BALANCE: bigint;
@@ -130,6 +130,7 @@ export declare class RelayerClient {
     config: Config;
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
+    tovarish: boolean;
     constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
     askRelayerStatus({ hostname, url, relayerAddress, }: {
         hostname?: string;

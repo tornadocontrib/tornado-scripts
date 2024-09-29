@@ -4,7 +4,7 @@ import { NetId, NetIdType, Config } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
 import { ajv, jobsSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
-import { CachedRelayerInfo } from './events/base';
+import type { CachedRelayerInfo } from './events';
 
 export const MIN_FEE = 0.1;
 
@@ -190,11 +190,13 @@ export class RelayerClient {
   config: Config;
   selectedRelayer?: RelayerInfo;
   fetchDataOptions?: fetchDataOptions;
+  tovarish: boolean;
 
   constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor) {
     this.netId = netId;
     this.config = config;
     this.fetchDataOptions = fetchDataOptions;
+    this.tovarish = false;
   }
 
   async askRelayerStatus({
@@ -225,7 +227,7 @@ export class RelayerClient {
       maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
     })) as object;
 
-    const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config));
+    const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
 
     if (!statusValidator(rawStatus)) {
       throw new Error('Invalid status schema');

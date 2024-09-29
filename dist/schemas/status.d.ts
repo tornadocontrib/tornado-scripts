@@ -74,6 +74,24 @@ export type statusSchema = {
             };
             required: string[];
         };
+        syncStatus: {
+            type: string;
+            properties: {
+                events: {
+                    type: string;
+                };
+                tokenPrice: {
+                    type: string;
+                };
+                gasPrice: {
+                    type: string;
+                };
+            };
+            required: string[];
+        };
+        onSyncEvents: {
+            type: string;
+        };
         currentQueue: {
             type: string;
         };
@@ -88,5 +106,5 @@ declare const bnType: {
     type: string;
     BN: boolean;
 };
-export declare function getStatusSchema(netId: NetIdType, config: Config): statusSchema;
+export declare function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean): statusSchema;
 export {};

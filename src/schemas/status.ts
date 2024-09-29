@@ -70,6 +70,16 @@ export type statusSchema = {
       };
       required: string[];
     };
+    syncStatus: {
+      type: string;
+      properties: {
+        events: { type: string };
+        tokenPrice: { type: string };
+        gasPrice: { type: string };
+      };
+      required: string[];
+    };
+    onSyncEvents: { type: string };
     currentQueue: {
       type: string;
     };
@@ -105,12 +115,22 @@ const statusSchema: statusSchema = {
       },
       required: ['status'],
     },
+    syncStatus: {
+      type: 'object',
+      properties: {
+        events: { type: 'boolean' },
+        tokenPrice: { type: 'boolean' },
+        gasPrice: { type: 'boolean' },
+      },
+      required: ['events', 'tokenPrice', 'gasPrice'],
+    },
+    onSyncEvents: { type: 'boolean' },
     currentQueue: { type: 'number' },
   },
-  required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health'],
+  required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health', 'currentQueue'],
 };
 
-export function getStatusSchema(netId: NetIdType, config: Config) {
+export function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean) {
   const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
 
   // deep copy schema
@@ -162,19 +182,29 @@ export function getStatusSchema(netId: NetIdType, config: Config) {
 
   schema.properties.instances = instances;
 
-  if (netId === NetId.MAINNET) {
-    const _tokens = Object.keys(tokens).filter((t) => t !== nativeCurrency);
+  const _tokens = Object.keys(tokens).filter(
+    (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t),
+  );
 
+  if (netId === NetId.MAINNET) {
+    _tokens.push('torn');
+  }
+
+  if (_tokens.length) {
     const ethPrices: statusEthPricesType = {
       type: 'object',
       properties: _tokens.reduce((acc: { [key in string]: typeof bnType }, token: string) => {
         acc[token] = bnType;
         return acc;
       }, {}),
-      // required: _tokens
+      required: _tokens,
     };
     schema.properties.ethPrices = ethPrices;
-    // schema.required.push('ethPrices')
+    schema.required.push('ethPrices');
+  }
+
+  if (tovarish) {
+    schema.required.push('gasPrices', 'latestBlock', 'syncStatus', 'onSyncEvents');
   }
 
   return schema;
