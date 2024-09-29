@@ -322,7 +322,7 @@ export const populateTransaction = async (
 
   const [feeData, nonce] = await Promise.all([
     tx.maxFeePerGas || tx.gasPrice ? undefined : provider.getFeeData(),
-    tx.nonce ?? provider.getTransactionCount(signer.address, 'pending'),
+    tx.nonce ? undefined : provider.getTransactionCount(signer.address, 'pending'),
   ]);
 
   if (feeData) {

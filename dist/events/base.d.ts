@@ -42,6 +42,7 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     constructor({ netId, provider, graphApi, subgraphName, contract, type, deployedBlock, fetchDataOptions, }: BaseEventsServiceConstructor);
     getInstanceName(): string;
     getType(): string;
+    getTovarishType(): string;
     getGraphMethod(): string;
     getGraphParams(): BaseGraphParams;
     updateEventProgress({ percentage, type, fromBlock, toBlock, count }: Parameters<BatchEventOnProgress>[0]): void;
@@ -147,6 +148,7 @@ export declare class BaseEncryptedNotesService extends BaseEventsService<Encrypt
     constructor({ netId, provider, graphApi, subgraphName, Router, deployedBlock, fetchDataOptions, }: BaseEncryptedNotesServiceConstructor);
     getInstanceName(): string;
     getType(): string;
+    getTovarishType(): string;
     getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<EncryptedNotesEvents[]>;
 }
@@ -164,6 +166,7 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
     constructor({ netId, provider, graphApi, subgraphName, Governance, deployedBlock, fetchDataOptions, }: BaseGovernanceServiceConstructor);
     getInstanceName(): string;
     getType(): string;
+    getTovarishType(): string;
     getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<AllGovernanceEvents[]>;
     getEventsFromGraph({ fromBlock }: {
@@ -207,6 +210,7 @@ export declare class BaseRegistryService extends BaseEventsService<RegistersEven
     constructor({ netId, provider, graphApi, subgraphName, RelayerRegistry, Aggregator, relayerEnsSubdomains, deployedBlock, fetchDataOptions, }: BaseRegistryServiceConstructor);
     getInstanceName(): string;
     getType(): string;
+    getTovarishType(): string;
     getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<{
         ensName: any;

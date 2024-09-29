@@ -350,7 +350,6 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   return provider;
 }
 const populateTransaction = (signer, tx) => __async$c(void 0, null, function* () {
-  var _a;
   const provider = signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
@@ -360,7 +359,7 @@ const populateTransaction = (signer, tx) => __async$c(void 0, null, function* ()
   }
   const [feeData, nonce] = yield Promise.all([
     tx.maxFeePerGas || tx.gasPrice ? void 0 : provider.getFeeData(),
-    (_a = tx.nonce) != null ? _a : provider.getTransactionCount(signer.address, "pending")
+    tx.nonce ? void 0 : provider.getTransactionCount(signer.address, "pending")
   ]);
   if (feeData) {
     if (feeData.maxFeePerGas) {
@@ -2794,6 +2793,9 @@ class BaseEventsService {
   getType() {
     return this.type || "";
   }
+  getTovarishType() {
+    return String(this.type || "").toLowerCase();
+  }
   getGraphMethod() {
     return "";
   }
@@ -3133,6 +3135,9 @@ class BaseEncryptedNotesService extends BaseEventsService {
   getType() {
     return "EncryptedNote";
   }
+  getTovarishType() {
+    return "encrypted_notes";
+  }
   getGraphMethod() {
     return "getAllEncryptedNotes";
   }
@@ -3175,6 +3180,9 @@ class BaseGovernanceService extends BaseEventsService {
   }
   getType() {
     return "*";
+  }
+  getTovarishType() {
+    return "governance";
   }
   getGraphMethod() {
     return "getAllGovernanceEvents";
@@ -3301,6 +3309,9 @@ class BaseRegistryService extends BaseEventsService {
   // Name of type used for events
   getType() {
     return "RelayerRegistered";
+  }
+  getTovarishType() {
+    return "registered";
   }
   // Name of method used for graph
   getGraphMethod() {

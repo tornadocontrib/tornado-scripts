@@ -130,6 +130,10 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     return this.type || '';
   }
 
+  getTovarishType(): string {
+    return String(this.type || '').toLowerCase();
+  }
+
   getGraphMethod(): string {
     return '';
   }
@@ -566,6 +570,10 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
     return 'EncryptedNote';
   }
 
+  getTovarishType(): string {
+    return 'encrypted_notes';
+  }
+
   getGraphMethod(): string {
     return 'getAllEncryptedNotes';
   }
@@ -628,6 +636,10 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
 
   getType() {
     return '*';
+  }
+
+  getTovarishType(): string {
+    return 'governance';
   }
 
   getGraphMethod() {
@@ -819,6 +831,10 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
   // Name of type used for events
   getType() {
     return 'RelayerRegistered';
+  }
+
+  getTovarishType(): string {
+    return 'registered';
   }
 
   // Name of method used for graph
