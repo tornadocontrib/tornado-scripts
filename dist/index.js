@@ -3290,10 +3290,10 @@ class BaseGovernanceService extends BaseEventsService {
 function getTovarishNetworks(registryService, relayers) {
   return __async$8(this, null, function* () {
     yield Promise.all(
-      relayers.filter((r) => r.tovarishUrl).map((relayer) => __async$8(this, null, function* () {
+      relayers.filter((r) => r.tovarishHost).map((relayer) => __async$8(this, null, function* () {
         var _a, _b;
         try {
-          relayer.tovarishNetworks = yield fetchData(relayer.tovarishUrl, __spreadProps(__spreadValues({}, registryService.fetchDataOptions), {
+          relayer.tovarishNetworks = yield fetchData(relayer.tovarishHost, __spreadProps(__spreadValues({}, registryService.fetchDataOptions), {
             headers: {
               "Content-Type": "application/json"
             },
@@ -3359,6 +3359,7 @@ class BaseRegistryService extends BaseEventsService {
   getRelayersFromDB() {
     return __async$8(this, null, function* () {
       return {
+        lastBlock: 0,
         timestamp: 0,
         relayers: []
       };
@@ -3370,6 +3371,7 @@ class BaseRegistryService extends BaseEventsService {
   getRelayersFromCache() {
     return __async$8(this, null, function* () {
       return {
+        lastBlock: 0,
         timestamp: 0,
         relayers: [],
         fromCache: true
@@ -3387,10 +3389,10 @@ class BaseRegistryService extends BaseEventsService {
   }
   getLatestRelayers() {
     return __async$8(this, null, function* () {
-      const registerEvents = (yield this.updateEvents()).events;
+      const { events, lastBlock } = yield this.updateEvents();
       const subdomains = Object.values(this.relayerEnsSubdomains);
       const registerSet = /* @__PURE__ */ new Set();
-      const uniqueRegisters = registerEvents.filter(({ ensName }) => {
+      const uniqueRegisters = events.filter(({ ensName }) => {
         if (!registerSet.has(ensName)) {
           registerSet.add(ensName);
           return true;
@@ -3400,15 +3402,15 @@ class BaseRegistryService extends BaseEventsService {
       const relayerNameHashes = uniqueRegisters.map((r) => ethers.namehash(r.ensName));
       const [relayersData, timestamp] = yield Promise.all([
         this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat("tovarish-relayer")),
-        this.provider.getBlock("latest").then((b) => Number(b == null ? void 0 : b.timestamp))
+        this.provider.getBlock(lastBlock).then((b) => Number(b == null ? void 0 : b.timestamp))
       ]);
       const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
-        let tovarishUrl = void 0;
+        let tovarishHost = void 0;
         const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
             if (recordIndex === records.length - 1) {
-              tovarishUrl = record;
+              tovarishHost = record;
               return acc;
             }
             acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
@@ -3426,12 +3428,13 @@ class BaseRegistryService extends BaseEventsService {
             owner,
             stakeBalance: ethers.formatEther(stakeBalance),
             hostnames,
-            tovarishUrl
+            tovarishHost
           };
         }
       }).filter((r) => r);
       yield getTovarishNetworks(this, relayers);
       return {
+        lastBlock,
         timestamp,
         relayers
       };
@@ -3442,7 +3445,7 @@ class BaseRegistryService extends BaseEventsService {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveRelayers(_0) {
-    return __async$8(this, arguments, function* ({ timestamp, relayers }) {
+    return __async$8(this, arguments, function* ({ lastBlock, timestamp, relayers }) {
     });
   }
   /**
@@ -3450,17 +3453,17 @@ class BaseRegistryService extends BaseEventsService {
    */
   updateRelayers() {
     return __async$8(this, null, function* () {
-      let { timestamp, relayers, fromCache } = yield this.getSavedRelayers();
+      let { lastBlock, timestamp, relayers, fromCache } = yield this.getSavedRelayers();
       let shouldSave = fromCache != null ? fromCache : false;
       if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
         console.log("\nUpdating relayers from registry\n");
-        ({ timestamp, relayers } = yield this.getLatestRelayers());
+        ({ lastBlock, timestamp, relayers } = yield this.getLatestRelayers());
         shouldSave = true;
       }
       if (shouldSave) {
-        yield this.saveRelayers({ timestamp, relayers });
+        yield this.saveRelayers({ lastBlock, timestamp, relayers });
       }
-      return { timestamp, relayers };
+      return { lastBlock, timestamp, relayers };
     });
   }
 }

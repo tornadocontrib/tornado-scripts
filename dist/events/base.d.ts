@@ -184,10 +184,11 @@ export interface CachedRelayerInfo extends RelayerParams {
     owner?: string;
     stakeBalance?: string;
     hostnames: SubdomainMap;
-    tovarishUrl?: string;
+    tovarishHost?: string;
     tovarishNetworks?: number[];
 }
 export interface CachedRelayers {
+    lastBlock: number;
     timestamp: number;
     relayers: CachedRelayerInfo[];
     fromCache?: boolean;
@@ -232,7 +233,7 @@ export declare class BaseRegistryService extends BaseEventsService<RegistersEven
     /**
      * Handle saving relayers
      */
-    saveRelayers({ timestamp, relayers }: CachedRelayers): Promise<void>;
+    saveRelayers({ lastBlock, timestamp, relayers }: CachedRelayers): Promise<void>;
     /**
      * Get cached or latest relayer and save to local
      */

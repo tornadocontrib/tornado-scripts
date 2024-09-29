@@ -749,10 +749,10 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
 export async function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]) {
   await Promise.all(
     relayers
-      .filter((r) => r.tovarishUrl)
+      .filter((r) => r.tovarishHost)
       .map(async (relayer) => {
         try {
-          relayer.tovarishNetworks = await fetchData(relayer.tovarishUrl as string, {
+          relayer.tovarishNetworks = await fetchData(relayer.tovarishHost as string, {
             ...registryService.fetchDataOptions,
             headers: {
               'Content-Type': 'application/json',
@@ -778,11 +778,12 @@ export interface CachedRelayerInfo extends RelayerParams {
   owner?: string;
   stakeBalance?: string;
   hostnames: SubdomainMap;
-  tovarishUrl?: string;
+  tovarishHost?: string;
   tovarishNetworks?: number[];
 }
 
 export interface CachedRelayers {
+  lastBlock: number;
   timestamp: number;
   relayers: CachedRelayerInfo[];
   fromCache?: boolean;
@@ -863,6 +864,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
    */
   async getRelayersFromDB(): Promise<CachedRelayers> {
     return {
+      lastBlock: 0,
       timestamp: 0,
       relayers: [],
     };
@@ -873,6 +875,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
    */
   async getRelayersFromCache(): Promise<CachedRelayers> {
     return {
+      lastBlock: 0,
       timestamp: 0,
       relayers: [],
       fromCache: true,
@@ -890,13 +893,13 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
   }
 
   async getLatestRelayers(): Promise<CachedRelayers> {
-    const registerEvents = (await this.updateEvents()).events;
+    const { events, lastBlock } = await this.updateEvents();
 
     const subdomains = Object.values(this.relayerEnsSubdomains);
 
     const registerSet = new Set();
 
-    const uniqueRegisters = registerEvents.filter(({ ensName }) => {
+    const uniqueRegisters = events.filter(({ ensName }) => {
       if (!registerSet.has(ensName)) {
         registerSet.add(ensName);
         return true;
@@ -908,20 +911,20 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
 
     const [relayersData, timestamp] = await Promise.all([
       this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat('tovarish-relayer')),
-      this.provider.getBlock('latest').then((b) => Number(b?.timestamp)),
+      this.provider.getBlock(lastBlock).then((b) => Number(b?.timestamp)),
     ]);
 
     const relayers = relayersData
       .map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
         const { ensName, relayerAddress } = uniqueRegisters[index];
 
-        let tovarishUrl = undefined;
+        let tovarishHost = undefined;
 
         const hostnames = records.reduce((acc, record, recordIndex) => {
           if (record) {
             // tovarish-relayer.relayer.eth
             if (recordIndex === records.length - 1) {
-              tovarishUrl = record;
+              tovarishHost = record;
               return acc;
             }
 
@@ -943,7 +946,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
             owner,
             stakeBalance: formatEther(stakeBalance),
             hostnames,
-            tovarishUrl,
+            tovarishHost,
           } as CachedRelayerInfo;
         }
       })
@@ -952,6 +955,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     await getTovarishNetworks(this, relayers);
 
     return {
+      lastBlock,
       timestamp,
       relayers,
     };
@@ -961,29 +965,29 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
    * Handle saving relayers
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async saveRelayers({ timestamp, relayers }: CachedRelayers) {}
+  async saveRelayers({ lastBlock, timestamp, relayers }: CachedRelayers) {}
 
   /**
    * Get cached or latest relayer and save to local
    */
   async updateRelayers(): Promise<CachedRelayers> {
     // eslint-disable-next-line prefer-const
-    let { timestamp, relayers, fromCache } = await this.getSavedRelayers();
+    let { lastBlock, timestamp, relayers, fromCache } = await this.getSavedRelayers();
 
     let shouldSave = fromCache ?? false;
 
     if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1000)) {
       console.log('\nUpdating relayers from registry\n');
 
-      ({ timestamp, relayers } = await this.getLatestRelayers());
+      ({ lastBlock, timestamp, relayers } = await this.getLatestRelayers());
 
       shouldSave = true;
     }
 
     if (shouldSave) {
-      await this.saveRelayers({ timestamp, relayers });
+      await this.saveRelayers({ lastBlock, timestamp, relayers });
     }
 
-    return { timestamp, relayers };
+    return { lastBlock, timestamp, relayers };
   }
 }
