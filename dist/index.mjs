@@ -1,4 +1,4 @@
-import { FetchRequest, Network, EnsPlugin, GasCostPlugin, JsonRpcProvider, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
+import { FetchRequest, Network, EnsPlugin, GasCostPlugin, JsonRpcProvider, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
 import crossFetch from 'cross-fetch';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -124,27 +124,27 @@ function digest(bytes, algo = "SHA-384") {
   });
 }
 
-var __defProp$5 = Object.defineProperty;
-var __defProps$4 = Object.defineProperties;
-var __getOwnPropDescs$4 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$5 = Object.getOwnPropertySymbols;
+var __defProp$7 = Object.defineProperty;
+var __defProps$6 = Object.defineProperties;
+var __getOwnPropDescs$6 = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols$7 = Object.getOwnPropertySymbols;
 var __getProtoOf$2 = Object.getPrototypeOf;
-var __hasOwnProp$5 = Object.prototype.hasOwnProperty;
-var __propIsEnum$5 = Object.prototype.propertyIsEnumerable;
+var __hasOwnProp$7 = Object.prototype.hasOwnProperty;
+var __propIsEnum$7 = Object.prototype.propertyIsEnumerable;
 var __reflectGet$2 = Reflect.get;
-var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$5 = (a, b) => {
+var __defNormalProp$7 = (obj, key, value) => key in obj ? __defProp$7(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$7 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$5.call(b, prop))
-      __defNormalProp$5(a, prop, b[prop]);
-  if (__getOwnPropSymbols$5)
-    for (var prop of __getOwnPropSymbols$5(b)) {
-      if (__propIsEnum$5.call(b, prop))
-        __defNormalProp$5(a, prop, b[prop]);
+    if (__hasOwnProp$7.call(b, prop))
+      __defNormalProp$7(a, prop, b[prop]);
+  if (__getOwnPropSymbols$7)
+    for (var prop of __getOwnPropSymbols$7(b)) {
+      if (__propIsEnum$7.call(b, prop))
+        __defNormalProp$7(a, prop, b[prop]);
     }
   return a;
 };
-var __spreadProps$4 = (a, b) => __defProps$4(a, __getOwnPropDescs$4(b));
+var __spreadProps$6 = (a, b) => __defProps$6(a, __getOwnPropDescs$6(b));
 var __superGet$2 = (cls, obj, key) => __reflectGet$2(__getProtoOf$2(cls), key, obj);
 var __async$d = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -296,7 +296,7 @@ const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$d(void 0, nu
       controller.abort();
     });
   }
-  const init = __spreadProps$4(__spreadValues$5({}, options), {
+  const init = __spreadProps$6(__spreadValues$7({}, options), {
     method: req.method || "POST",
     headers: req.headers,
     body: req.body || void 0,
@@ -662,25 +662,25 @@ const GET_GOVERNANCE_APY = `
   }
 `;
 
-var __defProp$4 = Object.defineProperty;
-var __defProps$3 = Object.defineProperties;
-var __getOwnPropDescs$3 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$4 = Object.getOwnPropertySymbols;
-var __hasOwnProp$4 = Object.prototype.hasOwnProperty;
-var __propIsEnum$4 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$4 = (a, b) => {
+var __defProp$6 = Object.defineProperty;
+var __defProps$5 = Object.defineProperties;
+var __getOwnPropDescs$5 = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols$6 = Object.getOwnPropertySymbols;
+var __hasOwnProp$6 = Object.prototype.hasOwnProperty;
+var __propIsEnum$6 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$6 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$4.call(b, prop))
-      __defNormalProp$4(a, prop, b[prop]);
-  if (__getOwnPropSymbols$4)
-    for (var prop of __getOwnPropSymbols$4(b)) {
-      if (__propIsEnum$4.call(b, prop))
-        __defNormalProp$4(a, prop, b[prop]);
+    if (__hasOwnProp$6.call(b, prop))
+      __defNormalProp$6(a, prop, b[prop]);
+  if (__getOwnPropSymbols$6)
+    for (var prop of __getOwnPropSymbols$6(b)) {
+      if (__propIsEnum$6.call(b, prop))
+        __defNormalProp$6(a, prop, b[prop]);
     }
   return a;
 };
-var __spreadProps$3 = (a, b) => __defProps$3(a, __getOwnPropDescs$3(b));
+var __spreadProps$5 = (a, b) => __defProps$5(a, __getOwnPropDescs$5(b));
 var __async$c = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -713,7 +713,7 @@ function queryGraph(_0) {
   }) {
     var _a;
     const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
-    const { data, errors } = yield fetchData(graphUrl, __spreadProps$3(__spreadValues$4({}, fetchDataOptions2), {
+    const { data, errors } = yield fetchData(graphUrl, __spreadProps$5(__spreadValues$6({}, fetchDataOptions2), {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1701,19 +1701,19 @@ class BatchEventsService {
   }
 }
 
-var __defProp$3 = Object.defineProperty;
-var __getOwnPropSymbols$3 = Object.getOwnPropertySymbols;
-var __hasOwnProp$3 = Object.prototype.hasOwnProperty;
-var __propIsEnum$3 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$3 = (a, b) => {
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropSymbols$5 = Object.getOwnPropertySymbols;
+var __hasOwnProp$5 = Object.prototype.hasOwnProperty;
+var __propIsEnum$5 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$5 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$3.call(b, prop))
-      __defNormalProp$3(a, prop, b[prop]);
-  if (__getOwnPropSymbols$3)
-    for (var prop of __getOwnPropSymbols$3(b)) {
-      if (__propIsEnum$3.call(b, prop))
-        __defNormalProp$3(a, prop, b[prop]);
+    if (__hasOwnProp$5.call(b, prop))
+      __defNormalProp$5(a, prop, b[prop]);
+  if (__getOwnPropSymbols$5)
+    for (var prop of __getOwnPropSymbols$5(b)) {
+      if (__propIsEnum$5.call(b, prop))
+        __defNormalProp$5(a, prop, b[prop]);
     }
   return a;
 };
@@ -2297,10 +2297,10 @@ function addNetwork(newConfig) {
   enabledChains.push(
     ...Object.keys(newConfig).map((netId) => Number(netId)).filter((netId) => !enabledChains.includes(netId))
   );
-  customConfig = __spreadValues$3(__spreadValues$3({}, customConfig), newConfig);
+  customConfig = __spreadValues$5(__spreadValues$5({}, customConfig), newConfig);
 }
 function getNetworkConfig() {
-  const allConfig = __spreadValues$3(__spreadValues$3({}, defaultConfig), customConfig);
+  const allConfig = __spreadValues$5(__spreadValues$5({}, defaultConfig), customConfig);
   return enabledChains.reduce((acc, curr) => {
     acc[curr] = allConfig[curr];
     return acc;
@@ -2352,12 +2352,244 @@ function getRelayerEnsSubdomains() {
   }, {});
 }
 
-const addressType = { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" };
-const bnType = { type: "string", BN: true };
+const ajv = new Ajv({ allErrors: true });
+ajv.addKeyword({
+  keyword: "BN",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validate: (schema, data) => {
+    try {
+      BigInt(data);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+  errors: true
+});
+ajv.addKeyword({
+  keyword: "isAddress",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validate: (schema, data) => {
+    try {
+      return isAddress(data);
+    } catch (e) {
+      return false;
+    }
+  },
+  errors: true
+});
+
+var __defProp$4 = Object.defineProperty;
+var __defProps$4 = Object.defineProperties;
+var __getOwnPropDescs$4 = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols$4 = Object.getOwnPropertySymbols;
+var __hasOwnProp$4 = Object.prototype.hasOwnProperty;
+var __propIsEnum$4 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$4 = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp$4.call(b, prop))
+      __defNormalProp$4(a, prop, b[prop]);
+  if (__getOwnPropSymbols$4)
+    for (var prop of __getOwnPropSymbols$4(b)) {
+      if (__propIsEnum$4.call(b, prop))
+        __defNormalProp$4(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps$4 = (a, b) => __defProps$4(a, __getOwnPropDescs$4(b));
+const addressSchemaType = {
+  type: "string",
+  pattern: "^0x[a-fA-F0-9]{40}$",
+  isAddress: true
+};
+const bnSchemaType = { type: "string", BN: true };
+const proofSchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{512}$" };
+const bytes32SchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" };
+const bytes32BNSchemaType = __spreadProps$4(__spreadValues$4({}, bytes32SchemaType), { BN: true });
+
+var __defProp$3 = Object.defineProperty;
+var __defProps$3 = Object.defineProperties;
+var __getOwnPropDescs$3 = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols$3 = Object.getOwnPropertySymbols;
+var __hasOwnProp$3 = Object.prototype.hasOwnProperty;
+var __propIsEnum$3 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$3 = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp$3.call(b, prop))
+      __defNormalProp$3(a, prop, b[prop]);
+  if (__getOwnPropSymbols$3)
+    for (var prop of __getOwnPropSymbols$3(b)) {
+      if (__propIsEnum$3.call(b, prop))
+        __defNormalProp$3(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps$3 = (a, b) => __defProps$3(a, __getOwnPropDescs$3(b));
+const baseEventsSchemaProperty = {
+  blockNumber: {
+    type: "number"
+  },
+  logIndex: {
+    type: "number"
+  },
+  transactionHash: bytes32SchemaType
+};
+const baseEventsSchemaRequired = Object.keys(baseEventsSchemaProperty);
+const governanceEventsSchema = {
+  type: "array",
+  items: {
+    anyOf: [
+      {
+        type: "object",
+        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+          event: { type: "string" },
+          id: { type: "number" },
+          proposer: addressSchemaType,
+          target: addressSchemaType,
+          startTime: { type: "number" },
+          endTime: { type: "number" },
+          description: { type: "string" }
+        }),
+        required: [
+          ...baseEventsSchemaRequired,
+          "event",
+          "id",
+          "proposer",
+          "target",
+          "startTime",
+          "endTime",
+          "description"
+        ],
+        additionalProperties: false
+      },
+      {
+        type: "object",
+        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+          event: { type: "string" },
+          proposalId: { type: "number" },
+          voter: addressSchemaType,
+          support: { type: "boolean" },
+          votes: { type: "string" },
+          from: addressSchemaType,
+          input: { type: "string" }
+        }),
+        required: [...baseEventsSchemaRequired, "event", "proposalId", "voter", "support", "votes", "from", "input"],
+        additionalProperties: false
+      },
+      {
+        type: "object",
+        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+          event: { type: "string" },
+          account: addressSchemaType,
+          delegateTo: addressSchemaType
+        }),
+        required: [...baseEventsSchemaRequired, "account", "delegateTo"],
+        additionalProperties: false
+      },
+      {
+        type: "object",
+        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+          event: { type: "string" },
+          account: addressSchemaType,
+          delegateFrom: addressSchemaType
+        }),
+        required: [...baseEventsSchemaRequired, "account", "delegateFrom"],
+        additionalProperties: false
+      }
+    ]
+  }
+};
+const registeredEventsSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+      ensName: { type: "string" },
+      relayerAddress: addressSchemaType
+    }),
+    required: [...baseEventsSchemaRequired, "ensName", "relayerAddress"],
+    additionalProperties: false
+  }
+};
+const depositsEventsSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+      commitment: bytes32SchemaType,
+      leafIndex: { type: "number" },
+      timestamp: { type: "number" },
+      from: addressSchemaType
+    }),
+    required: [...baseEventsSchemaRequired, "commitment", "leafIndex", "timestamp", "from"],
+    additionalProperties: false
+  }
+};
+const withdrawalsEventsSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+      nullifierHash: bytes32SchemaType,
+      to: addressSchemaType,
+      fee: bnSchemaType,
+      timestamp: { type: "number" }
+    }),
+    required: [...baseEventsSchemaRequired, "nullifierHash", "to", "fee", "timestamp"],
+    additionalProperties: false
+  }
+};
+const echoEventsSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+      address: addressSchemaType,
+      encryptedAccount: { type: "string" }
+    }),
+    required: [...baseEventsSchemaRequired, "address", "encryptedAccount"],
+    additionalProperties: false
+  }
+};
+const encryptedNotesSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+      encryptedNote: { type: "string" }
+    }),
+    required: [...baseEventsSchemaRequired, "encryptedNote"],
+    additionalProperties: false
+  }
+};
+function getEventsSchemaValidator(type) {
+  if (type === DEPOSIT) {
+    return ajv.compile(depositsEventsSchema);
+  }
+  if (type === WITHDRAWAL) {
+    return ajv.compile(withdrawalsEventsSchema);
+  }
+  if (type === "governance") {
+    return ajv.compile(governanceEventsSchema);
+  }
+  if (type === "registered") {
+    return ajv.compile(registeredEventsSchema);
+  }
+  if (type === "echo") {
+    return ajv.compile(echoEventsSchema);
+  }
+  if (type === "encrypted_notes") {
+    return ajv.compile(encryptedNotesSchema);
+  }
+  throw new Error("Unsupported event type for schema validation");
+}
+
 const statusSchema = {
   type: "object",
   properties: {
-    rewardAccount: addressType,
+    rewardAccount: addressSchemaType,
     gasPrices: {
       type: "object",
       properties: {
@@ -2369,7 +2601,7 @@ const statusSchema = {
     netId: { type: "integer" },
     tornadoServiceFee: { type: "number", maximum: 20, minimum: 0 },
     latestBlock: { type: "number" },
-    latestBalance: { type: "string", BN: true },
+    latestBalance: bnSchemaType,
     version: { type: "string" },
     health: {
       type: "object",
@@ -2406,7 +2638,7 @@ function getStatusSchema(netId, config, tovarish) {
           instanceAddress: {
             type: "object",
             properties: amounts.reduce((acc2, cur) => {
-              acc2[cur] = addressType;
+              acc2[cur] = addressSchemaType;
               return acc2;
             }, {}),
             required: amounts.filter((amount) => !optionalInstances.includes(amount))
@@ -2419,7 +2651,7 @@ function getStatusSchema(netId, config, tovarish) {
         )
       };
       if (tokenAddress) {
-        instanceProperties.properties.tokenAddress = addressType;
+        instanceProperties.properties.tokenAddress = addressSchemaType;
       }
       if (symbol) {
         instanceProperties.properties.symbol = { enum: [symbol] };
@@ -2450,7 +2682,7 @@ function getStatusSchema(netId, config, tovarish) {
     const ethPrices = {
       type: "object",
       properties: _tokens.reduce((acc, token) => {
-        acc[token] = bnType;
+        acc[token] = bnSchemaType;
         return acc;
       }, {}),
       required: _tokens
@@ -2483,21 +2715,6 @@ const jobsSchema = {
   },
   required: ["id", "status"]
 };
-
-const ajv = new Ajv({ allErrors: true });
-ajv.addKeyword({
-  keyword: "BN",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  validate: (schema, data) => {
-    try {
-      BigInt(data);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  },
-  errors: true
-});
 
 var __defProp$2 = Object.defineProperty;
 var __defProps$2 = Object.defineProperties;
@@ -6827,6 +7044,7 @@ class TovarishClient extends RelayerClient {
     }) {
       var _a;
       const url = `${(_a = this.selectedRelayer) == null ? void 0 : _a.url}events`;
+      const schemaValidator = getEventsSchemaValidator(type);
       try {
         const events = [];
         let lastSyncBlock = fromBlock;
@@ -6844,6 +7062,10 @@ class TovarishClient extends RelayerClient {
               recent
             })
           }));
+          if (!schemaValidator(fetchedEvents)) {
+            const errMsg = `Schema validation failed for ${type} events`;
+            throw new Error(errMsg);
+          }
           lastSyncBlock = currentBlock;
           if (!Array.isArray(fetchedEvents) || !fetchedEvents.length) {
             break;
@@ -6941,4 +7163,4 @@ function calculateSnarkProof(input, circuit, provingKey) {
   });
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, ajv, base64ToBytes, bigIntReplacer, bnToBytes, buffPedersenHash, bufferToBytes, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, digest, enabledChains, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, queryGraph, rBigInt, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, queryGraph, rBigInt, registeredEventsSchema, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, validateUrl, withdrawalsEventsSchema };

@@ -1,15 +1,16 @@
 import { Config, NetIdType } from '../networkConfig';
+import { addressSchemaType, bnSchemaType } from '.';
 export type statusInstanceType = {
     type: string;
     properties: {
         instanceAddress: {
             type: string;
             properties: {
-                [key in string]: typeof addressType;
+                [key in string]: typeof addressSchemaType;
             };
             required: string[];
         };
-        tokenAddress?: typeof addressType;
+        tokenAddress?: typeof addressSchemaType;
         symbol?: {
             enum: string[];
         };
@@ -29,14 +30,14 @@ export type statusInstancesType = {
 export type statusEthPricesType = {
     type: string;
     properties: {
-        [key in string]: typeof bnType;
+        [key in string]: typeof bnSchemaType;
     };
     required?: string[];
 };
 export type statusSchema = {
     type: string;
     properties: {
-        rewardAccount: typeof addressType;
+        rewardAccount: typeof addressSchemaType;
         instances?: statusInstancesType;
         gasPrices: {
             type: string;
@@ -102,13 +103,4 @@ export type statusSchema = {
     };
     required: string[];
 };
-declare const addressType: {
-    type: string;
-    pattern: string;
-};
-declare const bnType: {
-    type: string;
-    BN: boolean;
-};
 export declare function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean): statusSchema;
-export {};

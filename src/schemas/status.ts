@@ -1,4 +1,5 @@
 import { Config, NetId, NetIdType } from '../networkConfig';
+import { addressSchemaType, bnSchemaType } from '.';
 
 export type statusInstanceType = {
   type: string;
@@ -6,11 +7,11 @@ export type statusInstanceType = {
     instanceAddress: {
       type: string;
       properties: {
-        [key in string]: typeof addressType;
+        [key in string]: typeof addressSchemaType;
       };
       required: string[];
     };
-    tokenAddress?: typeof addressType;
+    tokenAddress?: typeof addressSchemaType;
     symbol?: { enum: string[] };
     decimals: { enum: number[] };
   };
@@ -28,7 +29,7 @@ export type statusInstancesType = {
 export type statusEthPricesType = {
   type: string;
   properties: {
-    [key in string]: typeof bnType;
+    [key in string]: typeof bnSchemaType;
   };
   required?: string[];
 };
@@ -36,7 +37,7 @@ export type statusEthPricesType = {
 export type statusSchema = {
   type: string;
   properties: {
-    rewardAccount: typeof addressType;
+    rewardAccount: typeof addressSchemaType;
     instances?: statusInstancesType;
     gasPrices: {
       type: string;
@@ -91,14 +92,10 @@ export type statusSchema = {
   required: string[];
 };
 
-const addressType = { type: 'string', pattern: '^0x[a-fA-F0-9]{40}$' };
-
-const bnType = { type: 'string', BN: true };
-
 const statusSchema: statusSchema = {
   type: 'object',
   properties: {
-    rewardAccount: addressType,
+    rewardAccount: addressSchemaType,
     gasPrices: {
       type: 'object',
       properties: {
@@ -110,7 +107,7 @@ const statusSchema: statusSchema = {
     netId: { type: 'integer' },
     tornadoServiceFee: { type: 'number', maximum: 20, minimum: 0 },
     latestBlock: { type: 'number' },
-    latestBalance: { type: 'string', BN: true },
+    latestBalance: bnSchemaType,
     version: { type: 'string' },
     health: {
       type: 'object',
@@ -151,8 +148,8 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
         properties: {
           instanceAddress: {
             type: 'object',
-            properties: amounts.reduce((acc: { [key in string]: typeof addressType }, cur) => {
-              acc[cur] = addressType;
+            properties: amounts.reduce((acc: { [key in string]: typeof addressSchemaType }, cur) => {
+              acc[cur] = addressSchemaType;
               return acc;
             }, {}),
             required: amounts.filter((amount) => !optionalInstances.includes(amount)),
@@ -166,7 +163,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
       };
 
       if (tokenAddress) {
-        instanceProperties.properties.tokenAddress = addressType;
+        instanceProperties.properties.tokenAddress = addressSchemaType;
       }
       if (symbol) {
         instanceProperties.properties.symbol = { enum: [symbol] };
@@ -198,8 +195,8 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
   if (_tokens.length) {
     const ethPrices: statusEthPricesType = {
       type: 'object',
-      properties: _tokens.reduce((acc: { [key in string]: typeof bnType }, token: string) => {
-        acc[token] = bnType;
+      properties: _tokens.reduce((acc: { [key in string]: typeof bnSchemaType }, token: string) => {
+        acc[token] = bnSchemaType;
         return acc;
       }, {}),
       required: _tokens,

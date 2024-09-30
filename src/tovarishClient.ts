@@ -10,6 +10,7 @@ import {
 } from './relayerClient';
 import { fetchData } from './providers';
 import { CachedRelayerInfo, MinimalEvents } from './events';
+import { getEventsSchemaValidator } from './schemas';
 
 // Return no more than 5K events per query
 export const MAX_TOVARISH_EVENTS = 5000;
@@ -181,6 +182,8 @@ export class TovarishClient extends RelayerClient {
   }: TovarishEventsQuery): Promise<BaseTovarishEvents<T>> {
     const url = `${this.selectedRelayer?.url}events`;
 
+    const schemaValidator = getEventsSchemaValidator(type);
+
     try {
       const events = [];
       let lastSyncBlock = fromBlock;
@@ -202,6 +205,11 @@ export class TovarishClient extends RelayerClient {
             recent,
           }),
         })) as BaseTovarishEvents<T>;
+
+        if (!schemaValidator(fetchedEvents)) {
+          const errMsg = `Schema validation failed for ${type} events`;
+          throw new Error(errMsg);
+        }
 
         lastSyncBlock = currentBlock;
 
