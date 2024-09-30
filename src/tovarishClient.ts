@@ -50,6 +50,7 @@ export interface TovarishSyncStatus {
 
 // Expected response from /status endpoint
 export interface TovarishStatus extends RelayerStatus {
+  latestBalance: string;
   events: TovarishEventsStatus;
   syncStatus: TovarishSyncStatus;
   onSyncEvents: boolean;
@@ -58,6 +59,7 @@ export interface TovarishStatus extends RelayerStatus {
 // Formatted TovarishStatus for Frontend usage
 export interface TovarishInfo extends RelayerInfo {
   latestBlock: number;
+  latestBalance: string;
   version: string;
   events: TovarishEventsStatus;
   syncStatus: TovarishSyncStatus;
@@ -130,6 +132,7 @@ export class TovarishClient extends RelayerClient {
         tornadoServiceFee: status.tornadoServiceFee,
         // Additional fields for tovarish relayer
         latestBlock: Number(status.latestBlock),
+        latestBalance: status.latestBalance,
         version: status.version,
         events: status.events,
         syncStatus: status.syncStatus,

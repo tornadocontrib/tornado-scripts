@@ -56,8 +56,12 @@ export type statusSchema = {
       maximum: number;
       minimum: number;
     };
-    latestBlock?: {
+    latestBlock: {
       type: string;
+    };
+    latestBalance: {
+      type: string;
+      BN: boolean;
     };
     version: {
       type: string;
@@ -106,6 +110,7 @@ const statusSchema: statusSchema = {
     netId: { type: 'integer' },
     tornadoServiceFee: { type: 'number', maximum: 20, minimum: 0 },
     latestBlock: { type: 'number' },
+    latestBalance: { type: 'string', BN: true },
     version: { type: 'string' },
     health: {
       type: 'object',
@@ -204,7 +209,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
   }
 
   if (tovarish) {
-    schema.required.push('gasPrices', 'latestBlock', 'syncStatus', 'onSyncEvents');
+    schema.required.push('gasPrices', 'latestBlock', 'latestBalance', 'syncStatus', 'onSyncEvents');
   }
 
   return schema;

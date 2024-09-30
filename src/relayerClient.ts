@@ -316,7 +316,10 @@ export class RelayerClient {
     return pickWeightedRandomRelayer(relayers);
   }
 
-  async tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams) {
+  async tornadoWithdraw(
+    { contract, proof, args }: TornadoWithdrawParams,
+    callback?: (jobResp: RelayerTornadoJobs) => void,
+  ) {
     const { url } = this.selectedRelayer as RelayerInfo;
 
     const withdrawResponse = (await fetchData(`${url}v1/tornadoWithdraw`, {
@@ -381,6 +384,10 @@ export class RelayerClient {
         }
 
         relayerStatus = status;
+
+        if (typeof callback === 'function') {
+          callback(jobResponse as unknown as RelayerTornadoJobs);
+        }
       }
 
       await sleep(3000);

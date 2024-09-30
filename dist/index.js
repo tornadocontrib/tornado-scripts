@@ -2390,6 +2390,7 @@ const statusSchema = {
     netId: { type: "integer" },
     tornadoServiceFee: { type: "number", maximum: 20, minimum: 0 },
     latestBlock: { type: "number" },
+    latestBalance: { type: "string", BN: true },
     version: { type: "string" },
     health: {
       type: "object",
@@ -2479,7 +2480,7 @@ function getStatusSchema(netId, config, tovarish) {
     schema.required.push("ethPrices");
   }
   if (tovarish) {
-    schema.required.push("gasPrices", "latestBlock", "syncStatus", "onSyncEvents");
+    schema.required.push("gasPrices", "latestBlock", "latestBalance", "syncStatus", "onSyncEvents");
   }
   return schema;
 }
@@ -2699,8 +2700,8 @@ class RelayerClient {
   pickWeightedRandomRelayer(relayers) {
     return pickWeightedRandomRelayer(relayers);
   }
-  tornadoWithdraw(_0) {
-    return __async$a(this, arguments, function* ({ contract, proof, args }) {
+  tornadoWithdraw(_0, _1) {
+    return __async$a(this, arguments, function* ({ contract, proof, args }, callback) {
       const { url } = this.selectedRelayer;
       const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps$2(__spreadValues$2({}, this.fetchDataOptions), {
         method: "POST",
@@ -2755,6 +2756,9 @@ class RelayerClient {
 `);
           }
           relayerStatus = status;
+          if (typeof callback === "function") {
+            callback(jobResponse);
+          }
         }
         yield sleep(3e3);
       }
@@ -6800,6 +6804,7 @@ class TovarishClient extends RelayerClient {
           tornadoServiceFee: status.tornadoServiceFee,
           // Additional fields for tovarish relayer
           latestBlock: Number(status.latestBlock),
+          latestBalance: status.latestBalance,
           version: status.version,
           events: status.events,
           syncStatus: status.syncStatus

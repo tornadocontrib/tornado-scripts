@@ -143,5 +143,5 @@ export declare class RelayerClient {
         invalidRelayers: RelayerError[];
     }>;
     pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
-    tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams): Promise<void>;
+    tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams, callback?: (jobResp: RelayerTornadoJobs) => void): Promise<void>;
 }

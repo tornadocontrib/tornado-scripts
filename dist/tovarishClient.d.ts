@@ -31,12 +31,14 @@ export interface TovarishSyncStatus {
     gasPrice: boolean;
 }
 export interface TovarishStatus extends RelayerStatus {
+    latestBalance: string;
     events: TovarishEventsStatus;
     syncStatus: TovarishSyncStatus;
     onSyncEvents: boolean;
 }
 export interface TovarishInfo extends RelayerInfo {
     latestBlock: number;
+    latestBalance: string;
     version: string;
     events: TovarishEventsStatus;
     syncStatus: TovarishSyncStatus;

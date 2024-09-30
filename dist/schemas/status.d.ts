@@ -56,8 +56,12 @@ export type statusSchema = {
             maximum: number;
             minimum: number;
         };
-        latestBlock?: {
+        latestBlock: {
             type: string;
+        };
+        latestBalance: {
+            type: string;
+            BN: boolean;
         };
         version: {
             type: string;
