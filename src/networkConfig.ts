@@ -136,10 +136,6 @@ export const defaultConfig: networkConfig = {
         name: 'SecureRpc',
         url: 'https://api.securerpc.com/v1',
       },
-      meowrpc: {
-        name: 'Meow RPC',
-        url: 'https://eth.meowrpc.com',
-      },
       stackup: {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
@@ -281,10 +277,6 @@ export const defaultConfig: networkConfig = {
         name: 'NodeReal',
         url: 'https://binance.nodereal.io',
       },
-      meowrpc: {
-        name: 'Meow RPC',
-        url: 'https://bsc.meowrpc.com',
-      },
       stackup: {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/bsc-mainnet',
@@ -339,10 +331,6 @@ export const defaultConfig: networkConfig = {
         name: '1RPC',
         url: 'https://1rpc.io/matic',
       },
-      meowrpc: {
-        name: 'Meow RPC',
-        url: 'https://polygon.meowrpc.com',
-      },
       stackup: {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/polygon-mainnet',
@@ -393,10 +381,6 @@ export const defaultConfig: networkConfig = {
       optimism: {
         name: 'Optimism',
         url: 'https://mainnet.optimism.io',
-      },
-      meowrpc: {
-        name: 'Meow RPC',
-        url: 'https://optimism.meowrpc.com',
       },
       stackup: {
         name: 'Stackup RPC',
@@ -451,10 +435,6 @@ export const defaultConfig: networkConfig = {
       Arbitrum: {
         name: 'Arbitrum RPC',
         url: 'https://arb1.arbitrum.io/rpc',
-      },
-      meowrpc: {
-        name: 'Meow RPC',
-        url: 'https://arbitrum.meowrpc.com',
       },
       stackup: {
         name: 'Stackup RPC',
@@ -563,10 +543,6 @@ export const defaultConfig: networkConfig = {
       publicRpc: {
         name: 'Avalanche RPC',
         url: 'https://api.avax.network/ext/bc/C/rpc',
-      },
-      meowRPC: {
-        name: 'Meow RPC',
-        url: 'https://avax.meowrpc.com',
       },
       oneRPC: {
         name: 'OneRPC',

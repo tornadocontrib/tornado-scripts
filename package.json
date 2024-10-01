@@ -1,6 +1,6 @@
 {
   "name": "@tornado/core",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "An SDK for building applications on top of Privacy Pools",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

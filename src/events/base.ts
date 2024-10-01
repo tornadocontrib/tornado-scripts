@@ -31,7 +31,7 @@ import {
 } from '../batch';
 
 import { fetchData, fetchDataOptions } from '../providers';
-import type { NetIdType, SubdomainMap } from '../networkConfig';
+import { enabledChains, type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 
@@ -866,6 +866,21 @@ export interface CachedRelayerInfo extends RelayerParams {
   tovarishNetworks?: number[];
 }
 
+/**
+ * Static relayer provided by tornadowithdraw.eth
+ * This relayer isn't compatible with the current UI (tornadocash.eth) and only works as experimental mode
+ * Once DAO approves changes to UI to support new Tovarish Relayer software register relayer and remove static list
+ */
+const staticRelayers = [
+  {
+    ensName: 'tornadowithdraw.eth',
+    relayerAddress: '0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64',
+    hostnames: {},
+    tovarishHost: 'tornadowithdraw.com',
+    tovarishNetworks: enabledChains,
+  },
+] as CachedRelayerInfo[];
+
 export interface CachedRelayers {
   lastBlock: number;
   timestamp: number;
@@ -1052,7 +1067,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     return {
       lastBlock,
       timestamp,
-      relayers,
+      relayers: [...staticRelayers, ...relayers],
     };
   }
 

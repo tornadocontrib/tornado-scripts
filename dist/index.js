@@ -1778,10 +1778,6 @@ const defaultConfig = {
         name: "SecureRpc",
         url: "https://api.securerpc.com/v1"
       },
-      meowrpc: {
-        name: "Meow RPC",
-        url: "https://eth.meowrpc.com"
-      },
       stackup: {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/ethereum-mainnet"
@@ -1923,10 +1919,6 @@ const defaultConfig = {
         name: "NodeReal",
         url: "https://binance.nodereal.io"
       },
-      meowrpc: {
-        name: "Meow RPC",
-        url: "https://bsc.meowrpc.com"
-      },
       stackup: {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/bsc-mainnet"
@@ -1981,10 +1973,6 @@ const defaultConfig = {
         name: "1RPC",
         url: "https://1rpc.io/matic"
       },
-      meowrpc: {
-        name: "Meow RPC",
-        url: "https://polygon.meowrpc.com"
-      },
       stackup: {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/polygon-mainnet"
@@ -2035,10 +2023,6 @@ const defaultConfig = {
       optimism: {
         name: "Optimism",
         url: "https://mainnet.optimism.io"
-      },
-      meowrpc: {
-        name: "Meow RPC",
-        url: "https://optimism.meowrpc.com"
       },
       stackup: {
         name: "Stackup RPC",
@@ -2093,10 +2077,6 @@ const defaultConfig = {
       Arbitrum: {
         name: "Arbitrum RPC",
         url: "https://arb1.arbitrum.io/rpc"
-      },
-      meowrpc: {
-        name: "Meow RPC",
-        url: "https://arbitrum.meowrpc.com"
       },
       stackup: {
         name: "Stackup RPC",
@@ -2205,10 +2185,6 @@ const defaultConfig = {
       publicRpc: {
         name: "Avalanche RPC",
         url: "https://api.avax.network/ext/bc/C/rpc"
-      },
-      meowRPC: {
-        name: "Meow RPC",
-        url: "https://avax.meowrpc.com"
       },
       oneRPC: {
         name: "OneRPC",
@@ -3623,6 +3599,15 @@ function getTovarishNetworks(registryService, relayers) {
     );
   });
 }
+const staticRelayers = [
+  {
+    ensName: "tornadowithdraw.eth",
+    relayerAddress: "0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64",
+    hostnames: {},
+    tovarishHost: "tornadowithdraw.com",
+    tovarishNetworks: enabledChains
+  }
+];
 class BaseRegistryService extends BaseEventsService {
   constructor({
     netId,
@@ -3762,7 +3747,7 @@ class BaseRegistryService extends BaseEventsService {
       return {
         lastBlock,
         timestamp,
-        relayers
+        relayers: [...staticRelayers, ...relayers]
       };
     });
   }

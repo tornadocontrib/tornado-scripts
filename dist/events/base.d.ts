@@ -2,7 +2,7 @@ import { BaseContract, Provider, EventLog, ContractEventName } from 'ethers';
 import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
-import type { NetIdType, SubdomainMap } from '../networkConfig';
+import { type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
