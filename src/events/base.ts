@@ -175,7 +175,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   async getEventsFromDB(): Promise<BaseEvents<EventType>> {
     return {
       events: [],
-      lastBlock: null,
+      lastBlock: 0,
     };
   }
 
@@ -185,19 +185,19 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   async getEventsFromCache(): Promise<CachedEvents<EventType>> {
     return {
       events: [],
-      lastBlock: null,
+      lastBlock: 0,
       fromCache: true,
     };
   }
 
   async getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>> {
-    let cachedEvents = await this.getEventsFromDB();
+    let dbEvents = await this.getEventsFromDB();
 
-    if (!cachedEvents || !cachedEvents.events.length) {
-      cachedEvents = await this.getEventsFromCache();
+    if (!dbEvents.lastBlock) {
+      dbEvents = await this.getEventsFromCache();
     }
 
-    return cachedEvents;
+    return dbEvents;
   }
 
   /**

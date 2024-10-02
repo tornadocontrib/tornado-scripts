@@ -2,7 +2,7 @@ import { RelayerParams } from '../relayerClient';
 
 export interface BaseEvents<T> {
   events: T[];
-  lastBlock: number | null;
+  lastBlock: number;
 }
 
 export interface CachedEvents<T> extends BaseEvents<T> {

@@ -433,7 +433,7 @@ class TornadoWallet extends ethers.Wallet {
   populateTransaction(tx) {
     return __async$d(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
-      this.nonce = txObject.nonce;
+      this.nonce = Number(txObject.nonce);
       return __superGet$2(TornadoWallet.prototype, this, "populateTransaction").call(this, txObject);
     });
   }
@@ -449,7 +449,7 @@ class TornadoVoidSigner extends ethers.VoidSigner {
   populateTransaction(tx) {
     return __async$d(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
-      this.nonce = txObject.nonce;
+      this.nonce = Number(txObject.nonce);
       return __superGet$2(TornadoVoidSigner.prototype, this, "populateTransaction").call(this, txObject);
     });
   }
@@ -3072,7 +3072,7 @@ class BaseEventsService {
     return __async$9(this, null, function* () {
       return {
         events: [],
-        lastBlock: null
+        lastBlock: 0
       };
     });
   }
@@ -3083,18 +3083,18 @@ class BaseEventsService {
     return __async$9(this, null, function* () {
       return {
         events: [],
-        lastBlock: null,
+        lastBlock: 0,
         fromCache: true
       };
     });
   }
   getSavedEvents() {
     return __async$9(this, null, function* () {
-      let cachedEvents = yield this.getEventsFromDB();
-      if (!cachedEvents || !cachedEvents.events.length) {
-        cachedEvents = yield this.getEventsFromCache();
+      let dbEvents = yield this.getEventsFromDB();
+      if (!dbEvents.lastBlock) {
+        dbEvents = yield this.getEventsFromCache();
       }
-      return cachedEvents;
+      return dbEvents;
     });
   }
   /**

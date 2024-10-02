@@ -379,14 +379,14 @@ export type TornadoWalletOptions = {
 };
 
 export class TornadoWallet extends Wallet {
-  nonce?: number | null;
+  nonce?: number;
   gasPriceBump: number;
   gasLimitBump: number;
   gasFailover: boolean;
   bumpNonce: boolean;
   constructor(
     key: string | SigningKey,
-    provider?: null | Provider,
+    provider?: Provider,
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(key, provider);
@@ -407,21 +407,21 @@ export class TornadoWallet extends Wallet {
 
   async populateTransaction(tx: TransactionRequest) {
     const txObject = await populateTransaction(this, tx);
-    this.nonce = txObject.nonce;
+    this.nonce = Number(txObject.nonce);
 
     return super.populateTransaction(txObject);
   }
 }
 
 export class TornadoVoidSigner extends VoidSigner {
-  nonce?: number | null;
+  nonce?: number;
   gasPriceBump: number;
   gasLimitBump: number;
   gasFailover: boolean;
   bumpNonce: boolean;
   constructor(
     address: string,
-    provider?: null | Provider,
+    provider?: Provider,
     { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
   ) {
     super(address, provider);
@@ -436,14 +436,14 @@ export class TornadoVoidSigner extends VoidSigner {
 
   async populateTransaction(tx: TransactionRequest) {
     const txObject = await populateTransaction(this, tx);
-    this.nonce = txObject.nonce;
+    this.nonce = Number(txObject.nonce);
 
     return super.populateTransaction(txObject);
   }
 }
 
 export class TornadoRpcSigner extends JsonRpcSigner {
-  nonce?: number | null;
+  nonce?: number;
   gasPriceBump: number;
   gasLimitBump: number;
   gasFailover: boolean;

@@ -45,26 +45,26 @@ export type TornadoWalletOptions = {
     bumpNonce?: boolean;
 };
 export declare class TornadoWallet extends Wallet {
-    nonce?: number | null;
+    nonce?: number;
     gasPriceBump: number;
     gasLimitBump: number;
     gasFailover: boolean;
     bumpNonce: boolean;
-    constructor(key: string | SigningKey, provider?: null | Provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }?: TornadoWalletOptions);
+    constructor(key: string | SigningKey, provider?: Provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }?: TornadoWalletOptions);
     static fromMnemonic(mneomnic: string, provider: Provider, index?: number, options?: TornadoWalletOptions): TornadoWallet;
     populateTransaction(tx: TransactionRequest): Promise<import("ethers").TransactionLike<string>>;
 }
 export declare class TornadoVoidSigner extends VoidSigner {
-    nonce?: number | null;
+    nonce?: number;
     gasPriceBump: number;
     gasLimitBump: number;
     gasFailover: boolean;
     bumpNonce: boolean;
-    constructor(address: string, provider?: null | Provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }?: TornadoWalletOptions);
+    constructor(address: string, provider?: Provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }?: TornadoWalletOptions);
     populateTransaction(tx: TransactionRequest): Promise<import("ethers").TransactionLike<string>>;
 }
 export declare class TornadoRpcSigner extends JsonRpcSigner {
-    nonce?: number | null;
+    nonce?: number;
     gasPriceBump: number;
     gasLimitBump: number;
     gasFailover: boolean;
