@@ -109,11 +109,13 @@ export class TovarishClient extends RelayerClient {
   }
 
   async filterRelayer(relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined> {
-    const { ensName, relayerAddress, tovarishHost: hostname, tovarishNetworks } = relayer;
+    const { ensName, relayerAddress, tovarishHost, tovarishNetworks } = relayer;
 
-    if (!hostname || !tovarishNetworks?.includes(this.netId)) {
+    if (!tovarishHost || !tovarishNetworks?.includes(this.netId)) {
       return;
     }
+
+    const hostname = `${tovarishHost}/${this.netId}`;
 
     try {
       const status = await this.askRelayerStatus({ hostname, relayerAddress });

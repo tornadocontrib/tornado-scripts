@@ -6985,10 +6985,11 @@ class TovarishClient extends RelayerClient {
   filterRelayer(relayer) {
     return __async$1(this, null, function* () {
       var _a;
-      const { ensName, relayerAddress, tovarishHost: hostname, tovarishNetworks } = relayer;
-      if (!hostname || !(tovarishNetworks == null ? void 0 : tovarishNetworks.includes(this.netId))) {
+      const { ensName, relayerAddress, tovarishHost, tovarishNetworks } = relayer;
+      if (!tovarishHost || !(tovarishNetworks == null ? void 0 : tovarishNetworks.includes(this.netId))) {
         return;
       }
+      const hostname = `${tovarishHost}/${this.netId}`;
       try {
         const status = yield this.askRelayerStatus({ hostname, relayerAddress });
         return {
