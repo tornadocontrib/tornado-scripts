@@ -5,8 +5,10 @@ var crossFetch = require('cross-fetch');
 var crypto$1 = require('crypto');
 var BN = require('bn.js');
 var Ajv = require('ajv');
+var fflate = require('fflate');
 var circomlibjs = require('circomlibjs');
 var ethSigUtil = require('@metamask/eth-sig-util');
+var idb = require('idb');
 var worker_threads = require('worker_threads');
 var fixedMerkleTree = require('@tornado/fixed-merkle-tree');
 var websnarkUtils = require('@tornado/websnark/src/utils');
@@ -31,7 +33,7 @@ function _interopNamespaceDefault(e) {
 
 var websnarkUtils__namespace = /*#__PURE__*/_interopNamespaceDefault(websnarkUtils);
 
-var __async$e = (__this, __arguments, generator) => {
+var __async$h = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -140,34 +142,34 @@ function substring(str, length = 10) {
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
 }
 function digest(bytes, algo = "SHA-384") {
-  return __async$e(this, null, function* () {
+  return __async$h(this, null, function* () {
     return new Uint8Array(yield crypto.subtle.digest(algo, bytes));
   });
 }
 
-var __defProp$7 = Object.defineProperty;
+var __defProp$8 = Object.defineProperty;
 var __defProps$6 = Object.defineProperties;
 var __getOwnPropDescs$6 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$7 = Object.getOwnPropertySymbols;
+var __getOwnPropSymbols$8 = Object.getOwnPropertySymbols;
 var __getProtoOf$2 = Object.getPrototypeOf;
-var __hasOwnProp$7 = Object.prototype.hasOwnProperty;
-var __propIsEnum$7 = Object.prototype.propertyIsEnumerable;
+var __hasOwnProp$8 = Object.prototype.hasOwnProperty;
+var __propIsEnum$8 = Object.prototype.propertyIsEnumerable;
 var __reflectGet$2 = Reflect.get;
-var __defNormalProp$7 = (obj, key, value) => key in obj ? __defProp$7(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$7 = (a, b) => {
+var __defNormalProp$8 = (obj, key, value) => key in obj ? __defProp$8(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$8 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$7.call(b, prop))
-      __defNormalProp$7(a, prop, b[prop]);
-  if (__getOwnPropSymbols$7)
-    for (var prop of __getOwnPropSymbols$7(b)) {
-      if (__propIsEnum$7.call(b, prop))
-        __defNormalProp$7(a, prop, b[prop]);
+    if (__hasOwnProp$8.call(b, prop))
+      __defNormalProp$8(a, prop, b[prop]);
+  if (__getOwnPropSymbols$8)
+    for (var prop of __getOwnPropSymbols$8(b)) {
+      if (__propIsEnum$8.call(b, prop))
+        __defNormalProp$8(a, prop, b[prop]);
     }
   return a;
 };
 var __spreadProps$6 = (a, b) => __defProps$6(a, __getOwnPropDescs$6(b));
 var __superGet$2 = (cls, obj, key) => __reflectGet$2(__getProtoOf$2(cls), key, obj);
-var __async$d = (__this, __arguments, generator) => {
+var __async$g = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -216,7 +218,7 @@ function getHttpAgent({
   }
 }
 function fetchData(_0) {
-  return __async$d(this, arguments, function* (url, options = {}) {
+  return __async$g(this, arguments, function* (url, options = {}) {
     var _a, _b, _c;
     const MAX_RETRY = (_a = options.maxRetry) != null ? _a : 3;
     const RETRY_ON = (_b = options.retryOn) != null ? _b : 500;
@@ -308,7 +310,7 @@ function fetchData(_0) {
     throw errorObject;
   });
 }
-const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$d(void 0, null, function* () {
+const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$g(void 0, null, function* () {
   let signal;
   if (_signal) {
     const controller = new AbortController();
@@ -317,7 +319,7 @@ const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$d(void 0, nu
       controller.abort();
     });
   }
-  const init = __spreadProps$6(__spreadValues$7({}, options), {
+  const init = __spreadProps$6(__spreadValues$8({}, options), {
     method: req.method || "POST",
     headers: req.headers,
     body: req.body || void 0,
@@ -339,7 +341,7 @@ const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$d(void 0, nu
   };
 });
 function getProvider(rpcUrl, fetchOptions) {
-  return __async$d(this, null, function* () {
+  return __async$g(this, null, function* () {
     const fetchReq = new ethers.FetchRequest(rpcUrl);
     fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
     const staticNetwork = yield new ethers.JsonRpcProvider(fetchReq).getNetwork();
@@ -370,7 +372,7 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   });
   return provider;
 }
-const populateTransaction = (signer, tx) => __async$d(void 0, null, function* () {
+const populateTransaction = (signer, tx) => __async$g(void 0, null, function* () {
   const provider = signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
@@ -431,7 +433,7 @@ class TornadoWallet extends ethers.Wallet {
     return new TornadoWallet(privateKey, provider, options);
   }
   populateTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$g(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
       this.nonce = Number(txObject.nonce);
       return __superGet$2(TornadoWallet.prototype, this, "populateTransaction").call(this, txObject);
@@ -447,7 +449,7 @@ class TornadoVoidSigner extends ethers.VoidSigner {
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
   }
   populateTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$g(this, null, function* () {
       const txObject = yield populateTransaction(this, tx);
       this.nonce = Number(txObject.nonce);
       return __superGet$2(TornadoVoidSigner.prototype, this, "populateTransaction").call(this, txObject);
@@ -463,7 +465,7 @@ class TornadoRpcSigner extends ethers.JsonRpcSigner {
     this.bumpNonce = bumpNonce != null ? bumpNonce : false;
   }
   sendUncheckedTransaction(tx) {
-    return __async$d(this, null, function* () {
+    return __async$g(this, null, function* () {
       return __superGet$2(TornadoRpcSigner.prototype, this, "sendUncheckedTransaction").call(this, yield populateTransaction(this, tx));
     });
   }
@@ -474,7 +476,7 @@ class TornadoBrowserProvider extends ethers.BrowserProvider {
     this.options = options;
   }
   getSigner(address) {
-    return __async$d(this, null, function* () {
+    return __async$g(this, null, function* () {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i;
       const signerAddress = (yield __superGet$2(TornadoBrowserProvider.prototype, this, "getSigner").call(this, address)).address;
       if (((_a = this.options) == null ? void 0 : _a.webChainId) && ((_b = this.options) == null ? void 0 : _b.connectWallet) && Number(yield __superGet$2(TornadoBrowserProvider.prototype, this, "send").call(this, "eth_chainId", [])) !== Number((_c = this.options) == null ? void 0 : _c.webChainId)) {
@@ -683,26 +685,26 @@ const GET_GOVERNANCE_APY = `
   }
 `;
 
-var __defProp$6 = Object.defineProperty;
+var __defProp$7 = Object.defineProperty;
 var __defProps$5 = Object.defineProperties;
 var __getOwnPropDescs$5 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$6 = Object.getOwnPropertySymbols;
-var __hasOwnProp$6 = Object.prototype.hasOwnProperty;
-var __propIsEnum$6 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$6 = (a, b) => {
+var __getOwnPropSymbols$7 = Object.getOwnPropertySymbols;
+var __hasOwnProp$7 = Object.prototype.hasOwnProperty;
+var __propIsEnum$7 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$7 = (obj, key, value) => key in obj ? __defProp$7(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$7 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$6.call(b, prop))
-      __defNormalProp$6(a, prop, b[prop]);
-  if (__getOwnPropSymbols$6)
-    for (var prop of __getOwnPropSymbols$6(b)) {
-      if (__propIsEnum$6.call(b, prop))
-        __defNormalProp$6(a, prop, b[prop]);
+    if (__hasOwnProp$7.call(b, prop))
+      __defNormalProp$7(a, prop, b[prop]);
+  if (__getOwnPropSymbols$7)
+    for (var prop of __getOwnPropSymbols$7(b)) {
+      if (__propIsEnum$7.call(b, prop))
+        __defNormalProp$7(a, prop, b[prop]);
     }
   return a;
 };
 var __spreadProps$5 = (a, b) => __defProps$5(a, __getOwnPropDescs$5(b));
-var __async$c = (__this, __arguments, generator) => {
+var __async$f = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -725,7 +727,7 @@ var __async$c = (__this, __arguments, generator) => {
 const isEmptyArray = (arr) => !Array.isArray(arr) || !arr.length;
 const GRAPHQL_LIMIT = 1e3;
 function queryGraph(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     query,
@@ -734,7 +736,7 @@ function queryGraph(_0) {
   }) {
     var _a;
     const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
-    const { data, errors } = yield fetchData(graphUrl, __spreadProps$5(__spreadValues$6({}, fetchDataOptions2), {
+    const { data, errors } = yield fetchData(graphUrl, __spreadProps$5(__spreadValues$7({}, fetchDataOptions2), {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -754,7 +756,7 @@ function queryGraph(_0) {
   });
 }
 function getStatistic(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -801,7 +803,7 @@ function getStatistic(_0) {
   });
 }
 function getMeta(_0) {
-  return __async$c(this, arguments, function* ({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
+  return __async$f(this, arguments, function* ({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
     try {
       const {
         _meta: {
@@ -846,7 +848,7 @@ function getRegisters({
   });
 }
 function getAllRegisters(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -935,7 +937,7 @@ function getDeposits({
   });
 }
 function getAllDeposits(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -1032,7 +1034,7 @@ function getWithdrawals({
   });
 }
 function getAllWithdrawals(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     currency,
@@ -1108,7 +1110,7 @@ function getAllWithdrawals(_0) {
   });
 }
 function getNoteAccounts(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     address,
@@ -1161,7 +1163,7 @@ function getGraphEchoEvents({
   });
 }
 function getAllGraphEchoEvents(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -1250,7 +1252,7 @@ function getEncryptedNotes({
   });
 }
 function getAllEncryptedNotes(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -1335,7 +1337,7 @@ function getGovernanceEvents({
   });
 }
 function getAllGovernanceEvents(_0) {
-  return __async$c(this, arguments, function* ({
+  return __async$f(this, arguments, function* ({
     graphApi,
     subgraphName,
     fromBlock,
@@ -1494,7 +1496,7 @@ var graph = /*#__PURE__*/Object.freeze({
   queryGraph: queryGraph
 });
 
-var __async$b = (__this, __arguments, generator) => {
+var __async$e = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -1533,7 +1535,7 @@ class BatchBlockService {
     this.retryOn = retryOn;
   }
   getBlock(blockTag) {
-    return __async$b(this, null, function* () {
+    return __async$e(this, null, function* () {
       const blockObject = yield this.provider.getBlock(blockTag);
       if (!blockObject) {
         const errMsg = `No block for ${blockTag}`;
@@ -1543,9 +1545,9 @@ class BatchBlockService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((blocks, index) => __async$b(this, null, function* () {
+    return batchArray.map((blocks, index) => __async$e(this, null, function* () {
       yield sleep(20 * index);
-      return (() => __async$b(this, null, function* () {
+      return (() => __async$e(this, null, function* () {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -1562,7 +1564,7 @@ class BatchBlockService {
     }));
   }
   getBatchBlocks(blocks) {
-    return __async$b(this, null, function* () {
+    return __async$e(this, null, function* () {
       let blockCount = 0;
       const results = [];
       for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
@@ -1600,7 +1602,7 @@ class BatchTransactionService {
     this.retryOn = retryOn;
   }
   getTransaction(txHash) {
-    return __async$b(this, null, function* () {
+    return __async$e(this, null, function* () {
       const txObject = yield this.provider.getTransaction(txHash);
       if (!txObject) {
         const errMsg = `No transaction for ${txHash}`;
@@ -1610,9 +1612,9 @@ class BatchTransactionService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((txs, index) => __async$b(this, null, function* () {
+    return batchArray.map((txs, index) => __async$e(this, null, function* () {
       yield sleep(20 * index);
-      return (() => __async$b(this, null, function* () {
+      return (() => __async$e(this, null, function* () {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -1629,7 +1631,7 @@ class BatchTransactionService {
     }));
   }
   getBatchTransactions(txs) {
-    return __async$b(this, null, function* () {
+    return __async$e(this, null, function* () {
       let txCount = 0;
       const results = [];
       for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
@@ -1665,7 +1667,7 @@ class BatchEventsService {
     this.retryOn = retryOn;
   }
   getPastEvents(_0) {
-    return __async$b(this, arguments, function* ({ fromBlock, toBlock, type }) {
+    return __async$e(this, arguments, function* ({ fromBlock, toBlock, type }) {
       let err;
       let retries = 0;
       while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
@@ -1685,13 +1687,13 @@ class BatchEventsService {
     });
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((event, index) => __async$b(this, null, function* () {
+    return batchArray.map((event, index) => __async$e(this, null, function* () {
       yield sleep(20 * index);
       return this.getPastEvents(event);
     }));
   }
   getBatchEvents(_0) {
-    return __async$b(this, arguments, function* ({ fromBlock, toBlock, type = "*" }) {
+    return __async$e(this, arguments, function* ({ fromBlock, toBlock, type = "*" }) {
       if (!toBlock) {
         toBlock = yield this.provider.getBlockNumber();
       }
@@ -1722,19 +1724,19 @@ class BatchEventsService {
   }
 }
 
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropSymbols$5 = Object.getOwnPropertySymbols;
-var __hasOwnProp$5 = Object.prototype.hasOwnProperty;
-var __propIsEnum$5 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$5 = (a, b) => {
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropSymbols$6 = Object.getOwnPropertySymbols;
+var __hasOwnProp$6 = Object.prototype.hasOwnProperty;
+var __propIsEnum$6 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$6 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$5.call(b, prop))
-      __defNormalProp$5(a, prop, b[prop]);
-  if (__getOwnPropSymbols$5)
-    for (var prop of __getOwnPropSymbols$5(b)) {
-      if (__propIsEnum$5.call(b, prop))
-        __defNormalProp$5(a, prop, b[prop]);
+    if (__hasOwnProp$6.call(b, prop))
+      __defNormalProp$6(a, prop, b[prop]);
+  if (__getOwnPropSymbols$6)
+    for (var prop of __getOwnPropSymbols$6(b)) {
+      if (__propIsEnum$6.call(b, prop))
+        __defNormalProp$6(a, prop, b[prop]);
     }
   return a;
 };
@@ -2294,10 +2296,10 @@ function addNetwork(newConfig) {
   enabledChains.push(
     ...Object.keys(newConfig).map((netId) => Number(netId)).filter((netId) => !enabledChains.includes(netId))
   );
-  exports.customConfig = __spreadValues$5(__spreadValues$5({}, exports.customConfig), newConfig);
+  exports.customConfig = __spreadValues$6(__spreadValues$6({}, exports.customConfig), newConfig);
 }
 function getNetworkConfig() {
-  const allConfig = __spreadValues$5(__spreadValues$5({}, defaultConfig), exports.customConfig);
+  const allConfig = __spreadValues$6(__spreadValues$6({}, defaultConfig), exports.customConfig);
   return enabledChains.reduce((acc, curr) => {
     acc[curr] = allConfig[curr];
     return acc;
@@ -2376,21 +2378,21 @@ ajv.addKeyword({
   errors: true
 });
 
-var __defProp$4 = Object.defineProperty;
+var __defProp$5 = Object.defineProperty;
 var __defProps$4 = Object.defineProperties;
 var __getOwnPropDescs$4 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$4 = Object.getOwnPropertySymbols;
-var __hasOwnProp$4 = Object.prototype.hasOwnProperty;
-var __propIsEnum$4 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$4 = (a, b) => {
+var __getOwnPropSymbols$5 = Object.getOwnPropertySymbols;
+var __hasOwnProp$5 = Object.prototype.hasOwnProperty;
+var __propIsEnum$5 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$5 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$4.call(b, prop))
-      __defNormalProp$4(a, prop, b[prop]);
-  if (__getOwnPropSymbols$4)
-    for (var prop of __getOwnPropSymbols$4(b)) {
-      if (__propIsEnum$4.call(b, prop))
-        __defNormalProp$4(a, prop, b[prop]);
+    if (__hasOwnProp$5.call(b, prop))
+      __defNormalProp$5(a, prop, b[prop]);
+  if (__getOwnPropSymbols$5)
+    for (var prop of __getOwnPropSymbols$5(b)) {
+      if (__propIsEnum$5.call(b, prop))
+        __defNormalProp$5(a, prop, b[prop]);
     }
   return a;
 };
@@ -2403,23 +2405,23 @@ const addressSchemaType = {
 const bnSchemaType = { type: "string", BN: true };
 const proofSchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{512}$" };
 const bytes32SchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" };
-const bytes32BNSchemaType = __spreadProps$4(__spreadValues$4({}, bytes32SchemaType), { BN: true });
+const bytes32BNSchemaType = __spreadProps$4(__spreadValues$5({}, bytes32SchemaType), { BN: true });
 
-var __defProp$3 = Object.defineProperty;
+var __defProp$4 = Object.defineProperty;
 var __defProps$3 = Object.defineProperties;
 var __getOwnPropDescs$3 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$3 = Object.getOwnPropertySymbols;
-var __hasOwnProp$3 = Object.prototype.hasOwnProperty;
-var __propIsEnum$3 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$3 = (a, b) => {
+var __getOwnPropSymbols$4 = Object.getOwnPropertySymbols;
+var __hasOwnProp$4 = Object.prototype.hasOwnProperty;
+var __propIsEnum$4 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$4 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$3.call(b, prop))
-      __defNormalProp$3(a, prop, b[prop]);
-  if (__getOwnPropSymbols$3)
-    for (var prop of __getOwnPropSymbols$3(b)) {
-      if (__propIsEnum$3.call(b, prop))
-        __defNormalProp$3(a, prop, b[prop]);
+    if (__hasOwnProp$4.call(b, prop))
+      __defNormalProp$4(a, prop, b[prop]);
+  if (__getOwnPropSymbols$4)
+    for (var prop of __getOwnPropSymbols$4(b)) {
+      if (__propIsEnum$4.call(b, prop))
+        __defNormalProp$4(a, prop, b[prop]);
     }
   return a;
 };
@@ -2440,7 +2442,7 @@ const governanceEventsSchema = {
     anyOf: [
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
           event: { type: "string" },
           id: { type: "number" },
           proposer: addressSchemaType,
@@ -2463,7 +2465,7 @@ const governanceEventsSchema = {
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
           event: { type: "string" },
           proposalId: { type: "number" },
           voter: addressSchemaType,
@@ -2477,7 +2479,7 @@ const governanceEventsSchema = {
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
           event: { type: "string" },
           account: addressSchemaType,
           delegateTo: addressSchemaType
@@ -2487,7 +2489,7 @@ const governanceEventsSchema = {
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
           event: { type: "string" },
           account: addressSchemaType,
           delegateFrom: addressSchemaType
@@ -2502,7 +2504,7 @@ const registeredEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
       ensName: { type: "string" },
       relayerAddress: addressSchemaType
     }),
@@ -2514,7 +2516,7 @@ const depositsEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
       commitment: bytes32SchemaType,
       leafIndex: { type: "number" },
       timestamp: { type: "number" },
@@ -2528,7 +2530,7 @@ const withdrawalsEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
       nullifierHash: bytes32SchemaType,
       to: addressSchemaType,
       fee: bnSchemaType,
@@ -2542,7 +2544,7 @@ const echoEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
       address: addressSchemaType,
       encryptedAccount: { type: "string" }
     }),
@@ -2554,7 +2556,7 @@ const encryptedNotesSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$3({}, baseEventsSchemaProperty), {
+    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
       encryptedNote: { type: "string" }
     }),
     required: [...baseEventsSchemaRequired, "encryptedNote"],
@@ -2713,26 +2715,26 @@ const jobsSchema = {
   required: ["id", "status"]
 };
 
-var __defProp$2 = Object.defineProperty;
+var __defProp$3 = Object.defineProperty;
 var __defProps$2 = Object.defineProperties;
 var __getOwnPropDescs$2 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
-var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
-var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$2 = (a, b) => {
+var __getOwnPropSymbols$3 = Object.getOwnPropertySymbols;
+var __hasOwnProp$3 = Object.prototype.hasOwnProperty;
+var __propIsEnum$3 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$3 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$2.call(b, prop))
-      __defNormalProp$2(a, prop, b[prop]);
-  if (__getOwnPropSymbols$2)
-    for (var prop of __getOwnPropSymbols$2(b)) {
-      if (__propIsEnum$2.call(b, prop))
-        __defNormalProp$2(a, prop, b[prop]);
+    if (__hasOwnProp$3.call(b, prop))
+      __defNormalProp$3(a, prop, b[prop]);
+  if (__getOwnPropSymbols$3)
+    for (var prop of __getOwnPropSymbols$3(b)) {
+      if (__propIsEnum$3.call(b, prop))
+        __defNormalProp$3(a, prop, b[prop]);
     }
   return a;
 };
 var __spreadProps$2 = (a, b) => __defProps$2(a, __getOwnPropDescs$2(b));
-var __async$a = (__this, __arguments, generator) => {
+var __async$d = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -2798,7 +2800,7 @@ class RelayerClient {
     this.tovarish = false;
   }
   askRelayerStatus(_0) {
-    return __async$a(this, arguments, function* ({
+    return __async$d(this, arguments, function* ({
       hostname,
       url,
       relayerAddress
@@ -2811,7 +2813,7 @@ class RelayerClient {
       } else {
         url = "";
       }
-      const rawStatus = yield fetchData(`${url}status`, __spreadProps$2(__spreadValues$2({}, this.fetchDataOptions), {
+      const rawStatus = yield fetchData(`${url}status`, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
         headers: {
           "Content-Type": "application/json, application/x-www-form-urlencoded"
         },
@@ -2822,7 +2824,7 @@ class RelayerClient {
       if (!statusValidator(rawStatus)) {
         throw new Error("Invalid status schema");
       }
-      const status = __spreadProps$2(__spreadValues$2({}, rawStatus), {
+      const status = __spreadProps$2(__spreadValues$3({}, rawStatus), {
         url
       });
       if (status.currentQueue > 5) {
@@ -2838,7 +2840,7 @@ class RelayerClient {
     });
   }
   filterRelayer(relayer) {
-    return __async$a(this, null, function* () {
+    return __async$d(this, null, function* () {
       var _a;
       const hostname = relayer.hostnames[this.netId];
       const { ensName, relayerAddress } = relayer;
@@ -2872,7 +2874,7 @@ class RelayerClient {
     });
   }
   getValidRelayers(relayers) {
-    return __async$a(this, null, function* () {
+    return __async$d(this, null, function* () {
       const invalidRelayers = [];
       const validRelayers = (yield Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
         if (!r) {
@@ -2894,9 +2896,9 @@ class RelayerClient {
     return pickWeightedRandomRelayer(relayers);
   }
   tornadoWithdraw(_0, _1) {
-    return __async$a(this, arguments, function* ({ contract, proof, args }, callback) {
+    return __async$d(this, arguments, function* ({ contract, proof, args }, callback) {
       const { url } = this.selectedRelayer;
-      const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps$2(__spreadValues$2({}, this.fetchDataOptions), {
+      const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -2916,7 +2918,7 @@ class RelayerClient {
       console.log(`Job submitted: ${jobUrl}
 `);
       while (!relayerStatus || !["FAILED", "CONFIRMED"].includes(relayerStatus)) {
-        const jobResponse = yield fetchData(jobUrl, __spreadProps$2(__spreadValues$2({}, this.fetchDataOptions), {
+        const jobResponse = yield fetchData(jobUrl, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
           method: "GET",
           headers: {
             "Content-Type": "application/json"
@@ -2959,29 +2961,29 @@ class RelayerClient {
   }
 }
 
-var __defProp$1 = Object.defineProperty;
+var __defProp$2 = Object.defineProperty;
 var __defProps$1 = Object.defineProperties;
 var __getOwnPropDescs$1 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
 var __getProtoOf$1 = Object.getPrototypeOf;
-var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
-var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
+var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
 var __reflectGet$1 = Reflect.get;
-var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$1 = (a, b) => {
+var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$2 = (a, b) => {
   for (var prop in b || (b = {}))
-    if (__hasOwnProp$1.call(b, prop))
-      __defNormalProp$1(a, prop, b[prop]);
-  if (__getOwnPropSymbols$1)
-    for (var prop of __getOwnPropSymbols$1(b)) {
-      if (__propIsEnum$1.call(b, prop))
-        __defNormalProp$1(a, prop, b[prop]);
+    if (__hasOwnProp$2.call(b, prop))
+      __defNormalProp$2(a, prop, b[prop]);
+  if (__getOwnPropSymbols$2)
+    for (var prop of __getOwnPropSymbols$2(b)) {
+      if (__propIsEnum$2.call(b, prop))
+        __defNormalProp$2(a, prop, b[prop]);
     }
   return a;
 };
 var __spreadProps$1 = (a, b) => __defProps$1(a, __getOwnPropDescs$1(b));
 var __superGet$1 = (cls, obj, key) => __reflectGet$1(__getProtoOf$1(cls), key, obj);
-var __async$9 = (__this, __arguments, generator) => {
+var __async$c = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -3061,7 +3063,7 @@ class BaseEventsService {
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return yield new Promise((resolve) => resolve(events));
     });
   }
@@ -3069,7 +3071,7 @@ class BaseEventsService {
    * Get saved or cached events
    */
   getEventsFromDB() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return {
         events: [],
         lastBlock: 0
@@ -3080,7 +3082,7 @@ class BaseEventsService {
    * Events from remote cache (Either from local cache, CDN, or from IPFS)
    */
   getEventsFromCache() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return {
         events: [],
         lastBlock: 0,
@@ -3089,7 +3091,7 @@ class BaseEventsService {
     });
   }
   getSavedEvents() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       let dbEvents = yield this.getEventsFromDB();
       if (!dbEvents.lastBlock) {
         dbEvents = yield this.getEventsFromCache();
@@ -3101,7 +3103,7 @@ class BaseEventsService {
    * Get latest events
    */
   getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({
+    return __async$c(this, arguments, function* ({
       fromBlock,
       methodName = ""
     }) {
@@ -3111,7 +3113,7 @@ class BaseEventsService {
           lastBlock: fromBlock
         };
       }
-      const { events, lastSyncBlock } = yield graph[methodName || this.getGraphMethod()](__spreadValues$1({
+      const { events, lastSyncBlock } = yield graph[methodName || this.getGraphMethod()](__spreadValues$2({
         fromBlock
       }, this.getGraphParams()));
       return {
@@ -3121,7 +3123,7 @@ class BaseEventsService {
     });
   }
   getEventsFromRpc(_0) {
-    return __async$9(this, arguments, function* ({
+    return __async$c(this, arguments, function* ({
       fromBlock,
       toBlock
     }) {
@@ -3153,7 +3155,7 @@ class BaseEventsService {
     });
   }
   getLatestEvents(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
+    return __async$c(this, arguments, function* ({ fromBlock }) {
       var _a;
       if (((_a = this.tovarishClient) == null ? void 0 : _a.selectedRelayer) && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
         const { events, lastSyncBlock: lastBlock } = yield this.tovarishClient.getEvents({
@@ -3182,14 +3184,14 @@ class BaseEventsService {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveEvents(_0) {
-    return __async$9(this, arguments, function* ({ events, lastBlock }) {
+    return __async$c(this, arguments, function* ({ events, lastBlock }) {
     });
   }
   /**
    * Trigger saving and receiving latest events
    */
   updateEvents() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       var _a;
       const savedEvents = yield this.getSavedEvents();
       let fromBlock = this.deployedBlock;
@@ -3274,7 +3276,7 @@ class BaseTornadoService extends BaseEventsService {
     };
   }
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       const type = this.getType().toLowerCase();
       if (type === DEPOSIT) {
         const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
@@ -3293,7 +3295,7 @@ class BaseTornadoService extends BaseEventsService {
         ]);
         return formattedEvents.map((event) => {
           const { from } = txs.find(({ hash }) => hash === event.transactionHash);
-          return __spreadProps$1(__spreadValues$1({}, event), {
+          return __spreadProps$1(__spreadValues$2({}, event), {
             from
           });
         });
@@ -3314,7 +3316,7 @@ class BaseTornadoService extends BaseEventsService {
         ]);
         return formattedEvents.map((event) => {
           const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
-          return __spreadProps$1(__spreadValues$1({}, event), {
+          return __spreadProps$1(__spreadValues$2({}, event), {
             timestamp
           });
         });
@@ -3331,7 +3333,7 @@ class BaseTornadoService extends BaseEventsService {
     }
   }
   getLatestEvents(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
+    return __async$c(this, arguments, function* ({ fromBlock }) {
       var _a;
       if ((_a = this.tovarishClient) == null ? void 0 : _a.selectedRelayer) {
         const { events, lastSyncBlock: lastBlock } = yield this.tovarishClient.getEvents({
@@ -3381,7 +3383,7 @@ class BaseEchoService extends BaseEventsService {
     return "getAllGraphEchoEvents";
   }
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { who, data } = args;
         if (who && data) {
@@ -3390,7 +3392,7 @@ class BaseEchoService extends BaseEventsService {
             logIndex,
             transactionHash
           };
-          return __spreadProps$1(__spreadValues$1({}, eventObjects), {
+          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
             address: who,
             encryptedAccount: data
           });
@@ -3399,7 +3401,7 @@ class BaseEchoService extends BaseEventsService {
     });
   }
   getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
+    return __async$c(this, arguments, function* ({ fromBlock }) {
       if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
         return {
           events: [],
@@ -3445,7 +3447,7 @@ class BaseEncryptedNotesService extends BaseEventsService {
     return "getAllEncryptedNotes";
   }
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { encryptedNote } = args;
         if (encryptedNote && encryptedNote !== "0x") {
@@ -3454,7 +3456,7 @@ class BaseEncryptedNotesService extends BaseEventsService {
             logIndex,
             transactionHash
           };
-          return __spreadProps$1(__spreadValues$1({}, eventObjects), {
+          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
             encryptedNote
           });
         }
@@ -3501,7 +3503,7 @@ class BaseGovernanceService extends BaseEventsService {
     return "getAllGovernanceEvents";
   }
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       const proposalEvents = [];
       const votedEvents = [];
       const delegatedEvents = [];
@@ -3515,7 +3517,7 @@ class BaseGovernanceService extends BaseEventsService {
         };
         if (event === "ProposalCreated") {
           const { id, proposer, target, startTime, endTime, description } = args;
-          proposalEvents.push(__spreadProps$1(__spreadValues$1({}, eventObjects), {
+          proposalEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
             id: Number(id),
             proposer,
             target,
@@ -3526,7 +3528,7 @@ class BaseGovernanceService extends BaseEventsService {
         }
         if (event === "Voted") {
           const { proposalId, voter, support, votes } = args;
-          votedEvents.push(__spreadProps$1(__spreadValues$1({}, eventObjects), {
+          votedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
             proposalId: Number(proposalId),
             voter,
             support,
@@ -3537,14 +3539,14 @@ class BaseGovernanceService extends BaseEventsService {
         }
         if (event === "Delegated") {
           const { account, to: delegateTo } = args;
-          delegatedEvents.push(__spreadProps$1(__spreadValues$1({}, eventObjects), {
+          delegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
             account,
             delegateTo
           }));
         }
         if (event === "Undelegated") {
           const { account, from: delegateFrom } = args;
-          undelegatedEvents.push(__spreadProps$1(__spreadValues$1({}, eventObjects), {
+          undelegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
             account,
             delegateFrom
           }));
@@ -3568,7 +3570,7 @@ class BaseGovernanceService extends BaseEventsService {
     });
   }
   getEventsFromGraph(_0) {
-    return __async$9(this, arguments, function* ({ fromBlock }) {
+    return __async$c(this, arguments, function* ({ fromBlock }) {
       if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
         return {
           events: [],
@@ -3580,12 +3582,12 @@ class BaseGovernanceService extends BaseEventsService {
   }
 }
 function getTovarishNetworks(registryService, relayers) {
-  return __async$9(this, null, function* () {
+  return __async$c(this, null, function* () {
     yield Promise.all(
-      relayers.filter((r) => r.tovarishHost).map((relayer) => __async$9(this, null, function* () {
+      relayers.filter((r) => r.tovarishHost).map((relayer) => __async$c(this, null, function* () {
         var _a, _b;
         try {
-          relayer.tovarishNetworks = yield fetchData(relayer.tovarishHost, __spreadProps$1(__spreadValues$1({}, registryService.fetchDataOptions), {
+          relayer.tovarishNetworks = yield fetchData(relayer.tovarishHost, __spreadProps$1(__spreadValues$2({}, registryService.fetchDataOptions), {
             headers: {
               "Content-Type": "application/json"
             },
@@ -3650,14 +3652,14 @@ class BaseRegistryService extends BaseEventsService {
     return "getAllRegisters";
   }
   formatEvents(events) {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const eventObjects = {
           blockNumber,
           logIndex,
           transactionHash
         };
-        return __spreadProps$1(__spreadValues$1({}, eventObjects), {
+        return __spreadProps$1(__spreadValues$2({}, eventObjects), {
           ensName: args.ensName,
           relayerAddress: args.relayerAddress
         });
@@ -3668,7 +3670,7 @@ class BaseRegistryService extends BaseEventsService {
    * Get saved or cached relayers
    */
   getRelayersFromDB() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return {
         lastBlock: 0,
         timestamp: 0,
@@ -3680,7 +3682,7 @@ class BaseRegistryService extends BaseEventsService {
    * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
    */
   getRelayersFromCache() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       return {
         lastBlock: 0,
         timestamp: 0,
@@ -3690,7 +3692,7 @@ class BaseRegistryService extends BaseEventsService {
     });
   }
   getSavedRelayers() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       let cachedRelayers = yield this.getRelayersFromDB();
       if (!cachedRelayers || !cachedRelayers.relayers.length) {
         cachedRelayers = yield this.getRelayersFromCache();
@@ -3699,7 +3701,7 @@ class BaseRegistryService extends BaseEventsService {
     });
   }
   getLatestRelayers() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       const { events, lastBlock } = yield this.updateEvents();
       const subdomains = Object.values(this.relayerEnsSubdomains);
       const registerSet = /* @__PURE__ */ new Set();
@@ -3756,14 +3758,14 @@ class BaseRegistryService extends BaseEventsService {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveRelayers(_0) {
-    return __async$9(this, arguments, function* ({ lastBlock, timestamp, relayers }) {
+    return __async$c(this, arguments, function* ({ lastBlock, timestamp, relayers }) {
     });
   }
   /**
    * Get cached or latest relayer and save to local
    */
   updateRelayers() {
-    return __async$9(this, null, function* () {
+    return __async$c(this, null, function* () {
       let { lastBlock, timestamp, relayers, fromCache } = yield this.getSavedRelayers();
       let shouldSave = fromCache != null ? fromCache : false;
       if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
@@ -3775,6 +3777,219 @@ class BaseRegistryService extends BaseEventsService {
         yield this.saveRelayers({ lastBlock, timestamp, relayers });
       }
       return { lastBlock, timestamp, relayers };
+    });
+  }
+}
+
+var __async$b = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+function zipAsync(file) {
+  return new Promise((res, rej) => {
+    fflate.zip(file, { mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data);
+    });
+  });
+}
+function unzipAsync(data) {
+  return new Promise((res, rej) => {
+    fflate.unzip(data, {}, (err, data2) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data2);
+    });
+  });
+}
+function downloadZip(_0) {
+  return __async$b(this, arguments, function* ({
+    staticUrl = "",
+    zipName,
+    zipDigest,
+    parseJson = true
+  }) {
+    const url = `${staticUrl}/${zipName}.zip`;
+    const resp = yield fetchData(url, {
+      method: "GET",
+      returnResponse: true
+    });
+    const data = new Uint8Array(yield resp.arrayBuffer());
+    if (zipDigest) {
+      const hash = "sha384-" + bytesToBase64(yield digest(data));
+      if (zipDigest !== hash) {
+        const errMsg = `Invalid digest hash for file ${url}, wants ${zipDigest} has ${hash}`;
+        throw new Error(errMsg);
+      }
+    }
+    const { [zipName]: content } = yield unzipAsync(data);
+    if (parseJson) {
+      return JSON.parse(new TextDecoder().decode(content));
+    }
+    return content;
+  });
+}
+
+var __async$a = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+function saveDBEvents(_0) {
+  return __async$a(this, arguments, function* ({
+    idb,
+    instanceName,
+    events,
+    lastBlock
+  }) {
+    try {
+      yield idb.createMultipleTransactions({
+        data: events,
+        storeName: instanceName
+      });
+      yield idb.putItem({
+        data: {
+          blockNumber: lastBlock,
+          name: instanceName
+        },
+        storeName: "lastEvents"
+      });
+    } catch (err) {
+      console.log("Method saveDBEvents has error");
+      console.log(err);
+    }
+  });
+}
+function loadDBEvents(_0) {
+  return __async$a(this, arguments, function* ({
+    idb,
+    instanceName
+  }) {
+    try {
+      const lastBlockStore = yield idb.getItem({
+        storeName: "lastEvents",
+        key: instanceName
+      });
+      if (!(lastBlockStore == null ? void 0 : lastBlockStore.blockNumber)) {
+        return {
+          events: [],
+          lastBlock: 0
+        };
+      }
+      return {
+        events: yield idb.getAll({ storeName: instanceName }),
+        lastBlock: lastBlockStore.blockNumber
+      };
+    } catch (err) {
+      console.log("Method loadDBEvents has error");
+      console.log(err);
+      return {
+        events: [],
+        lastBlock: 0
+      };
+    }
+  });
+}
+function loadRemoteEvents(_0) {
+  return __async$a(this, arguments, function* ({
+    staticUrl,
+    instanceName,
+    deployedBlock
+  }) {
+    var _a;
+    try {
+      const zipName = `${instanceName}.json`.toLowerCase();
+      const events = yield downloadZip({
+        staticUrl,
+        zipName
+      });
+      if (!Array.isArray(events)) {
+        const errStr = `Invalid events from ${staticUrl}/${zipName}`;
+        throw new Error(errStr);
+      }
+      return {
+        events,
+        lastBlock: ((_a = events[events.length - 1]) == null ? void 0 : _a.blockNumber) || deployedBlock,
+        fromCache: true
+      };
+    } catch (err) {
+      console.log("Method loadRemoteEvents has error");
+      console.log(err);
+      return {
+        events: [],
+        lastBlock: deployedBlock,
+        fromCache: true
+      };
+    }
+  });
+}
+class DBTornadoService extends BaseTornadoService {
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  getEventsFromDB() {
+    return __async$a(this, null, function* () {
+      return yield loadDBEvents({
+        idb: this.idb,
+        instanceName: this.getInstanceName()
+      });
+    });
+  }
+  getEventsFromCache() {
+    return __async$a(this, null, function* () {
+      return yield loadRemoteEvents({
+        staticUrl: this.staticUrl,
+        instanceName: this.getInstanceName(),
+        deployedBlock: this.deployedBlock
+      });
+    });
+  }
+  saveEvents(_0) {
+    return __async$a(this, arguments, function* ({ events, lastBlock }) {
+      yield saveDBEvents({
+        idb: this.idb,
+        instanceName: this.getInstanceName(),
+        events,
+        lastBlock
+      });
     });
   }
 }
@@ -6116,7 +6331,7 @@ var index = /*#__PURE__*/Object.freeze({
   ReverseRecords__factory: ReverseRecords__factory
 });
 
-var __async$8 = (__this, __arguments, generator) => {
+var __async$9 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6141,13 +6356,13 @@ class Pedersen {
     this.pedersenPromise = this.initPedersen();
   }
   initPedersen() {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       this.pedersenHash = yield circomlibjs.buildPedersenHash();
       this.babyJub = this.pedersenHash.babyJub;
     });
   }
   unpackPoint(buffer) {
-    return __async$8(this, null, function* () {
+    return __async$9(this, null, function* () {
       var _a, _b;
       yield this.pedersenPromise;
       return (_b = this.babyJub) == null ? void 0 : _b.unpackPoint((_a = this.pedersenHash) == null ? void 0 : _a.hash(buffer));
@@ -6160,13 +6375,13 @@ class Pedersen {
 }
 const pedersen = new Pedersen();
 function buffPedersenHash(buffer) {
-  return __async$8(this, null, function* () {
+  return __async$9(this, null, function* () {
     const [hash] = yield pedersen.unpackPoint(buffer);
     return pedersen.toStringBuffer(hash);
   });
 }
 
-var __async$7 = (__this, __arguments, generator) => {
+var __async$8 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -6187,7 +6402,7 @@ var __async$7 = (__this, __arguments, generator) => {
   });
 };
 function createDeposit(_0) {
-  return __async$7(this, arguments, function* ({ nullifier, secret }) {
+  return __async$8(this, arguments, function* ({ nullifier, secret }) {
     const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
     const noteHex = toFixedHex(bytesToBN(preimage), 62);
     const commitment = BigInt(yield buffPedersenHash(preimage));
@@ -6247,7 +6462,7 @@ class Deposit {
     );
   }
   static createNote(_0) {
-    return __async$7(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
+    return __async$8(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
       if (!nullifier) {
         nullifier = rBigInt(31);
       }
@@ -6274,7 +6489,7 @@ class Deposit {
     });
   }
   static parseNote(noteString) {
-    return __async$7(this, null, function* () {
+    return __async$8(this, null, function* () {
       const noteRegex = new RegExp("tornado-(?<currency>\\w+)-(?<amount>[\\d.]+)-(?<netId>\\d+)-0x(?<note>[0-9a-fA-F]{124})", "g");
       const match = noteRegex.exec(noteString);
       if (!match) {
@@ -6531,6 +6746,350 @@ class TornadoFeeOracle {
     const feeInEth = gasCosts + BigInt(ethRefund);
     return (convertETHToTokenAmount(feeInEth, tokenPriceInWei, tokenDecimals) + relayerFee) * BigInt(premiumPercent ? 100 + premiumPercent : 100) / BigInt(100);
   }
+}
+
+var __defProp$1 = Object.defineProperty;
+var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
+var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues$1 = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp$1.call(b, prop))
+      __defNormalProp$1(a, prop, b[prop]);
+  if (__getOwnPropSymbols$1)
+    for (var prop of __getOwnPropSymbols$1(b)) {
+      if (__propIsEnum$1.call(b, prop))
+        __defNormalProp$1(a, prop, b[prop]);
+    }
+  return a;
+};
+var __async$7 = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+const INDEX_DB_ERROR = "A mutation operation was attempted on a database that did not allow mutations.";
+class IndexedDB {
+  constructor({ dbName, stores }) {
+    this.dbExists = false;
+    this.isBlocked = false;
+    this.options = {
+      upgrade(db) {
+        Object.values(db.objectStoreNames).forEach((value) => {
+          db.deleteObjectStore(value);
+        });
+        [{ name: "keyval" }, ...stores || []].forEach(({ name, keyPath, indexes }) => {
+          const store = db.createObjectStore(name, {
+            keyPath,
+            autoIncrement: true
+          });
+          if (Array.isArray(indexes)) {
+            indexes.forEach(({ name: name2, unique = false }) => {
+              store.createIndex(name2, name2, { unique });
+            });
+          }
+        });
+      }
+    };
+    this.dbName = dbName;
+    this.dbVersion = 34;
+  }
+  initDB() {
+    return __async$7(this, null, function* () {
+      try {
+        if (this.dbExists || this.isBlocked) {
+          return;
+        }
+        this.db = yield idb.openDB(this.dbName, this.dbVersion, this.options);
+        this.db.addEventListener("onupgradeneeded", () => __async$7(this, null, function* () {
+          yield this._removeExist();
+        }));
+        this.dbExists = true;
+      } catch (err) {
+        if (err.message.includes(INDEX_DB_ERROR)) {
+          console.log("This browser does not support IndexedDB!");
+          this.isBlocked = true;
+          return;
+        }
+        if (err.message.includes("less than the existing version")) {
+          console.log(`Upgrading DB ${this.dbName} to ${this.dbVersion}`);
+          yield this._removeExist();
+          return;
+        }
+        console.error(`Method initDB has error: ${err.message}`);
+      }
+    });
+  }
+  _removeExist() {
+    return __async$7(this, null, function* () {
+      yield idb.deleteDB(this.dbName);
+      this.dbExists = false;
+      yield this.initDB();
+    });
+  }
+  getFromIndex(_0) {
+    return __async$7(this, arguments, function* ({
+      storeName,
+      indexName,
+      key
+    }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        return yield this.db.getFromIndex(storeName, indexName, key);
+      } catch (err) {
+        throw new Error(`Method getFromIndex has error: ${err.message}`);
+      }
+    });
+  }
+  getAllFromIndex(_0) {
+    return __async$7(this, arguments, function* ({
+      storeName,
+      indexName,
+      key,
+      count
+    }) {
+      yield this.initDB();
+      if (!this.db) {
+        return [];
+      }
+      try {
+        return yield this.db.getAllFromIndex(storeName, indexName, key, count);
+      } catch (err) {
+        throw new Error(`Method getAllFromIndex has error: ${err.message}`);
+      }
+    });
+  }
+  getItem(_0) {
+    return __async$7(this, arguments, function* ({ storeName, key }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const store = this.db.transaction(storeName).objectStore(storeName);
+        return yield store.get(key);
+      } catch (err) {
+        throw new Error(`Method getItem has error: ${err.message}`);
+      }
+    });
+  }
+  addItem(_0) {
+    return __async$7(this, arguments, function* ({ storeName, data, key = "" }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, "readwrite");
+        const isExist = yield tx.objectStore(storeName).get(key);
+        if (!isExist) {
+          yield tx.objectStore(storeName).add(data);
+        }
+      } catch (err) {
+        throw new Error(`Method addItem has error: ${err.message}`);
+      }
+    });
+  }
+  putItem(_0) {
+    return __async$7(this, arguments, function* ({ storeName, data, key }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, "readwrite");
+        yield tx.objectStore(storeName).put(data, key);
+      } catch (err) {
+        throw new Error(`Method putItem has error: ${err.message}`);
+      }
+    });
+  }
+  deleteItem(_0) {
+    return __async$7(this, arguments, function* ({ storeName, key }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, "readwrite");
+        yield tx.objectStore(storeName).delete(key);
+      } catch (err) {
+        throw new Error(`Method deleteItem has error: ${err.message}`);
+      }
+    });
+  }
+  getAll(_0) {
+    return __async$7(this, arguments, function* ({ storeName }) {
+      yield this.initDB();
+      if (!this.db) {
+        return [];
+      }
+      try {
+        const tx = this.db.transaction(storeName, "readonly");
+        return yield tx.objectStore(storeName).getAll();
+      } catch (err) {
+        throw new Error(`Method getAll has error: ${err.message}`);
+      }
+    });
+  }
+  /**
+   * Simple key-value store inspired by idb-keyval package
+   */
+  getValue(key) {
+    return this.getItem({ storeName: "keyval", key });
+  }
+  setValue(key, data) {
+    return this.putItem({ storeName: "keyval", key, data });
+  }
+  delValue(key) {
+    return this.deleteItem({ storeName: "keyval", key });
+  }
+  clearStore(_0) {
+    return __async$7(this, arguments, function* ({ storeName, mode = "readwrite" }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, mode);
+        yield tx.objectStore(storeName).clear();
+      } catch (err) {
+        throw new Error(`Method clearStore has error: ${err.message}`);
+      }
+    });
+  }
+  createTransactions(_0) {
+    return __async$7(this, arguments, function* ({
+      storeName,
+      data,
+      mode = "readwrite"
+    }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, mode);
+        yield tx.objectStore(storeName).add(data);
+        yield tx.done;
+      } catch (err) {
+        throw new Error(`Method createTransactions has error: ${err.message}`);
+      }
+    });
+  }
+  createMultipleTransactions(_0) {
+    return __async$7(this, arguments, function* ({
+      storeName,
+      data,
+      index,
+      mode = "readwrite"
+    }) {
+      yield this.initDB();
+      if (!this.db) {
+        return;
+      }
+      try {
+        const tx = this.db.transaction(storeName, mode);
+        for (const item of data) {
+          if (item) {
+            yield tx.store.put(__spreadValues$1(__spreadValues$1({}, item), index));
+          }
+        }
+      } catch (err) {
+        throw new Error(`Method createMultipleTransactions has error: ${err.message}`);
+      }
+    });
+  }
+}
+function getIndexedDB(netId) {
+  return __async$7(this, null, function* () {
+    if (!netId) {
+      const idb2 = new IndexedDB({ dbName: "tornado-core" });
+      yield idb2.initDB();
+      return idb2;
+    }
+    const DEPOSIT_INDEXES = [
+      { name: "transactionHash", unique: false },
+      { name: "commitment", unique: true }
+    ];
+    const WITHDRAWAL_INDEXES = [
+      { name: "nullifierHash", unique: true }
+      // keys on which the index is created
+    ];
+    const LAST_EVENT_INDEXES = [{ name: "name", unique: false }];
+    const defaultState = [
+      {
+        name: "encrypted_events",
+        keyPath: "transactionHash"
+      },
+      {
+        name: "lastEvents",
+        keyPath: "name",
+        indexes: LAST_EVENT_INDEXES
+      }
+    ];
+    const config = getConfig(netId);
+    const { tokens, nativeCurrency } = config;
+    const stores = [...defaultState];
+    if (netId === NetId.MAINNET) {
+      stores.push({
+        name: "register_events",
+        keyPath: "ensName"
+      });
+    }
+    Object.entries(tokens).forEach(([token, { instanceAddress }]) => {
+      Object.keys(instanceAddress).forEach((amount) => {
+        if (nativeCurrency === token) {
+          stores.push({
+            name: `stringify_bloom_${netId}_${token}_${amount}`,
+            keyPath: "hashBloom"
+          });
+        }
+        stores.push(
+          {
+            name: `deposits_${netId}_${token}_${amount}`,
+            keyPath: "leafIndex",
+            // the key by which it refers to the object must be in all instances of the storage
+            indexes: DEPOSIT_INDEXES
+          },
+          {
+            name: `withdrawals_${netId}_${token}_${amount}`,
+            keyPath: "blockNumber",
+            indexes: WITHDRAWAL_INDEXES
+          },
+          {
+            name: `stringify_tree_${netId}_${token}_${amount}`,
+            keyPath: "hashTree"
+          }
+        );
+      });
+    });
+    const idb = new IndexedDB({
+      dbName: `tornado_core_${netId}`,
+      stores
+    });
+    yield idb.initDB();
+    return idb;
+  });
 }
 
 var __async$6 = (__this, __arguments, generator) => {
@@ -7179,6 +7738,7 @@ exports.BaseTornadoService = BaseTornadoService;
 exports.BatchBlockService = BatchBlockService;
 exports.BatchEventsService = BatchEventsService;
 exports.BatchTransactionService = BatchTransactionService;
+exports.DBTornadoService = DBTornadoService;
 exports.DEPOSIT = DEPOSIT;
 exports.Deposit = Deposit;
 exports.ENS__factory = ENS__factory;
@@ -7192,6 +7752,8 @@ exports.GET_NOTE_ACCOUNTS = GET_NOTE_ACCOUNTS;
 exports.GET_REGISTERED = GET_REGISTERED;
 exports.GET_STATISTIC = GET_STATISTIC;
 exports.GET_WITHDRAWALS = GET_WITHDRAWALS;
+exports.INDEX_DB_ERROR = INDEX_DB_ERROR;
+exports.IndexedDB = IndexedDB;
 exports.Invoice = Invoice;
 exports.MAX_FEE = MAX_FEE;
 exports.MAX_TOVARISH_EVENTS = MAX_TOVARISH_EVENTS;
@@ -7241,6 +7803,7 @@ exports.defaultConfig = defaultConfig;
 exports.defaultUserAgent = defaultUserAgent;
 exports.depositsEventsSchema = depositsEventsSchema;
 exports.digest = digest;
+exports.downloadZip = downloadZip;
 exports.echoEventsSchema = echoEventsSchema;
 exports.enabledChains = enabledChains;
 exports.encryptedNotesSchema = encryptedNotesSchema;
@@ -7263,6 +7826,7 @@ exports.getEventsSchemaValidator = getEventsSchemaValidator;
 exports.getGovernanceEvents = getGovernanceEvents;
 exports.getGraphEchoEvents = getGraphEchoEvents;
 exports.getHttpAgent = getHttpAgent;
+exports.getIndexedDB = getIndexedDB;
 exports.getInstanceByAddress = getInstanceByAddress;
 exports.getMeta = getMeta;
 exports.getNetworkConfig = getNetworkConfig;
@@ -7285,6 +7849,8 @@ exports.isNode = isNode;
 exports.jobsSchema = jobsSchema;
 exports.leBuff2Int = leBuff2Int;
 exports.leInt2Buff = leInt2Buff;
+exports.loadDBEvents = loadDBEvents;
+exports.loadRemoteEvents = loadRemoteEvents;
 exports.mimc = mimc;
 exports.multicall = multicall;
 exports.packEncryptedMessage = packEncryptedMessage;
@@ -7295,10 +7861,13 @@ exports.proofSchemaType = proofSchemaType;
 exports.queryGraph = queryGraph;
 exports.rBigInt = rBigInt;
 exports.registeredEventsSchema = registeredEventsSchema;
+exports.saveDBEvents = saveDBEvents;
 exports.sleep = sleep;
 exports.substring = substring;
 exports.toFixedHex = toFixedHex;
 exports.toFixedLength = toFixedLength;
 exports.unpackEncryptedMessage = unpackEncryptedMessage;
+exports.unzipAsync = unzipAsync;
 exports.validateUrl = validateUrl;
 exports.withdrawalsEventsSchema = withdrawalsEventsSchema;
+exports.zipAsync = zipAsync;
