@@ -3844,6 +3844,7 @@ function downloadZip(_0) {
       }
     }
     const { [zipName]: content } = yield unzipAsync(data);
+    console.log(`Downloaded ${url}${zipDigest ? ` ( Digest: ${zipDigest} )` : ""}`);
     if (parseJson) {
       return JSON.parse(new TextDecoder().decode(content));
     }

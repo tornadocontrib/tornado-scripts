@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { openDB, deleteDB, OpenDBCallbacks, IDBPDatabase } from 'idb';
-import { getConfig, getNetworkConfig, NetId, NetIdType } from './networkConfig';
+import { getConfig, NetId, NetIdType } from './networkConfig';
 
 export const INDEX_DB_ERROR = 'A mutation operation was attempted on a database that did not allow mutations.';
 

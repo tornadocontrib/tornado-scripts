@@ -58,6 +58,8 @@ export async function downloadZip<T>({
 
   const { [zipName]: content } = await unzipAsync(data);
 
+  console.log(`Downloaded ${url}${zipDigest ? ` ( Digest: ${zipDigest} )` : ''}`);
+
   if (parseJson) {
     return JSON.parse(new TextDecoder().decode(content)) as T;
   }
