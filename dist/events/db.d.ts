@@ -11,10 +11,11 @@ export declare function loadDBEvents<T extends MinimalEvents>({ idb, instanceNam
     idb: IndexedDB;
     instanceName: string;
 }): Promise<BaseEvents<T>>;
-export declare function loadRemoteEvents<T extends MinimalEvents>({ staticUrl, instanceName, deployedBlock, }: {
+export declare function loadRemoteEvents<T extends MinimalEvents>({ staticUrl, instanceName, deployedBlock, zipDigest, }: {
     staticUrl: string;
     instanceName: string;
     deployedBlock: number;
+    zipDigest?: string;
 }): Promise<CachedEvents<T>>;
 export interface DBTornadoServiceConstructor extends BaseTornadoServiceConstructor {
     staticUrl: string;
@@ -23,6 +24,7 @@ export interface DBTornadoServiceConstructor extends BaseTornadoServiceConstruct
 export declare class DBTornadoService extends BaseTornadoService {
     staticUrl: string;
     idb: IndexedDB;
+    zipDigest?: string;
     constructor(params: DBTornadoServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;
     getEventsFromCache(): Promise<CachedEvents<DepositsEvents | WithdrawalsEvents>>;

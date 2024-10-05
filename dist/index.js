@@ -3931,14 +3931,16 @@ function loadRemoteEvents(_0) {
   return __async$a(this, arguments, function* ({
     staticUrl,
     instanceName,
-    deployedBlock
+    deployedBlock,
+    zipDigest
   }) {
     var _a;
     try {
       const zipName = `${instanceName}.json`.toLowerCase();
       const events = yield downloadZip({
         staticUrl,
-        zipName
+        zipName,
+        zipDigest
       });
       if (!Array.isArray(events)) {
         const errStr = `Invalid events from ${staticUrl}/${zipName}`;
@@ -3979,7 +3981,8 @@ class DBTornadoService extends BaseTornadoService {
       return yield loadRemoteEvents({
         staticUrl: this.staticUrl,
         instanceName: this.getInstanceName(),
-        deployedBlock: this.deployedBlock
+        deployedBlock: this.deployedBlock,
+        zipDigest: this.zipDigest
       });
     });
   }

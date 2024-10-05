@@ -73,10 +73,12 @@ export async function loadRemoteEvents<T extends MinimalEvents>({
   staticUrl,
   instanceName,
   deployedBlock,
+  zipDigest,
 }: {
   staticUrl: string;
   instanceName: string;
   deployedBlock: number;
+  zipDigest?: string;
 }): Promise<CachedEvents<T>> {
   try {
     const zipName = `${instanceName}.json`.toLowerCase();
@@ -84,6 +86,7 @@ export async function loadRemoteEvents<T extends MinimalEvents>({
     const events = await downloadZip<T[]>({
       staticUrl,
       zipName,
+      zipDigest,
     });
 
     if (!Array.isArray(events)) {
@@ -117,6 +120,8 @@ export class DBTornadoService extends BaseTornadoService {
   staticUrl: string;
   idb: IndexedDB;
 
+  zipDigest?: string;
+
   constructor(params: DBTornadoServiceConstructor) {
     super(params);
 
@@ -136,6 +141,7 @@ export class DBTornadoService extends BaseTornadoService {
       staticUrl: this.staticUrl,
       instanceName: this.getInstanceName(),
       deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest,
     });
   }
 
