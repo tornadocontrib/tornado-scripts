@@ -122,5 +122,52 @@ module.exports = [
         ...commonAlias,
       }
     },
-  }
+  },
+  {
+    mode: 'production',
+    module: {
+      rules: [esbuildLoader]
+    },
+    entry: './src/contracts.ts',
+    output: {
+      filename: 'tornadoContracts.umd.js',
+      path: path.resolve(__dirname, './dist'),
+      library: 'TornadoContracts',
+      libraryTarget: 'umd'
+    },
+    plugins: [
+      new NodePolyfillPlugin(),
+    ],
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+      alias: {
+        ...commonAlias,
+      }
+    },
+    optimization: {
+      minimize: false,
+    }
+  },
+  {
+    mode: 'production',
+    module: {
+      rules: [esbuildLoader]
+    },
+    entry: './src/contracts.ts',
+    output: {
+      filename: 'tornadoContracts.umd.min.js',
+      path: path.resolve(__dirname, './dist'),
+      library: 'TornadoContracts',
+      libraryTarget: 'umd'
+    },
+    plugins: [
+      new NodePolyfillPlugin(),
+    ],
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+      alias: {
+        ...commonAlias,
+      }
+    },
+  },
 ];
