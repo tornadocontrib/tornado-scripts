@@ -1,3 +1,4 @@
+const { BannerPlugin } = require('webpack');
 const path = require('path');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
@@ -82,6 +83,10 @@ module.exports = [
     },
     plugins: [
       new NodePolyfillPlugin(),
+      new BannerPlugin({
+        banner: 'globalThis.process = { browser: true, env: {}, };\n',
+        raw: true,
+      }),
     ],
     resolve: {
       extensions: ['.tsx', '.ts', '.js'],
@@ -106,6 +111,10 @@ module.exports = [
     },
     plugins: [
       new NodePolyfillPlugin(),
+      new BannerPlugin({
+        banner: 'globalThis.process = { browser: true, env: {}, };',
+        raw: true,
+      }),
     ],
     resolve: {
       extensions: ['.tsx', '.ts', '.js'],
