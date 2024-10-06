@@ -475,7 +475,7 @@ export type handleWalletFunc = (...args: any[]) => void;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type TornadoBrowserProviderOptions = TornadoWalletOptions & {
-  webChainId?: NetIdType;
+  netId?: NetIdType;
   connectWallet?: connectWalletFunc;
   handleNetworkChanges?: handleWalletFunc;
   handleAccountChanges?: handleWalletFunc;
@@ -493,11 +493,11 @@ export class TornadoBrowserProvider extends BrowserProvider {
     const signerAddress = (await super.getSigner(address)).address;
 
     if (
-      this.options?.webChainId &&
+      this.options?.netId &&
       this.options?.connectWallet &&
-      Number(await super.send('eth_chainId', [])) !== Number(this.options?.webChainId)
+      Number(await super.send('net_version', [])) !== this.options?.netId
     ) {
-      await this.options.connectWallet();
+      await this.options.connectWallet(this.options?.netId);
     }
 
     if (this.options?.handleNetworkChanges) {

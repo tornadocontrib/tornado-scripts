@@ -75,7 +75,7 @@ export declare class TornadoRpcSigner extends JsonRpcSigner {
 export type connectWalletFunc = (...args: any[]) => Promise<void>;
 export type handleWalletFunc = (...args: any[]) => void;
 export type TornadoBrowserProviderOptions = TornadoWalletOptions & {
-    webChainId?: NetIdType;
+    netId?: NetIdType;
     connectWallet?: connectWalletFunc;
     handleNetworkChanges?: handleWalletFunc;
     handleAccountChanges?: handleWalletFunc;

@@ -477,19 +477,19 @@ class TornadoBrowserProvider extends ethers.BrowserProvider {
   }
   getSigner(address) {
     return __async$g(this, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
       const signerAddress = (yield __superGet$2(TornadoBrowserProvider.prototype, this, "getSigner").call(this, address)).address;
-      if (((_a = this.options) == null ? void 0 : _a.webChainId) && ((_b = this.options) == null ? void 0 : _b.connectWallet) && Number(yield __superGet$2(TornadoBrowserProvider.prototype, this, "send").call(this, "eth_chainId", [])) !== Number((_c = this.options) == null ? void 0 : _c.webChainId)) {
-        yield this.options.connectWallet();
+      if (((_a = this.options) == null ? void 0 : _a.netId) && ((_b = this.options) == null ? void 0 : _b.connectWallet) && Number(yield __superGet$2(TornadoBrowserProvider.prototype, this, "send").call(this, "net_version", [])) !== ((_c = this.options) == null ? void 0 : _c.netId)) {
+        yield this.options.connectWallet((_d = this.options) == null ? void 0 : _d.netId);
       }
-      if ((_d = this.options) == null ? void 0 : _d.handleNetworkChanges) {
-        (_e = window == null ? void 0 : window.ethereum) == null ? void 0 : _e.on("chainChanged", this.options.handleNetworkChanges);
+      if ((_e = this.options) == null ? void 0 : _e.handleNetworkChanges) {
+        (_f = window == null ? void 0 : window.ethereum) == null ? void 0 : _f.on("chainChanged", this.options.handleNetworkChanges);
       }
-      if ((_f = this.options) == null ? void 0 : _f.handleAccountChanges) {
-        (_g = window == null ? void 0 : window.ethereum) == null ? void 0 : _g.on("accountsChanged", this.options.handleAccountChanges);
+      if ((_g = this.options) == null ? void 0 : _g.handleAccountChanges) {
+        (_h = window == null ? void 0 : window.ethereum) == null ? void 0 : _h.on("accountsChanged", this.options.handleAccountChanges);
       }
-      if ((_h = this.options) == null ? void 0 : _h.handleAccountDisconnect) {
-        (_i = window == null ? void 0 : window.ethereum) == null ? void 0 : _i.on("disconnect", this.options.handleAccountDisconnect);
+      if ((_i = this.options) == null ? void 0 : _i.handleAccountDisconnect) {
+        (_j = window == null ? void 0 : window.ethereum) == null ? void 0 : _j.on("disconnect", this.options.handleAccountDisconnect);
       }
       return new TornadoRpcSigner(this, signerAddress, this.options);
     });
