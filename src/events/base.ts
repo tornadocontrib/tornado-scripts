@@ -1064,10 +1064,14 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
 
     await getTovarishNetworks(this, relayers);
 
+    const allRelayers = [...staticRelayers, ...relayers];
+    const tovarishRelayers = allRelayers.filter((r) => r.tovarishHost);
+    const classicRelayers = allRelayers.filter((r) => !r.tovarishHost);
+
     return {
       lastBlock,
       timestamp,
-      relayers: [...staticRelayers, ...relayers],
+      relayers: [...tovarishRelayers, ...classicRelayers],
     };
   }
 

@@ -3746,10 +3746,13 @@ class BaseRegistryService extends BaseEventsService {
         }
       }).filter((r) => r);
       yield getTovarishNetworks(this, relayers);
+      const allRelayers = [...staticRelayers, ...relayers];
+      const tovarishRelayers = allRelayers.filter((r) => r.tovarishHost);
+      const classicRelayers = allRelayers.filter((r) => !r.tovarishHost);
       return {
         lastBlock,
         timestamp,
-        relayers: [...staticRelayers, ...relayers]
+        relayers: [...tovarishRelayers, ...classicRelayers]
       };
     });
   }

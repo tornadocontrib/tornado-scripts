@@ -121,7 +121,13 @@ __webpack_require__.d(__webpack_exports__, {
   MerkleTreeWithHistoryMock__factory: () => (/* reexport */ MerkleTreeWithHistoryMock__factory),
   MerkleTreeWithHistory__factory: () => (/* reexport */ MerkleTreeWithHistory__factory),
   MockGovernance__factory: () => (/* reexport */ MockGovernance__factory),
+  Multicall: () => (/* reexport */ typechain_namespaceObject.Multicall),
+  Multicall__factory: () => (/* reexport */ Multicall__factory),
   NewImplementation__factory: () => (/* reexport */ NewImplementation__factory),
+  OffchainOracle: () => (/* reexport */ typechain_namespaceObject.OffchainOracle),
+  OffchainOracle__factory: () => (/* reexport */ OffchainOracle__factory),
+  OvmGasPriceOracle: () => (/* reexport */ typechain_namespaceObject.OvmGasPriceOracle),
+  OvmGasPriceOracle__factory: () => (/* reexport */ OvmGasPriceOracle__factory),
   Ownable__factory: () => (/* reexport */ Ownable__factory),
   PatchProposal__factory: () => (/* reexport */ PatchProposal__factory),
   Pausable__factory: () => (/* reexport */ Pausable__factory),
@@ -132,6 +138,8 @@ __webpack_require__.d(__webpack_exports__, {
   RelayerAggregator__factory: () => (/* reexport */ RelayerAggregator__factory),
   RelayerRegistry__factory: () => (/* reexport */ RelayerRegistry__factory),
   Resolver__factory: () => (/* reexport */ Resolver__factory),
+  ReverseRecords: () => (/* reexport */ typechain_namespaceObject.ReverseRecords),
+  ReverseRecords__factory: () => (/* reexport */ ReverseRecords__factory),
   TORNMock__factory: () => (/* reexport */ TORNMock__factory),
   TORN__factory: () => (/* reexport */ TORN__factory),
   TestnetAdminProxy__factory: () => (/* reexport */ TestnetAdminProxy__factory),
@@ -151,6 +159,16 @@ __webpack_require__.d(__webpack_exports__, {
   VoucherMock__factory: () => (/* reexport */ VoucherMock__factory),
   Voucher__factory: () => (/* reexport */ Voucher__factory),
   factories: () => (/* reexport */ index)
+});
+
+// NAMESPACE OBJECT: ./src/typechain/index.ts
+var typechain_namespaceObject = {};
+__webpack_require__.r(typechain_namespaceObject);
+__webpack_require__.d(typechain_namespaceObject, {
+  Q2: () => (Multicall__factory),
+  Hk: () => (OffchainOracle__factory),
+  Ld: () => (OvmGasPriceOracle__factory),
+  Rp: () => (ReverseRecords__factory)
 });
 
 ;// ./node_modules/ethers/node_modules/@noble/hashes/esm/_assert.js
@@ -34738,7 +34756,2373 @@ var index = /*#__PURE__*/Object.freeze({
 
 
 
+;// ./src/typechain/factories/ENS__factory.ts
+
+
+const ENS_factory_abi = [
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes4",
+        name: "interfaceID",
+        type: "bytes4"
+      }
+    ],
+    name: "supportsInterface",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool"
+      }
+    ],
+    payable: false,
+    stateMutability: "pure",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "string",
+        name: "key",
+        type: "string"
+      },
+      {
+        internalType: "string",
+        name: "value",
+        type: "string"
+      }
+    ],
+    name: "setText",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes4",
+        name: "interfaceID",
+        type: "bytes4"
+      }
+    ],
+    name: "interfaceImplementer",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "uint256",
+        name: "contentTypes",
+        type: "uint256"
+      }
+    ],
+    name: "ABI",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes32",
+        name: "x",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes32",
+        name: "y",
+        type: "bytes32"
+      }
+    ],
+    name: "setPubkey",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes",
+        name: "hash",
+        type: "bytes"
+      }
+    ],
+    name: "setContenthash",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      }
+    ],
+    name: "addr",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "address",
+        name: "target",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "isAuthorised",
+        type: "bool"
+      }
+    ],
+    name: "setAuthorisation",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "string",
+        name: "key",
+        type: "string"
+      }
+    ],
+    name: "text",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "uint256",
+        name: "contentType",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes"
+      }
+    ],
+    name: "setABI",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      }
+    ],
+    name: "name",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "string",
+        name: "name",
+        type: "string"
+      }
+    ],
+    name: "setName",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "uint256",
+        name: "coinType",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes",
+        name: "a",
+        type: "bytes"
+      }
+    ],
+    name: "setAddr",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      }
+    ],
+    name: "contenthash",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      }
+    ],
+    name: "pubkey",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "x",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes32",
+        name: "y",
+        type: "bytes32"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "address",
+        name: "a",
+        type: "address"
+      }
+    ],
+    name: "setAddr",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes4",
+        name: "interfaceID",
+        type: "bytes4"
+      },
+      {
+        internalType: "address",
+        name: "implementer",
+        type: "address"
+      }
+    ],
+    name: "setInterface",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        internalType: "uint256",
+        name: "coinType",
+        type: "uint256"
+      }
+    ],
+    name: "addr",
+    outputs: [
+      {
+        internalType: "bytes",
+        name: "",
+        type: "bytes"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32"
+      },
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      },
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      }
+    ],
+    name: "authorisations",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract ENS",
+        name: "_ens",
+        type: "address"
+      }
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "target",
+        type: "address"
+      },
+      {
+        indexed: false,
+        internalType: "bool",
+        name: "isAuthorised",
+        type: "bool"
+      }
+    ],
+    name: "AuthorisationChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "indexedKey",
+        type: "string"
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "key",
+        type: "string"
+      }
+    ],
+    name: "TextChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "x",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "y",
+        type: "bytes32"
+      }
+    ],
+    name: "PubkeyChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "name",
+        type: "string"
+      }
+    ],
+    name: "NameChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: true,
+        internalType: "bytes4",
+        name: "interfaceID",
+        type: "bytes4"
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "implementer",
+        type: "address"
+      }
+    ],
+    name: "InterfaceChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "hash",
+        type: "bytes"
+      }
+    ],
+    name: "ContenthashChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "a",
+        type: "address"
+      }
+    ],
+    name: "AddrChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "coinType",
+        type: "uint256"
+      },
+      {
+        indexed: false,
+        internalType: "bytes",
+        name: "newAddress",
+        type: "bytes"
+      }
+    ],
+    name: "AddressChanged",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "node",
+        type: "bytes32"
+      },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "contentType",
+        type: "uint256"
+      }
+    ],
+    name: "ABIChanged",
+    type: "event"
+  }
+];
+class ENS_factory_ENS_factory {
+  static createInterface() {
+    return new Interface(ENS_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, ENS_factory_abi, runner);
+  }
+}
+ENS_factory_ENS_factory.abi = ENS_factory_abi;
+
+;// ./src/typechain/factories/ERC20__factory.ts
+
+
+const ERC20_factory_abi = [
+  {
+    constant: true,
+    inputs: [],
+    name: "totalSupply",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "_totalSupply",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "address",
+        name: "who",
+        type: "address"
+      }
+    ],
+    name: "balanceOf",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "name",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "symbol",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "decimals",
+    outputs: [
+      {
+        internalType: "uint8",
+        name: "",
+        type: "uint8"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "address",
+        name: "to",
+        type: "address"
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256"
+      }
+    ],
+    name: "transfer",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "spender",
+        type: "address"
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "value",
+        type: "uint256"
+      }
+    ],
+    name: "Approval",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "from",
+        type: "address"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "to",
+        type: "address"
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "value",
+        type: "uint256"
+      }
+    ],
+    name: "Transfer",
+    type: "event"
+  },
+  {
+    constant: true,
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      },
+      {
+        internalType: "address",
+        name: "spender",
+        type: "address"
+      }
+    ],
+    name: "allowance",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "address",
+        name: "from",
+        type: "address"
+      },
+      {
+        internalType: "address",
+        name: "to",
+        type: "address"
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256"
+      }
+    ],
+    name: "transferFrom",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      {
+        internalType: "address",
+        name: "spender",
+        type: "address"
+      },
+      {
+        internalType: "uint256",
+        name: "value",
+        type: "uint256"
+      }
+    ],
+    name: "approve",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      }
+    ],
+    name: "nonces",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      },
+      {
+        internalType: "address",
+        name: "spender",
+        type: "address"
+      },
+      {
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256"
+      },
+      {
+        internalType: "uint256",
+        name: "deadline",
+        type: "uint256"
+      },
+      {
+        internalType: "uint8",
+        name: "v",
+        type: "uint8"
+      },
+      {
+        internalType: "bytes32",
+        name: "r",
+        type: "bytes32"
+      },
+      {
+        internalType: "bytes32",
+        name: "s",
+        type: "bytes32"
+      }
+    ],
+    name: "permit",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  }
+];
+class ERC20_factory_ERC20_factory {
+  static createInterface() {
+    return new Interface(ERC20_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, ERC20_factory_abi, runner);
+  }
+}
+ERC20_factory_ERC20_factory.abi = ERC20_factory_abi;
+
+;// ./src/typechain/factories/Multicall__factory.ts
+
+
+const Multicall_factory_abi = [
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "aggregate",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes[]",
+        name: "returnData",
+        type: "bytes[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bool",
+            name: "allowFailure",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call3[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "aggregate3",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bool",
+            name: "allowFailure",
+            type: "bool"
+          },
+          {
+            internalType: "uint256",
+            name: "value",
+            type: "uint256"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call3Value[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "aggregate3Value",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "blockAndAggregate",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes32",
+        name: "blockHash",
+        type: "bytes32"
+      },
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getBasefee",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "basefee",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256"
+      }
+    ],
+    name: "getBlockHash",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "blockHash",
+        type: "bytes32"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getBlockNumber",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getChainId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "chainid",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getCurrentBlockCoinbase",
+    outputs: [
+      {
+        internalType: "address",
+        name: "coinbase",
+        type: "address"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getCurrentBlockDifficulty",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "difficulty",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getCurrentBlockGasLimit",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "gaslimit",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getCurrentBlockTimestamp",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "timestamp",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "addr",
+        type: "address"
+      }
+    ],
+    name: "getEthBalance",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "balance",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getLastBlockHash",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "blockHash",
+        type: "bytes32"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "requireSuccess",
+        type: "bool"
+      },
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "tryAggregate",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "bool",
+        name: "requireSuccess",
+        type: "bool"
+      },
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "target",
+            type: "address"
+          },
+          {
+            internalType: "bytes",
+            name: "callData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Call[]",
+        name: "calls",
+        type: "tuple[]"
+      }
+    ],
+    name: "tryBlockAndAggregate",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256"
+      },
+      {
+        internalType: "bytes32",
+        name: "blockHash",
+        type: "bytes32"
+      },
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "success",
+            type: "bool"
+          },
+          {
+            internalType: "bytes",
+            name: "returnData",
+            type: "bytes"
+          }
+        ],
+        internalType: "struct Multicall3.Result[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    stateMutability: "payable",
+    type: "function"
+  }
+];
+class Multicall__factory {
+  static createInterface() {
+    return new Interface(Multicall_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, Multicall_factory_abi, runner);
+  }
+}
+Multicall__factory.abi = Multicall_factory_abi;
+
+;// ./src/typechain/factories/OffchainOracle__factory.ts
+
+
+const OffchainOracle_factory_abi = [
+  {
+    inputs: [
+      {
+        internalType: "contract MultiWrapper",
+        name: "_multiWrapper",
+        type: "address"
+      },
+      {
+        internalType: "contract IOracle[]",
+        name: "existingOracles",
+        type: "address[]"
+      },
+      {
+        internalType: "enum OffchainOracle.OracleType[]",
+        name: "oracleTypes",
+        type: "uint8[]"
+      },
+      {
+        internalType: "contract IERC20[]",
+        name: "existingConnectors",
+        type: "address[]"
+      },
+      {
+        internalType: "contract IERC20",
+        name: "wBase",
+        type: "address"
+      },
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address"
+      }
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    inputs: [],
+    name: "ArraysLengthMismatch",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "ConnectorAlreadyAdded",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "InvalidOracleTokenKind",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "OracleAlreadyAdded",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "SameTokens",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "TooBigThreshold",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "UnknownConnector",
+    type: "error"
+  },
+  {
+    inputs: [],
+    name: "UnknownOracle",
+    type: "error"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "contract IERC20",
+        name: "connector",
+        type: "address"
+      }
+    ],
+    name: "ConnectorAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "contract IERC20",
+        name: "connector",
+        type: "address"
+      }
+    ],
+    name: "ConnectorRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "contract MultiWrapper",
+        name: "multiWrapper",
+        type: "address"
+      }
+    ],
+    name: "MultiWrapperUpdated",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "contract IOracle",
+        name: "oracle",
+        type: "address"
+      },
+      {
+        indexed: false,
+        internalType: "enum OffchainOracle.OracleType",
+        name: "oracleType",
+        type: "uint8"
+      }
+    ],
+    name: "OracleAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "contract IOracle",
+        name: "oracle",
+        type: "address"
+      },
+      {
+        indexed: false,
+        internalType: "enum OffchainOracle.OracleType",
+        name: "oracleType",
+        type: "uint8"
+      }
+    ],
+    name: "OracleRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "previousOwner",
+        type: "address"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address"
+      }
+    ],
+    name: "OwnershipTransferred",
+    type: "event"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "connector",
+        type: "address"
+      }
+    ],
+    name: "addConnector",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IOracle",
+        name: "oracle",
+        type: "address"
+      },
+      {
+        internalType: "enum OffchainOracle.OracleType",
+        name: "oracleKind",
+        type: "uint8"
+      }
+    ],
+    name: "addOracle",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "connectors",
+    outputs: [
+      {
+        internalType: "contract IERC20[]",
+        name: "allConnectors",
+        type: "address[]"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "contract IERC20",
+        name: "dstToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useWrappers",
+        type: "bool"
+      }
+    ],
+    name: "getRate",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useSrcWrappers",
+        type: "bool"
+      }
+    ],
+    name: "getRateToEth",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useSrcWrappers",
+        type: "bool"
+      },
+      {
+        internalType: "contract IERC20[]",
+        name: "customConnectors",
+        type: "address[]"
+      },
+      {
+        internalType: "uint256",
+        name: "thresholdFilter",
+        type: "uint256"
+      }
+    ],
+    name: "getRateToEthWithCustomConnectors",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useSrcWrappers",
+        type: "bool"
+      },
+      {
+        internalType: "uint256",
+        name: "thresholdFilter",
+        type: "uint256"
+      }
+    ],
+    name: "getRateToEthWithThreshold",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "contract IERC20",
+        name: "dstToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useWrappers",
+        type: "bool"
+      },
+      {
+        internalType: "contract IERC20[]",
+        name: "customConnectors",
+        type: "address[]"
+      },
+      {
+        internalType: "uint256",
+        name: "thresholdFilter",
+        type: "uint256"
+      }
+    ],
+    name: "getRateWithCustomConnectors",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "srcToken",
+        type: "address"
+      },
+      {
+        internalType: "contract IERC20",
+        name: "dstToken",
+        type: "address"
+      },
+      {
+        internalType: "bool",
+        name: "useWrappers",
+        type: "bool"
+      },
+      {
+        internalType: "uint256",
+        name: "thresholdFilter",
+        type: "uint256"
+      }
+    ],
+    name: "getRateWithThreshold",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "weightedRate",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "multiWrapper",
+    outputs: [
+      {
+        internalType: "contract MultiWrapper",
+        name: "",
+        type: "address"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "oracles",
+    outputs: [
+      {
+        internalType: "contract IOracle[]",
+        name: "allOracles",
+        type: "address[]"
+      },
+      {
+        internalType: "enum OffchainOracle.OracleType[]",
+        name: "oracleTypes",
+        type: "uint8[]"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IERC20",
+        name: "connector",
+        type: "address"
+      }
+    ],
+    name: "removeConnector",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract IOracle",
+        name: "oracle",
+        type: "address"
+      },
+      {
+        internalType: "enum OffchainOracle.OracleType",
+        name: "oracleKind",
+        type: "uint8"
+      }
+    ],
+    name: "removeOracle",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "contract MultiWrapper",
+        name: "_multiWrapper",
+        type: "address"
+      }
+    ],
+    name: "setMultiWrapper",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address"
+      }
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  }
+];
+class OffchainOracle__factory {
+  static createInterface() {
+    return new Interface(OffchainOracle_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, OffchainOracle_factory_abi, runner);
+  }
+}
+OffchainOracle__factory.abi = OffchainOracle_factory_abi;
+
+;// ./src/typechain/factories/OvmGasPriceOracle__factory.ts
+
+
+const OvmGasPriceOracle_factory_abi = [
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_owner",
+        type: "address"
+      }
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    name: "DecimalsUpdated",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    name: "GasPriceUpdated",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    name: "L1BaseFeeUpdated",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    name: "OverheadUpdated",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "previousOwner",
+        type: "address"
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address"
+      }
+    ],
+    name: "OwnershipTransferred",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    name: "ScalarUpdated",
+    type: "event"
+  },
+  {
+    inputs: [],
+    name: "decimals",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "gasPrice",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "_data",
+        type: "bytes"
+      }
+    ],
+    name: "getL1Fee",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes",
+        name: "_data",
+        type: "bytes"
+      }
+    ],
+    name: "getL1GasUsed",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "l1BaseFee",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "overhead",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "scalar",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_decimals",
+        type: "uint256"
+      }
+    ],
+    name: "setDecimals",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_gasPrice",
+        type: "uint256"
+      }
+    ],
+    name: "setGasPrice",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_baseFee",
+        type: "uint256"
+      }
+    ],
+    name: "setL1BaseFee",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_overhead",
+        type: "uint256"
+      }
+    ],
+    name: "setOverhead",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_scalar",
+        type: "uint256"
+      }
+    ],
+    name: "setScalar",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address"
+      }
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  }
+];
+class OvmGasPriceOracle__factory {
+  static createInterface() {
+    return new Interface(OvmGasPriceOracle_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, OvmGasPriceOracle_factory_abi, runner);
+  }
+}
+OvmGasPriceOracle__factory.abi = OvmGasPriceOracle_factory_abi;
+
+;// ./src/typechain/factories/ReverseRecords__factory.ts
+
+
+const ReverseRecords_factory_abi = [
+  {
+    inputs: [
+      {
+        internalType: "contract ENS",
+        name: "_ens",
+        type: "address"
+      }
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    inputs: [
+      {
+        internalType: "address[]",
+        name: "addresses",
+        type: "address[]"
+      }
+    ],
+    name: "getNames",
+    outputs: [
+      {
+        internalType: "string[]",
+        name: "r",
+        type: "string[]"
+      }
+    ],
+    stateMutability: "view",
+    type: "function"
+  }
+];
+class ReverseRecords__factory {
+  static createInterface() {
+    return new Interface(ReverseRecords_factory_abi);
+  }
+  static connect(address, runner) {
+    return new Contract(address, ReverseRecords_factory_abi, runner);
+  }
+}
+ReverseRecords__factory.abi = ReverseRecords_factory_abi;
+
+;// ./src/typechain/factories/index.ts
+
+
+
+
+
+
+
+
+;// ./src/typechain/index.ts
+
+
+
+
+
+
+
+
+
+
 ;// ./src/contracts.ts
+
 
 
 
