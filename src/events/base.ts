@@ -841,7 +841,7 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
             headers: {
               'Content-Type': 'application/json',
             },
-            timeout: registryService.fetchDataOptions?.torPort ? 10000 : 3000,
+            timeout: 60000,
             maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0,
           });
         } catch {

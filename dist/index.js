@@ -2805,7 +2805,7 @@ class RelayerClient {
       url,
       relayerAddress
     }) {
-      var _a, _b;
+      var _a;
       if (!url && hostname) {
         url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
       } else if (url && !url.endsWith("/")) {
@@ -2817,8 +2817,8 @@ class RelayerClient {
         headers: {
           "Content-Type": "application/json, application/x-www-form-urlencoded"
         },
-        timeout: ((_a = this.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
-        maxRetry: ((_b = this.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
+        timeout: 6e4,
+        maxRetry: ((_a = this.fetchDataOptions) == null ? void 0 : _a.torPort) ? 2 : 0
       }));
       const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
       if (!statusValidator(rawStatus)) {
@@ -3585,14 +3585,14 @@ function getTovarishNetworks(registryService, relayers) {
   return __async$c(this, null, function* () {
     yield Promise.all(
       relayers.filter((r) => r.tovarishHost).map((relayer) => __async$c(this, null, function* () {
-        var _a, _b;
+        var _a;
         try {
           relayer.tovarishNetworks = yield fetchData(relayer.tovarishHost, __spreadProps$1(__spreadValues$2({}, registryService.fetchDataOptions), {
             headers: {
               "Content-Type": "application/json"
             },
-            timeout: ((_a = registryService.fetchDataOptions) == null ? void 0 : _a.torPort) ? 1e4 : 3e3,
-            maxRetry: ((_b = registryService.fetchDataOptions) == null ? void 0 : _b.torPort) ? 2 : 0
+            timeout: 6e4,
+            maxRetry: ((_a = registryService.fetchDataOptions) == null ? void 0 : _a.torPort) ? 2 : 0
           }));
         } catch (e) {
           relayer.tovarishNetworks = [];

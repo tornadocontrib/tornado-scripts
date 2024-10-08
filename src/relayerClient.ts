@@ -223,7 +223,7 @@ export class RelayerClient {
       headers: {
         'Content-Type': 'application/json, application/x-www-form-urlencoded',
       },
-      timeout: this.fetchDataOptions?.torPort ? 10000 : 3000,
+      timeout: 60000,
       maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
     })) as object;
 
