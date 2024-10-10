@@ -1,4 +1,4 @@
-import type { BigNumberish, TransactionLike } from 'ethers';
+import type { BigNumberish, JsonRpcApiProvider, TransactionLike } from 'ethers';
 import { OvmGasPriceOracle } from './typechain';
 /**
  * Example:
@@ -19,8 +19,17 @@ export interface RelayerFeeParams {
     premiumPercent?: number;
 }
 export declare class TornadoFeeOracle {
+    provider: JsonRpcApiProvider;
     ovmGasPriceOracle?: OvmGasPriceOracle;
-    constructor(ovmGasPriceOracle?: OvmGasPriceOracle);
+    constructor(provider: JsonRpcApiProvider, ovmGasPriceOracle?: OvmGasPriceOracle);
+    /**
+     * Calculates Gas Price
+     * We apply 50% premium of EIP-1559 network fees instead of 100% from ethers.js
+     * (This should cover up to 4 full blocks which is equivalent of minute)
+     * (A single block can bump 12.5% of fees, see the methodology https://hackmd.io/@tvanepps/1559-wallets)
+     * (Still it is recommended to use 100% premium for sending transactions to prevent stucking it)
+     */
+    gasPrice(): Promise<bigint>;
     /**
      * Calculate L1 fee for op-stack chains
      *

@@ -1,5 +1,5 @@
 import { Transaction, parseUnits } from 'ethers';
-import type { BigNumberish, TransactionLike } from 'ethers';
+import type { BigNumberish, JsonRpcApiProvider, TransactionLike } from 'ethers';
 import { OvmGasPriceOracle } from './typechain';
 
 const DUMMY_ADDRESS = '0x1111111111111111111111111111111111111111';
@@ -37,12 +37,44 @@ export interface RelayerFeeParams {
 }
 
 export class TornadoFeeOracle {
+  provider: JsonRpcApiProvider;
   ovmGasPriceOracle?: OvmGasPriceOracle;
 
-  constructor(ovmGasPriceOracle?: OvmGasPriceOracle) {
+  constructor(provider: JsonRpcApiProvider, ovmGasPriceOracle?: OvmGasPriceOracle) {
+    this.provider = provider;
+
     if (ovmGasPriceOracle) {
       this.ovmGasPriceOracle = ovmGasPriceOracle;
     }
+  }
+
+  /**
+   * Calculates Gas Price
+   * We apply 50% premium of EIP-1559 network fees instead of 100% from ethers.js
+   * (This should cover up to 4 full blocks which is equivalent of minute)
+   * (A single block can bump 12.5% of fees, see the methodology https://hackmd.io/@tvanepps/1559-wallets)
+   * (Still it is recommended to use 100% premium for sending transactions to prevent stucking it)
+   */
+  async gasPrice() {
+    const [block, getGasPrice, getPriorityFee] = await Promise.all([
+      this.provider.getBlock('latest'),
+      (async () => {
+        try {
+          return BigInt(await this.provider.send('eth_gasPrice', []));
+        } catch {
+          return parseUnits('1', 'gwei');
+        }
+      })(),
+      (async () => {
+        try {
+          return BigInt(await this.provider.send('eth_maxPriorityFeePerGas', []));
+        } catch {
+          return BigInt(0);
+        }
+      })(),
+    ]);
+
+    return block?.baseFeePerGas ? (block.baseFeePerGas * BigInt(15)) / BigInt(10) + getPriorityFee : getGasPrice;
   }
 
   /**
