@@ -641,7 +641,7 @@ const shake256 = /* @__PURE__ */ (/* unused pure expression or super */ null && 
 /**
  *  The current version of Ethers.
  */
-const version = "6.13.2";
+const version = "6.13.3";
 //# sourceMappingURL=_version.js.map
 ;// ./node_modules/ethers/lib.esm/utils/properties.js
 /**
