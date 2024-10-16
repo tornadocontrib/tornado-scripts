@@ -364,29 +364,12 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
   batchTransactionService: BatchTransactionService;
   batchBlockService: BatchBlockService;
 
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Tornado,
-    type,
-    amount,
-    currency,
-    deployedBlock,
-    fetchDataOptions,
-    tovarishClient,
-  }: BaseTornadoServiceConstructor) {
+  constructor(serviceConstructor: BaseTornadoServiceConstructor) {
+    const { Tornado: contract, amount, currency, provider } = serviceConstructor;
+
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Tornado,
-      type,
-      deployedBlock,
-      fetchDataOptions,
-      tovarishClient,
+      ...serviceConstructor,
+      contract,
     });
 
     this.amount = amount;
@@ -516,26 +499,11 @@ export interface BaseEchoServiceConstructor extends Omit<BaseEventsServiceConstr
 }
 
 export class BaseEchoService extends BaseEventsService<EchoEvents> {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Echoer,
-    deployedBlock,
-    fetchDataOptions,
-    tovarishClient,
-  }: BaseEchoServiceConstructor) {
+  constructor(serviceConstructor: BaseEchoServiceConstructor) {
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Echoer,
+      ...serviceConstructor,
+      contract: serviceConstructor.Echoer,
       type: 'Echo',
-      deployedBlock,
-      fetchDataOptions,
-      tovarishClient,
     });
   }
 
@@ -587,26 +555,11 @@ export interface BaseEncryptedNotesServiceConstructor extends Omit<BaseEventsSer
 }
 
 export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesEvents> {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Router,
-    deployedBlock,
-    fetchDataOptions,
-    tovarishClient,
-  }: BaseEncryptedNotesServiceConstructor) {
+  constructor(serviceConstructor: BaseEncryptedNotesServiceConstructor) {
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Router,
+      ...serviceConstructor,
+      contract: serviceConstructor.Router,
       type: 'EncryptedNote',
-      deployedBlock,
-      fetchDataOptions,
-      tovarishClient,
     });
   }
 
@@ -651,26 +604,13 @@ export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsService
 export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
   batchTransactionService: BatchTransactionService;
 
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Governance,
-    deployedBlock,
-    fetchDataOptions,
-    tovarishClient,
-  }: BaseGovernanceServiceConstructor) {
+  constructor(serviceConstructor: BaseGovernanceServiceConstructor) {
+    const { Governance: contract, provider } = serviceConstructor;
+
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Governance,
+      ...serviceConstructor,
+      contract,
       type: '*',
-      deployedBlock,
-      fetchDataOptions,
-      tovarishClient,
     });
 
     this.batchTransactionService = new BatchTransactionService({
@@ -860,28 +800,13 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
   relayerEnsSubdomains: SubdomainMap;
   updateInterval: number;
 
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    RelayerRegistry,
-    Aggregator,
-    relayerEnsSubdomains,
-    deployedBlock,
-    fetchDataOptions,
-    tovarishClient,
-  }: BaseRegistryServiceConstructor) {
+  constructor(serviceConstructor: BaseRegistryServiceConstructor) {
+    const { RelayerRegistry: contract, Aggregator, relayerEnsSubdomains } = serviceConstructor;
+
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: RelayerRegistry,
+      ...serviceConstructor,
+      contract,
       type: 'RelayerRegistered',
-      deployedBlock,
-      fetchDataOptions,
-      tovarishClient,
     });
 
     this.Aggregator = Aggregator;

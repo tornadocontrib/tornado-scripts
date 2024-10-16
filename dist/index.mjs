@@ -2956,29 +2956,11 @@ class BaseTornadoService extends BaseEventsService {
   currency;
   batchTransactionService;
   batchBlockService;
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Tornado,
-    type,
-    amount,
-    currency,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2,
-    tovarishClient
-  }) {
+  constructor(serviceConstructor) {
+    const { Tornado: contract, amount, currency, provider } = serviceConstructor;
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Tornado,
-      type,
-      deployedBlock,
-      fetchDataOptions: fetchDataOptions2,
-      tovarishClient
+      ...serviceConstructor,
+      contract
     });
     this.amount = amount;
     this.currency = currency;
@@ -3081,26 +3063,11 @@ class BaseTornadoService extends BaseEventsService {
   }
 }
 class BaseEchoService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Echoer,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2,
-    tovarishClient
-  }) {
+  constructor(serviceConstructor) {
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Echoer,
-      type: "Echo",
-      deployedBlock,
-      fetchDataOptions: fetchDataOptions2,
-      tovarishClient
+      ...serviceConstructor,
+      contract: serviceConstructor.Echoer,
+      type: "Echo"
     });
   }
   getInstanceName() {
@@ -3137,26 +3104,11 @@ class BaseEchoService extends BaseEventsService {
   }
 }
 class BaseEncryptedNotesService extends BaseEventsService {
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Router,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2,
-    tovarishClient
-  }) {
+  constructor(serviceConstructor) {
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Router,
-      type: "EncryptedNote",
-      deployedBlock,
-      fetchDataOptions: fetchDataOptions2,
-      tovarishClient
+      ...serviceConstructor,
+      contract: serviceConstructor.Router,
+      type: "EncryptedNote"
     });
   }
   getInstanceName() {
@@ -3187,26 +3139,12 @@ class BaseEncryptedNotesService extends BaseEventsService {
 }
 class BaseGovernanceService extends BaseEventsService {
   batchTransactionService;
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    Governance,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2,
-    tovarishClient
-  }) {
+  constructor(serviceConstructor) {
+    const { Governance: contract, provider } = serviceConstructor;
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: Governance,
-      type: "*",
-      deployedBlock,
-      fetchDataOptions: fetchDataOptions2,
-      tovarishClient
+      ...serviceConstructor,
+      contract,
+      type: "*"
     });
     this.batchTransactionService = new BatchTransactionService({
       provider,
@@ -3332,28 +3270,12 @@ class BaseRegistryService extends BaseEventsService {
   Aggregator;
   relayerEnsSubdomains;
   updateInterval;
-  constructor({
-    netId,
-    provider,
-    graphApi,
-    subgraphName,
-    RelayerRegistry,
-    Aggregator,
-    relayerEnsSubdomains,
-    deployedBlock,
-    fetchDataOptions: fetchDataOptions2,
-    tovarishClient
-  }) {
+  constructor(serviceConstructor) {
+    const { RelayerRegistry: contract, Aggregator, relayerEnsSubdomains } = serviceConstructor;
     super({
-      netId,
-      provider,
-      graphApi,
-      subgraphName,
-      contract: RelayerRegistry,
-      type: "RelayerRegistered",
-      deployedBlock,
-      fetchDataOptions: fetchDataOptions2,
-      tovarishClient
+      ...serviceConstructor,
+      contract,
+      type: "RelayerRegistered"
     });
     this.Aggregator = Aggregator;
     this.relayerEnsSubdomains = relayerEnsSubdomains;
@@ -7058,8 +6980,8 @@ async function getTokenBalances({
 
 const MAX_TOVARISH_EVENTS = 5e3;
 class TovarishClient extends RelayerClient {
-  constructor({ netId, config, fetchDataOptions }) {
-    super({ netId, config, fetchDataOptions });
+  constructor(clientConstructor) {
+    super(clientConstructor);
     this.tovarish = true;
   }
   async askRelayerStatus({

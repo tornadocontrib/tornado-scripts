@@ -84,8 +84,8 @@ export interface BaseTovarishEvents<T> {
 export class TovarishClient extends RelayerClient {
   declare selectedRelayer?: TovarishInfo;
 
-  constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor) {
-    super({ netId, config, fetchDataOptions });
+  constructor(clientConstructor: RelayerClientConstructor) {
+    super(clientConstructor);
     this.tovarish = true;
   }
 

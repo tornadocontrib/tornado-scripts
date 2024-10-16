@@ -103,7 +103,7 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     currency: string;
     batchTransactionService: BatchTransactionService;
     batchBlockService: BatchBlockService;
-    constructor({ netId, provider, graphApi, subgraphName, Tornado, type, amount, currency, deployedBlock, fetchDataOptions, tovarishClient, }: BaseTornadoServiceConstructor);
+    constructor(serviceConstructor: BaseTornadoServiceConstructor);
     getInstanceName(): string;
     getGraphMethod(): string;
     getGraphParams(): DepositsGraphParams;
@@ -119,7 +119,7 @@ export interface BaseEchoServiceConstructor extends Omit<BaseEventsServiceConstr
     Echoer: Echoer;
 }
 export declare class BaseEchoService extends BaseEventsService<EchoEvents> {
-    constructor({ netId, provider, graphApi, subgraphName, Echoer, deployedBlock, fetchDataOptions, tovarishClient, }: BaseEchoServiceConstructor);
+    constructor(serviceConstructor: BaseEchoServiceConstructor);
     getInstanceName(): string;
     getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<EchoEvents[]>;
@@ -131,7 +131,7 @@ export interface BaseEncryptedNotesServiceConstructor extends Omit<BaseEventsSer
     Router: TornadoRouter | TornadoProxyLight;
 }
 export declare class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesEvents> {
-    constructor({ netId, provider, graphApi, subgraphName, Router, deployedBlock, fetchDataOptions, tovarishClient, }: BaseEncryptedNotesServiceConstructor);
+    constructor(serviceConstructor: BaseEncryptedNotesServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
     getGraphMethod(): string;
@@ -142,7 +142,7 @@ export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsService
 }
 export declare class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
     batchTransactionService: BatchTransactionService;
-    constructor({ netId, provider, graphApi, subgraphName, Governance, deployedBlock, fetchDataOptions, tovarishClient, }: BaseGovernanceServiceConstructor);
+    constructor(serviceConstructor: BaseGovernanceServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
     getGraphMethod(): string;
@@ -180,7 +180,7 @@ export declare class BaseRegistryService extends BaseEventsService<RegistersEven
     Aggregator: Aggregator;
     relayerEnsSubdomains: SubdomainMap;
     updateInterval: number;
-    constructor({ netId, provider, graphApi, subgraphName, RelayerRegistry, Aggregator, relayerEnsSubdomains, deployedBlock, fetchDataOptions, tovarishClient, }: BaseRegistryServiceConstructor);
+    constructor(serviceConstructor: BaseRegistryServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
     getGraphMethod(): string;

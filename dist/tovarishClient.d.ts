@@ -56,7 +56,7 @@ export interface BaseTovarishEvents<T> {
 }
 export declare class TovarishClient extends RelayerClient {
     selectedRelayer?: TovarishInfo;
-    constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
+    constructor(clientConstructor: RelayerClientConstructor);
     askRelayerStatus({ hostname, url, relayerAddress, }: {
         hostname?: string;
         url?: string;
