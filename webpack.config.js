@@ -7,7 +7,7 @@ const esbuildLoader = {
   loader: 'esbuild-loader',
   options: {
     loader: 'ts',
-    target: 'es2016',
+    target: 'es2022',
   }
 }
 

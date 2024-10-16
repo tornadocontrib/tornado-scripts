@@ -20,37 +20,37 @@ export interface MinimalEvents {
   transactionHash: string;
 }
 
-export type GovernanceEvents = MinimalEvents & {
+export interface GovernanceEvents extends MinimalEvents {
   event: string;
-};
+}
 
-export type GovernanceProposalCreatedEvents = GovernanceEvents & {
+export interface GovernanceProposalCreatedEvents extends GovernanceEvents {
   id: number;
   proposer: string;
   target: string;
   startTime: number;
   endTime: number;
   description: string;
-};
+}
 
-export type GovernanceVotedEvents = GovernanceEvents & {
+export interface GovernanceVotedEvents extends GovernanceEvents {
   proposalId: number;
   voter: string;
   support: boolean;
   votes: string;
   from: string;
   input: string;
-};
+}
 
-export type GovernanceDelegatedEvents = GovernanceEvents & {
+export interface GovernanceDelegatedEvents extends GovernanceEvents {
   account: string;
   delegateTo: string;
-};
+}
 
-export type GovernanceUndelegatedEvents = GovernanceEvents & {
+export interface GovernanceUndelegatedEvents extends GovernanceEvents {
   account: string;
   delegateFrom: string;
-};
+}
 
 export type AllGovernanceEvents =
   | GovernanceProposalCreatedEvents
@@ -60,25 +60,25 @@ export type AllGovernanceEvents =
 
 export type RegistersEvents = MinimalEvents & RelayerParams;
 
-export type DepositsEvents = MinimalEvents & {
+export interface DepositsEvents extends MinimalEvents {
   commitment: string;
   leafIndex: number;
   timestamp: number;
   from: string;
-};
+}
 
-export type WithdrawalsEvents = MinimalEvents & {
+export interface WithdrawalsEvents extends MinimalEvents {
   nullifierHash: string;
   to: string;
   fee: string;
   timestamp: number;
-};
+}
 
-export type EchoEvents = MinimalEvents & {
+export interface EchoEvents extends MinimalEvents {
   address: string;
   encryptedAccount: string;
-};
+}
 
-export type EncryptedNotesEvents = MinimalEvents & {
+export interface EncryptedNotesEvents extends MinimalEvents {
   encryptedNote: string;
-};
+}

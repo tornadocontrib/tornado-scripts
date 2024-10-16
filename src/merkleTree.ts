@@ -7,13 +7,13 @@ import type { DepositType } from './deposits';
 import type { DepositsEvents } from './events';
 import type { NetIdType } from './networkConfig';
 
-export type MerkleTreeConstructor = DepositType & {
+export interface MerkleTreeConstructor extends DepositType {
   Tornado: Tornado;
   commitmentHex?: string;
   merkleTreeHeight?: number;
   emptyElement?: string;
   merkleWorkerPath?: string;
-};
+}
 
 export class MerkleTreeService {
   currency: string;

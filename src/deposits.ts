@@ -2,44 +2,34 @@ import { bnToBytes, bytesToBN, leBuff2Int, leInt2Buff, rBigInt, toFixedHex } fro
 import { buffPedersenHash } from './pedersen';
 import type { NetIdType } from './networkConfig';
 
-export type DepositType = {
+export interface DepositType {
   currency: string;
   amount: string;
   netId: NetIdType;
-};
+}
 
-export type createDepositParams = {
+export interface createDepositParams {
   nullifier: bigint;
   secret: bigint;
-};
+}
 
-export type createDepositObject = {
+export interface createDepositObject {
   preimage: Uint8Array;
   noteHex: string;
   commitment: bigint;
   commitmentHex: string;
   nullifierHash: bigint;
   nullifierHex: string;
-};
+}
 
-export type createNoteParams = DepositType & {
+export interface createNoteParams extends DepositType {
   nullifier?: bigint;
   secret?: bigint;
-};
+}
 
-export type parsedNoteExec = DepositType & {
+export interface parsedNoteExec extends DepositType {
   note: string;
-};
-
-export type depositTx = {
-  from: string;
-  transactionHash: string;
-};
-
-export type withdrawalTx = {
-  to: string;
-  transactionHash: string;
-};
+}
 
 export async function createDeposit({ nullifier, secret }: createDepositParams): Promise<createDepositObject> {
   const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
@@ -199,9 +189,9 @@ export class Deposit {
   }
 }
 
-export type parsedInvoiceExec = DepositType & {
+export interface parsedInvoiceExec extends DepositType {
   commitment: string;
-};
+}
 
 export class Invoice {
   currency: string;

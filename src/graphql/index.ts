@@ -34,7 +34,7 @@ const isEmptyArray = (arr: object) => !Array.isArray(arr) || !arr.length;
 // https://thegraph.com/docs/en/developing/developer-faqs/#23-is-there-a-limit-to-how-many-objects-the-graph-can-return-per-query
 const GRAPHQL_LIMIT = 1000;
 
-export type queryGraphParams = {
+export interface queryGraphParams {
   graphApi: string;
   subgraphName: string;
   query: string;
@@ -42,7 +42,7 @@ export type queryGraphParams = {
     [key: string]: string | number;
   };
   fetchDataOptions?: fetchDataOptions;
-};
+}
 
 export async function queryGraph<T>({
   graphApi,

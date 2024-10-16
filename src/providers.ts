@@ -371,12 +371,12 @@ export const populateTransaction = async (
   return tx;
 };
 
-export type TornadoWalletOptions = {
+export interface TornadoWalletOptions {
   gasPriceBump?: number;
   gasLimitBump?: number;
   gasFailover?: boolean;
   bumpNonce?: boolean;
-};
+}
 
 export class TornadoWallet extends Wallet {
   nonce?: number;
@@ -474,13 +474,13 @@ export type connectWalletFunc = (...args: any[]) => Promise<void>;
 export type handleWalletFunc = (...args: any[]) => void;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export type TornadoBrowserProviderOptions = TornadoWalletOptions & {
+export interface TornadoBrowserProviderOptions extends TornadoWalletOptions {
   netId?: NetIdType;
   connectWallet?: connectWalletFunc;
   handleNetworkChanges?: handleWalletFunc;
   handleAccountChanges?: handleWalletFunc;
   handleAccountDisconnect?: handleWalletFunc;
-};
+}
 
 export class TornadoBrowserProvider extends BrowserProvider {
   options?: TornadoBrowserProviderOptions;

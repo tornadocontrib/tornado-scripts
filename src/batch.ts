@@ -225,11 +225,11 @@ export type BatchEventOnProgress = ({
 }) => void;
 
 // To enable iteration only numbers are accepted for fromBlock input
-export type EventInput = {
+export interface EventInput {
   fromBlock: number;
   toBlock: number;
   type: ContractEventName;
-};
+}
 
 /**
  * Fetch events from web3 provider on bulk

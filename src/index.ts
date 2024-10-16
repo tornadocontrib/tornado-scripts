@@ -6,6 +6,7 @@ export * from './batch';
 export * from './deposits';
 export * from './encryptedNotes';
 export * from './fees';
+export * from './gaszip';
 export * from './idb';
 export * from './merkleTree';
 export * from './mimc';

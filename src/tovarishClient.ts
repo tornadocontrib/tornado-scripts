@@ -10,7 +10,8 @@ import {
 } from './relayerClient';
 import { fetchData } from './providers';
 import { CachedRelayerInfo, MinimalEvents } from './events';
-import { getEventsSchemaValidator } from './schemas';
+import { ajv, getEventsSchemaValidator, getStatusSchema } from './schemas';
+import { enabledChains, getConfig, NetId, NetIdType } from './networkConfig';
 
 // Return no more than 5K events per query
 export const MAX_TOVARISH_EVENTS = 5000;
@@ -81,7 +82,7 @@ export interface BaseTovarishEvents<T> {
 }
 
 export class TovarishClient extends RelayerClient {
-  selectedRelayer?: TovarishInfo;
+  declare selectedRelayer?: TovarishInfo;
 
   constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor) {
     super({ netId, config, fetchDataOptions });
@@ -106,6 +107,82 @@ export class TovarishClient extends RelayerClient {
     }
 
     return status;
+  }
+
+  /**
+   * Ask status for all enabled chains for tovarish relayer
+   */
+  async askAllStatus({
+    hostname,
+    url,
+    relayerAddress,
+  }: {
+    hostname?: string;
+    // optional url if entered manually
+    url?: string;
+    // relayerAddress from registry contract to prevent cheating
+    relayerAddress?: string;
+  }): Promise<TovarishStatus[]> {
+    if (!url && hostname) {
+      url = `https://${!hostname.endsWith('/') ? hostname + '/' : hostname}`;
+    } else if (url && !url.endsWith('/')) {
+      url += '/';
+    } else {
+      url = '';
+    }
+
+    const statusArray = (await fetchData(`${url}status`, {
+      ...this.fetchDataOptions,
+      headers: {
+        'Content-Type': 'application/json, application/x-www-form-urlencoded',
+      },
+      timeout: 30000,
+      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
+    })) as object;
+
+    if (!Array.isArray(statusArray)) {
+      return [];
+    }
+
+    const tovarishStatus: TovarishStatus[] = [];
+
+    for (const rawStatus of statusArray) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const netId = (rawStatus as any).netId as NetIdType;
+      const config = getConfig(netId);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusValidator = ajv.compile(getStatusSchema((rawStatus as any).netId, config, this.tovarish));
+
+      if (!statusValidator) {
+        continue;
+      }
+
+      const status = {
+        ...rawStatus,
+        url: `${url}${netId}/`,
+      } as TovarishStatus;
+
+      if (status.currentQueue > 5) {
+        throw new Error('Withdrawal queue is overloaded');
+      }
+
+      if (!enabledChains.includes(status.netId)) {
+        throw new Error('This relayer serves a different network');
+      }
+
+      if (relayerAddress && status.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
+        throw new Error('The Relayer reward address must match registered address');
+      }
+
+      if (!status.version.includes('tovarish')) {
+        throw new Error('Not a tovarish relayer!');
+      }
+
+      tovarishStatus.push(status);
+    }
+
+    return tovarishStatus;
   }
 
   async filterRelayer(relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined> {
@@ -175,6 +252,62 @@ export class TovarishClient extends RelayerClient {
     };
   }
 
+  async getTovarishRelayers(relayers: CachedRelayerInfo[]): Promise<{
+    validRelayers: TovarishInfo[];
+    invalidRelayers: RelayerError[];
+  }> {
+    const validRelayers: TovarishInfo[] = [];
+    const invalidRelayers: RelayerError[] = [];
+
+    await Promise.all(
+      relayers
+        .filter((r) => r.tovarishHost && r.tovarishNetworks?.length)
+        .map(async (relayer) => {
+          const { ensName, relayerAddress, tovarishHost } = relayer;
+
+          try {
+            const statusArray = await this.askAllStatus({ hostname: tovarishHost as string, relayerAddress });
+
+            for (const status of statusArray) {
+              validRelayers.push({
+                netId: status.netId,
+                url: status.url,
+                hostname: tovarishHost as string,
+                ensName,
+                relayerAddress,
+                rewardAccount: getAddress(status.rewardAccount),
+                instances: getSupportedInstances(status.instances),
+                stakeBalance: relayer.stakeBalance,
+                gasPrice: status.gasPrices?.fast,
+                ethPrices: status.ethPrices,
+                currentQueue: status.currentQueue,
+                tornadoServiceFee: status.tornadoServiceFee,
+                // Additional fields for tovarish relayer
+                latestBlock: Number(status.latestBlock),
+                latestBalance: status.latestBalance,
+                version: status.version,
+                events: status.events,
+                syncStatus: status.syncStatus,
+              });
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } catch (err: any) {
+            invalidRelayers.push({
+              hostname: tovarishHost as string,
+              relayerAddress,
+              errorMessage: err.message,
+              hasError: true,
+            });
+          }
+        }),
+    );
+
+    return {
+      validRelayers,
+      invalidRelayers,
+    };
+  }
+
   async getEvents<T extends MinimalEvents>({
     type,
     currency,
@@ -211,6 +344,13 @@ export class TovarishClient extends RelayerClient {
         if (!schemaValidator(fetchedEvents)) {
           const errMsg = `Schema validation failed for ${type} events`;
           throw new Error(errMsg);
+        }
+
+        if (recent) {
+          return {
+            events: fetchedEvents,
+            lastSyncBlock: currentBlock,
+          };
         }
 
         lastSyncBlock = currentBlock;

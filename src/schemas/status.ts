@@ -1,7 +1,7 @@
 import { Config, NetId, NetIdType } from '../networkConfig';
 import { addressSchemaType, bnSchemaType } from '.';
 
-export type statusInstanceType = {
+export interface statusInstanceType {
   type: string;
   properties: {
     instanceAddress: {
@@ -16,25 +16,25 @@ export type statusInstanceType = {
     decimals: { enum: number[] };
   };
   required: string[];
-};
+}
 
-export type statusInstancesType = {
+export interface statusInstancesType {
   type: string;
   properties: {
     [key in string]: statusInstanceType;
   };
   required: string[];
-};
+}
 
-export type statusEthPricesType = {
+export interface statusEthPricesType {
   type: string;
   properties: {
     [key in string]: typeof bnSchemaType;
   };
   required?: string[];
-};
+}
 
-export type statusSchema = {
+export interface statusSchema {
   type: string;
   properties: {
     rewardAccount: typeof addressSchemaType;
@@ -90,7 +90,7 @@ export type statusSchema = {
     };
   };
   required: string[];
-};
+}
 
 const statusSchema: statusSchema = {
   type: 'object',

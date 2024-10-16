@@ -19,22 +19,22 @@ export interface RpcUrl {
   url: string;
 }
 
-export type RpcUrls = {
-  [key in string]: RpcUrl;
-};
+export interface RpcUrls {
+  [key: string]: RpcUrl;
+}
 
 export interface SubgraphUrl {
   name: string;
   url: string;
 }
 
-export type SubgraphUrls = {
-  [key in string]: SubgraphUrl;
-};
+export interface SubgraphUrls {
+  [key: string]: SubgraphUrl;
+}
 
-export type TornadoInstance = {
+export interface TornadoInstance {
   instanceAddress: {
-    [key in string]: string;
+    [key: string]: string;
   };
   optionalInstances?: string[];
   tokenAddress?: string;
@@ -42,13 +42,13 @@ export type TornadoInstance = {
   symbol: string;
   decimals: number;
   gasLimit?: number;
-};
+}
 
-export type TokenInstances = {
-  [key in string]: TornadoInstance;
-};
+export interface TokenInstances {
+  [key: string]: TornadoInstance;
+}
 
-export type Config = {
+export interface Config {
   rpcCallRetryAttempt?: number;
   // Should be in gwei
   gasPrices: {
@@ -68,6 +68,8 @@ export type Config = {
   networkName: string;
   deployedBlock: number;
   rpcUrls: RpcUrls;
+  // Contract Address of stablecoin token, used for fiat conversion
+  stablecoin: string;
   multicallContract: string;
   routerContract: string;
   echoContract: string;
@@ -97,15 +99,15 @@ export type Config = {
     // Should be in seconds
     MINING_BLOCK_TIME?: number;
   };
-};
+}
 
-export type networkConfig = {
-  [key in NetIdType]: Config;
-};
+export interface networkConfig {
+  [key: NetIdType]: Config;
+}
 
-export type SubdomainMap = {
-  [key in NetIdType]: string;
-};
+export interface SubdomainMap {
+  [key: NetIdType]: string;
+}
 
 export const defaultConfig: networkConfig = {
   [NetId.MAINNET]: {
@@ -140,11 +142,12 @@ export const defaultConfig: networkConfig = {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
       },
-      oneRPC: {
+      oneRpc: {
         name: '1RPC',
         url: 'https://1rpc.io/eth',
       },
     },
+    stablecoin: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b',
     echoContract: '0x9B27DD5Bb15d42DC224FCD0B7caEbBe16161Df42',
@@ -258,6 +261,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Binance Smart Chain',
     deployedBlock: 8158799,
+    stablecoin: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -281,7 +285,7 @@ export const defaultConfig: networkConfig = {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/bsc-mainnet',
       },
-      oneRPC: {
+      oneRpc: {
         name: '1RPC',
         url: 'https://1rpc.io/bnb',
       },
@@ -320,6 +324,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Polygon (Matic) Network',
     deployedBlock: 16257962,
+    stablecoin: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -370,6 +375,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Optimism',
     deployedBlock: 2243689,
+    stablecoin: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -378,17 +384,13 @@ export const defaultConfig: networkConfig = {
     tornadoSubgraph: 'tornadocash/optimism-tornado-subgraph',
     subgraphs: {},
     rpcUrls: {
-      optimism: {
-        name: 'Optimism',
-        url: 'https://mainnet.optimism.io',
+      oneRpc: {
+        name: '1RPC',
+        url: 'https://1rpc.io/op',
       },
       stackup: {
         name: 'Stackup RPC',
         url: 'https://public.stackup.sh/api/v1/node/optimism-mainnet',
-      },
-      oneRpc: {
-        name: '1RPC',
-        url: 'https://1rpc.io/op',
       },
     },
     tokens: {
@@ -425,6 +427,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Arbitrum One',
     deployedBlock: 3430648,
+    stablecoin: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -441,7 +444,7 @@ export const defaultConfig: networkConfig = {
         url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
       },
       oneRpc: {
-        name: '1rpc',
+        name: '1RPC',
         url: 'https://1rpc.io/arb',
       },
     },
@@ -479,6 +482,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Gnosis Chain',
     deployedBlock: 17754561,
+    stablecoin: '0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -490,12 +494,8 @@ export const defaultConfig: networkConfig = {
         name: 'Gnosis',
         url: 'https://rpc.gnosischain.com',
       },
-      blockPi: {
-        name: 'BlockPi',
-        url: 'https://gnosis.blockpi.network/v1/rpc/public',
-      },
       oneRpc: {
-        name: '1rpc',
+        name: '1RPC',
         url: 'https://1rpc.io/gnosis',
       },
     },
@@ -533,6 +533,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Avalanche Mainnet',
     deployedBlock: 4429818,
+    stablecoin: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -540,13 +541,13 @@ export const defaultConfig: networkConfig = {
     tornadoSubgraph: 'tornadocash/avalanche-tornado-subgraph',
     subgraphs: {},
     rpcUrls: {
-      publicRpc: {
-        name: 'Avalanche RPC',
-        url: 'https://api.avax.network/ext/bc/C/rpc',
-      },
-      oneRPC: {
-        name: 'OneRPC',
+      oneRpc: {
+        name: '1RPC',
         url: 'https://1rpc.io/avax/c',
+      },
+      stackup: {
+        name: 'Stackup RPC',
+        url: 'https://public.stackup.sh/api/v1/node/avalanche-mainnet',
       },
     },
     tokens: {
@@ -582,6 +583,7 @@ export const defaultConfig: networkConfig = {
     emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
     networkName: 'Ethereum Sepolia',
     deployedBlock: 5594395,
+    stablecoin: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x1572AFE6949fdF51Cb3E0856216670ae9Ee160Ee',
     echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
@@ -602,8 +604,8 @@ export const defaultConfig: networkConfig = {
         name: 'Stackup',
         url: 'https://public.stackup.sh/api/v1/node/ethereum-sepolia',
       },
-      onerpc: {
-        name: '1rpc',
+      oneRpc: {
+        name: '1RPC',
         url: 'https://1rpc.io/sepolia',
       },
       ethpandaops: {

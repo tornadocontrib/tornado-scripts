@@ -55,17 +55,17 @@ import type {
 export const DEPOSIT = 'deposit';
 export const WITHDRAWAL = 'withdrawal';
 
-export type BaseEventsServiceConstructor = {
+export interface BaseEventsServiceConstructor {
   netId: NetIdType;
   provider: Provider;
   graphApi?: string;
   subgraphName?: string;
   contract: BaseContract;
-  type?: string;
+  type: string;
   deployedBlock?: number;
   fetchDataOptions?: fetchDataOptions;
   tovarishClient?: TovarishClient;
-};
+}
 
 export type BatchGraphOnProgress = ({
   type,
@@ -79,12 +79,12 @@ export type BatchGraphOnProgress = ({
   count?: number;
 }) => void;
 
-export type BaseGraphParams = {
+export interface BaseGraphParams {
   graphApi: string;
   subgraphName: string;
   fetchDataOptions?: fetchDataOptions;
   onProgress?: BatchGraphOnProgress;
-};
+}
 
 export class BaseEventsService<EventType extends MinimalEvents> {
   netId: NetIdType;
@@ -347,31 +347,22 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   }
 }
 
-export type BaseTornadoServiceConstructor = {
-  netId: NetIdType;
-  provider: Provider;
-  graphApi?: string;
-  subgraphName?: string;
+export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract'> {
   Tornado: Tornado;
-  type: string;
   amount: string;
   currency: string;
-  deployedBlock?: number;
-  fetchDataOptions?: fetchDataOptions;
-  tovarishClient?: TovarishClient;
-};
+}
 
-export type DepositsGraphParams = BaseGraphParams & {
+export interface DepositsGraphParams extends BaseGraphParams {
   amount: string;
   currency: string;
-};
+}
 
 export class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
   amount: string;
   currency: string;
   batchTransactionService: BatchTransactionService;
   batchBlockService: BatchBlockService;
-  tovarishClient?: TovarishClient;
 
   constructor({
     netId,
@@ -520,16 +511,9 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
   }
 }
 
-export type BaseEchoServiceConstructor = {
-  netId: NetIdType;
-  provider: Provider;
-  graphApi?: string;
-  subgraphName?: string;
+export interface BaseEchoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
   Echoer: Echoer;
-  deployedBlock?: number;
-  fetchDataOptions?: fetchDataOptions;
-  tovarishClient?: TovarishClient;
-};
+}
 
 export class BaseEchoService extends BaseEventsService<EchoEvents> {
   constructor({
@@ -548,6 +532,7 @@ export class BaseEchoService extends BaseEventsService<EchoEvents> {
       graphApi,
       subgraphName,
       contract: Echoer,
+      type: 'Echo',
       deployedBlock,
       fetchDataOptions,
       tovarishClient,
@@ -556,10 +541,6 @@ export class BaseEchoService extends BaseEventsService<EchoEvents> {
 
   getInstanceName(): string {
     return `echo_${this.netId}`;
-  }
-
-  getType(): string {
-    return 'Echo';
   }
 
   getGraphMethod(): string {
@@ -601,16 +582,9 @@ export class BaseEchoService extends BaseEventsService<EchoEvents> {
   }
 }
 
-export type BaseEncryptedNotesServiceConstructor = {
-  netId: NetIdType;
-  provider: Provider;
-  graphApi?: string;
-  subgraphName?: string;
+export interface BaseEncryptedNotesServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
   Router: TornadoRouter | TornadoProxyLight;
-  deployedBlock?: number;
-  fetchDataOptions?: fetchDataOptions;
-  tovarishClient?: TovarishClient;
-};
+}
 
 export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesEvents> {
   constructor({
@@ -629,6 +603,7 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
       graphApi,
       subgraphName,
       contract: Router,
+      type: 'EncryptedNote',
       deployedBlock,
       fetchDataOptions,
       tovarishClient,
@@ -637,10 +612,6 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
 
   getInstanceName(): string {
     return `encrypted_notes_${this.netId}`;
-  }
-
-  getType(): string {
-    return 'EncryptedNote';
   }
 
   getTovarishType(): string {
@@ -673,16 +644,9 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
   }
 }
 
-export type BaseGovernanceServiceConstructor = {
-  netId: NetIdType;
-  provider: Provider;
-  graphApi?: string;
-  subgraphName?: string;
+export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
   Governance: Governance;
-  deployedBlock?: number;
-  fetchDataOptions?: fetchDataOptions;
-  tovarishClient?: TovarishClient;
-};
+}
 
 export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
   batchTransactionService: BatchTransactionService;
@@ -703,6 +667,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
       graphApi,
       subgraphName,
       contract: Governance,
+      type: '*',
       deployedBlock,
       fetchDataOptions,
       tovarishClient,
@@ -716,10 +681,6 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
 
   getInstanceName() {
     return `governance_${this.netId}`;
-  }
-
-  getType() {
-    return '*';
   }
 
   getTovarishType(): string {
@@ -841,7 +802,7 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
             headers: {
               'Content-Type': 'application/json',
             },
-            timeout: 60000,
+            timeout: 30000,
             maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0,
           });
         } catch {
@@ -888,18 +849,11 @@ export interface CachedRelayers {
   fromCache?: boolean;
 }
 
-export type BaseRegistryServiceConstructor = {
-  netId: NetIdType;
-  provider: Provider;
-  graphApi?: string;
-  subgraphName?: string;
+export interface BaseRegistryServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
   RelayerRegistry: RelayerRegistry;
   Aggregator: Aggregator;
   relayerEnsSubdomains: SubdomainMap;
-  deployedBlock?: number;
-  fetchDataOptions?: fetchDataOptions;
-  tovarishClient?: TovarishClient;
-};
+}
 
 export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
   Aggregator: Aggregator;
@@ -924,6 +878,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
       graphApi,
       subgraphName,
       contract: RelayerRegistry,
+      type: 'RelayerRegistered',
       deployedBlock,
       fetchDataOptions,
       tovarishClient,
@@ -937,11 +892,6 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
 
   getInstanceName() {
     return `registered_${this.netId}`;
-  }
-
-  // Name of type used for events
-  getType() {
-    return 'RelayerRegistered';
   }
 
   getTovarishType(): string {

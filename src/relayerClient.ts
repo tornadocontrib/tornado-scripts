@@ -2,7 +2,7 @@ import { getAddress, parseEther } from 'ethers';
 import { sleep } from './utils';
 import { NetId, NetIdType, Config } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
-import { ajv, jobsSchema, getStatusSchema } from './schemas';
+import { ajv, jobsSchema, jobRequestSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
 import type { CachedRelayerInfo } from './events';
 
@@ -20,7 +20,7 @@ export interface RelayerParams {
 /**
  * Info from relayer status
  */
-export type RelayerInfo = RelayerParams & {
+export interface RelayerInfo extends RelayerParams {
   netId: NetIdType;
   url: string;
   hostname: string;
@@ -33,14 +33,14 @@ export type RelayerInfo = RelayerParams & {
   };
   currentQueue: number;
   tornadoServiceFee: number;
-};
+}
 
-export type RelayerError = {
+export interface RelayerError {
   hostname: string;
   relayerAddress?: string;
   errorMessage?: string;
   hasError: boolean;
-};
+}
 
 export interface RelayerStatus {
   url: string;
@@ -75,9 +75,9 @@ export interface RelayerStatus {
   currentQueue: number;
 }
 
-export type TornadoWithdrawParams = snarkProofs & {
+export interface TornadoWithdrawParams extends snarkProofs {
   contract: string;
-};
+}
 
 export interface RelayerTornadoWithdraw {
   id?: string;
@@ -149,13 +149,13 @@ export function getWeightRandom(weightsScores: bigint[], random: bigint) {
   return Math.floor(Math.random() * weightsScores.length);
 }
 
-export type RelayerInstanceList = {
-  [key in string]: {
+export interface RelayerInstanceList {
+  [key: string]: {
     instanceAddress: {
-      [key in string]: string;
+      [key: string]: string;
     };
   };
-};
+}
 
 export function getSupportedInstances(instanceList: RelayerInstanceList) {
   const rawList = Object.values(instanceList)
@@ -223,7 +223,7 @@ export class RelayerClient {
       headers: {
         'Content-Type': 'application/json, application/x-www-form-urlencoded',
       },
-      timeout: 60000,
+      timeout: 30000,
       maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
     })) as object;
 
@@ -318,9 +318,13 @@ export class RelayerClient {
 
   async tornadoWithdraw(
     { contract, proof, args }: TornadoWithdrawParams,
-    callback?: (jobResp: RelayerTornadoJobs) => void,
+    callback?: (jobResp: RelayerTornadoWithdraw | RelayerTornadoJobs) => void,
   ) {
     const { url } = this.selectedRelayer as RelayerInfo;
+
+    /**
+     * Request new job
+     */
 
     const withdrawResponse = (await fetchData(`${url}v1/tornadoWithdraw`, {
       ...this.fetchDataOptions,
@@ -340,6 +344,21 @@ export class RelayerClient {
     if (error) {
       throw new Error(error);
     }
+
+    const jobValidator = ajv.compile(jobRequestSchema);
+
+    if (!jobValidator(withdrawResponse)) {
+      const errMsg = `${url}v1/tornadoWithdraw has an invalid job response`;
+      throw new Error(errMsg);
+    }
+
+    if (typeof callback === 'function') {
+      callback(withdrawResponse as unknown as RelayerTornadoWithdraw);
+    }
+
+    /**
+     * Get job status
+     */
 
     let relayerStatus: string | undefined;
 

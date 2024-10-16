@@ -5,7 +5,7 @@ import websnarkGroth from '@tornado/websnark/src/groth16';
 import type { Element } from '@tornado/fixed-merkle-tree';
 import { toFixedHex } from './utils';
 
-export type snarkInputs = {
+export interface snarkInputs {
   // Public snark inputs
   root: Element;
   nullifierHex: string;
@@ -19,7 +19,7 @@ export type snarkInputs = {
   secret: bigint;
   pathElements: Element[];
   pathIndices: Element[];
-};
+}
 
 export type snarkArgs = [
   _root: string,
@@ -30,10 +30,10 @@ export type snarkArgs = [
   _refund: string,
 ];
 
-export type snarkProofs = {
+export interface snarkProofs {
   proof: string;
   args: snarkArgs;
-};
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let groth16: any;
