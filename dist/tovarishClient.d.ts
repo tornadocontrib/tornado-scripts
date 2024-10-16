@@ -62,8 +62,20 @@ export declare class TovarishClient extends RelayerClient {
         url?: string;
         relayerAddress?: string;
     }): Promise<TovarishStatus>;
+    /**
+     * Ask status for all enabled chains for tovarish relayer
+     */
+    askAllStatus({ hostname, url, relayerAddress, }: {
+        hostname?: string;
+        url?: string;
+        relayerAddress?: string;
+    }): Promise<TovarishStatus[]>;
     filterRelayer(relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined>;
     getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
+        validRelayers: TovarishInfo[];
+        invalidRelayers: RelayerError[];
+    }>;
+    getTovarishRelayers(relayers: CachedRelayerInfo[]): Promise<{
         validRelayers: TovarishInfo[];
         invalidRelayers: RelayerError[];
     }>;

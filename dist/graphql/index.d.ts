@@ -1,7 +1,7 @@
 import { fetchDataOptions } from '../providers';
 import type { BaseGraphEvents, RegistersEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, BatchGraphOnProgress, EchoEvents, AllGovernanceEvents } from '../events';
 export * from './queries';
-export type queryGraphParams = {
+export interface queryGraphParams {
     graphApi: string;
     subgraphName: string;
     query: string;
@@ -9,7 +9,7 @@ export type queryGraphParams = {
         [key: string]: string | number;
     };
     fetchDataOptions?: fetchDataOptions;
-};
+}
 export declare function queryGraph<T>({ graphApi, subgraphName, query, variables, fetchDataOptions, }: queryGraphParams): Promise<T>;
 export interface GraphStatistic {
     deposits: {

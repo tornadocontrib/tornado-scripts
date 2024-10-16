@@ -62,11 +62,11 @@ export type BatchEventOnProgress = ({ percentage, type, fromBlock, toBlock, coun
     toBlock?: number;
     count?: number;
 }) => void;
-export type EventInput = {
+export interface EventInput {
     fromBlock: number;
     toBlock: number;
     type: ContractEventName;
-};
+}
 /**
  * Fetch events from web3 provider on bulk
  */

@@ -12,7 +12,7 @@ export interface RelayerParams {
 /**
  * Info from relayer status
  */
-export type RelayerInfo = RelayerParams & {
+export interface RelayerInfo extends RelayerParams {
     netId: NetIdType;
     url: string;
     hostname: string;
@@ -25,13 +25,13 @@ export type RelayerInfo = RelayerParams & {
     };
     currentQueue: number;
     tornadoServiceFee: number;
-};
-export type RelayerError = {
+}
+export interface RelayerError {
     hostname: string;
     relayerAddress?: string;
     errorMessage?: string;
     hasError: boolean;
-};
+}
 export interface RelayerStatus {
     url: string;
     rewardAccount: string;
@@ -63,9 +63,9 @@ export interface RelayerStatus {
     };
     currentQueue: number;
 }
-export type TornadoWithdrawParams = snarkProofs & {
+export interface TornadoWithdrawParams extends snarkProofs {
     contract: string;
-};
+}
 export interface RelayerTornadoWithdraw {
     id?: string;
     error?: string;
@@ -111,13 +111,13 @@ export function isRelayerUpdated(relayerVersion: string, netId: NetIdType) {
 **/
 export declare function calculateScore({ stakeBalance, tornadoServiceFee }: RelayerInfo): bigint;
 export declare function getWeightRandom(weightsScores: bigint[], random: bigint): number;
-export type RelayerInstanceList = {
-    [key in string]: {
+export interface RelayerInstanceList {
+    [key: string]: {
         instanceAddress: {
-            [key in string]: string;
+            [key: string]: string;
         };
     };
-};
+}
 export declare function getSupportedInstances(instanceList: RelayerInstanceList): string[];
 export declare function pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
 export interface RelayerClientConstructor {
@@ -143,5 +143,5 @@ export declare class RelayerClient {
         invalidRelayers: RelayerError[];
     }>;
     pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
-    tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams, callback?: (jobResp: RelayerTornadoJobs) => void): Promise<void>;
+    tornadoWithdraw({ contract, proof, args }: TornadoWithdrawParams, callback?: (jobResp: RelayerTornadoWithdraw | RelayerTornadoJobs) => void): Promise<void>;
 }

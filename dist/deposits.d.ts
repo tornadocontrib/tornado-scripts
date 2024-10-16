@@ -1,36 +1,28 @@
 import type { NetIdType } from './networkConfig';
-export type DepositType = {
+export interface DepositType {
     currency: string;
     amount: string;
     netId: NetIdType;
-};
-export type createDepositParams = {
+}
+export interface createDepositParams {
     nullifier: bigint;
     secret: bigint;
-};
-export type createDepositObject = {
+}
+export interface createDepositObject {
     preimage: Uint8Array;
     noteHex: string;
     commitment: bigint;
     commitmentHex: string;
     nullifierHash: bigint;
     nullifierHex: string;
-};
-export type createNoteParams = DepositType & {
+}
+export interface createNoteParams extends DepositType {
     nullifier?: bigint;
     secret?: bigint;
-};
-export type parsedNoteExec = DepositType & {
+}
+export interface parsedNoteExec extends DepositType {
     note: string;
-};
-export type depositTx = {
-    from: string;
-    transactionHash: string;
-};
-export type withdrawalTx = {
-    to: string;
-    transactionHash: string;
-};
+}
 export declare function createDeposit({ nullifier, secret }: createDepositParams): Promise<createDepositObject>;
 export interface DepositConstructor {
     currency: string;
@@ -60,9 +52,9 @@ export declare class Deposit {
     static createNote({ currency, amount, netId, nullifier, secret }: createNoteParams): Promise<Deposit>;
     static parseNote(noteString: string): Promise<Deposit>;
 }
-export type parsedInvoiceExec = DepositType & {
+export interface parsedInvoiceExec extends DepositType {
     commitment: string;
-};
+}
 export declare class Invoice {
     currency: string;
     amount: string;

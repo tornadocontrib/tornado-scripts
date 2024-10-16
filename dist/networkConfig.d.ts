@@ -16,19 +16,19 @@ export interface RpcUrl {
     name: string;
     url: string;
 }
-export type RpcUrls = {
-    [key in string]: RpcUrl;
-};
+export interface RpcUrls {
+    [key: string]: RpcUrl;
+}
 export interface SubgraphUrl {
     name: string;
     url: string;
 }
-export type SubgraphUrls = {
-    [key in string]: SubgraphUrl;
-};
-export type TornadoInstance = {
+export interface SubgraphUrls {
+    [key: string]: SubgraphUrl;
+}
+export interface TornadoInstance {
     instanceAddress: {
-        [key in string]: string;
+        [key: string]: string;
     };
     optionalInstances?: string[];
     tokenAddress?: string;
@@ -36,11 +36,11 @@ export type TornadoInstance = {
     symbol: string;
     decimals: number;
     gasLimit?: number;
-};
-export type TokenInstances = {
-    [key in string]: TornadoInstance;
-};
-export type Config = {
+}
+export interface TokenInstances {
+    [key: string]: TornadoInstance;
+}
+export interface Config {
     rpcCallRetryAttempt?: number;
     gasPrices: {
         instant: number;
@@ -57,6 +57,7 @@ export type Config = {
     networkName: string;
     deployedBlock: number;
     rpcUrls: RpcUrls;
+    stablecoin: string;
     multicallContract: string;
     routerContract: string;
     echoContract: string;
@@ -84,13 +85,13 @@ export type Config = {
         REGISTRY_BLOCK?: number;
         MINING_BLOCK_TIME?: number;
     };
-};
-export type networkConfig = {
-    [key in NetIdType]: Config;
-};
-export type SubdomainMap = {
-    [key in NetIdType]: string;
-};
+}
+export interface networkConfig {
+    [key: NetIdType]: Config;
+}
+export interface SubdomainMap {
+    [key: NetIdType]: string;
+}
 export declare const defaultConfig: networkConfig;
 export declare const enabledChains: NetIdType[];
 /**

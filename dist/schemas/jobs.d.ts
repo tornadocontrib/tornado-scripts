@@ -1,4 +1,4 @@
-export type jobsSchema = {
+export interface jobsSchema {
     type: string;
     properties: {
         error: {
@@ -36,5 +36,6 @@ export type jobsSchema = {
         };
     };
     required: string[];
-};
+}
 export declare const jobsSchema: jobsSchema;
+export declare const jobRequestSchema: jobsSchema;

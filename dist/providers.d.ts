@@ -38,12 +38,12 @@ export type getProviderOptions = fetchDataOptions & {
 export declare function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider>;
 export declare function getProviderWithNetId(netId: NetIdType, rpcUrl: string, config: Config, fetchOptions?: getProviderOptions): JsonRpcProvider;
 export declare const populateTransaction: (signer: TornadoWallet | TornadoVoidSigner | TornadoRpcSigner, tx: TransactionRequest) => Promise<TransactionRequest>;
-export type TornadoWalletOptions = {
+export interface TornadoWalletOptions {
     gasPriceBump?: number;
     gasLimitBump?: number;
     gasFailover?: boolean;
     bumpNonce?: boolean;
-};
+}
 export declare class TornadoWallet extends Wallet {
     nonce?: number;
     gasPriceBump: number;
@@ -74,13 +74,13 @@ export declare class TornadoRpcSigner extends JsonRpcSigner {
 }
 export type connectWalletFunc = (...args: any[]) => Promise<void>;
 export type handleWalletFunc = (...args: any[]) => void;
-export type TornadoBrowserProviderOptions = TornadoWalletOptions & {
+export interface TornadoBrowserProviderOptions extends TornadoWalletOptions {
     netId?: NetIdType;
     connectWallet?: connectWalletFunc;
     handleNetworkChanges?: handleWalletFunc;
     handleAccountChanges?: handleWalletFunc;
     handleAccountDisconnect?: handleWalletFunc;
-};
+}
 export declare class TornadoBrowserProvider extends BrowserProvider {
     options?: TornadoBrowserProviderOptions;
     constructor(ethereum: Eip1193Provider, network?: Networkish, options?: TornadoBrowserProviderOptions);

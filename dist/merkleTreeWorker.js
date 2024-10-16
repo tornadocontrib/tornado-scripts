@@ -1805,47 +1805,23 @@ class MimcSponge {
     }
 }
 
-var __async$1 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class Mimc {
+  sponge;
+  hash;
+  mimcPromise;
   constructor() {
     this.mimcPromise = this.initMimc();
   }
-  initMimc() {
-    return __async$1(this, null, function* () {
-      this.sponge = yield buildMimcSponge();
-      this.hash = (left, right) => {
-        var _a, _b;
-        return (_b = this.sponge) == null ? void 0 : _b.F.toString((_a = this.sponge) == null ? void 0 : _a.multiHash([BigInt(left), BigInt(right)]));
-      };
-    });
+  async initMimc() {
+    this.sponge = await buildMimcSponge();
+    this.hash = (left, right) => this.sponge?.F.toString(this.sponge?.multiHash([BigInt(left), BigInt(right)]));
   }
-  getHash() {
-    return __async$1(this, null, function* () {
-      yield this.mimcPromise;
-      return {
-        sponge: this.sponge,
-        hash: this.hash
-      };
-    });
+  async getHash() {
+    await this.mimcPromise;
+    return {
+      sponge: this.sponge,
+      hash: this.hash
+    };
   }
 }
 const mimc = new Mimc();
@@ -1855,56 +1831,34 @@ BigInt.prototype.toJSON = function() {
 };
 const isNode = !process.browser && typeof globalThis.window === "undefined";
 
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function nodePostWork() {
-  return __async(this, null, function* () {
-    const { hash: hashFunction } = yield mimc.getHash();
-    const { merkleTreeHeight, edge, elements, zeroElement } = workerThreads.workerData;
-    if (edge) {
-      const merkleTree2 = new libExports.PartialMerkleTree(merkleTreeHeight, edge, elements, {
-        zeroElement,
-        hashFunction
-      });
-      workerThreads.parentPort.postMessage(merkleTree2.toString());
-      return;
-    }
-    const merkleTree = new libExports.MerkleTree(merkleTreeHeight, elements, {
+async function nodePostWork() {
+  const { hash: hashFunction } = await mimc.getHash();
+  const { merkleTreeHeight, edge, elements, zeroElement } = workerThreads.workerData;
+  if (edge) {
+    const merkleTree2 = new libExports.PartialMerkleTree(merkleTreeHeight, edge, elements, {
       zeroElement,
       hashFunction
     });
-    workerThreads.parentPort.postMessage(merkleTree.toString());
+    workerThreads.parentPort.postMessage(merkleTree2.toString());
+    return;
+  }
+  const merkleTree = new libExports.MerkleTree(merkleTreeHeight, elements, {
+    zeroElement,
+    hashFunction
   });
+  workerThreads.parentPort.postMessage(merkleTree.toString());
 }
 if (isNode && workerThreads) {
   nodePostWork();
 } else if (!isNode && typeof addEventListener === "function" && typeof postMessage === "function") {
-  addEventListener("message", (e) => __async(undefined, null, function* () {
+  addEventListener("message", async (e) => {
     let data;
     if (e.data) {
       data = e.data;
     } else {
       data = e;
     }
-    const { hash: hashFunction } = yield mimc.getHash();
+    const { hash: hashFunction } = await mimc.getHash();
     const { merkleTreeHeight, edge, elements, zeroElement } = data;
     if (edge) {
       const merkleTree2 = new libExports.PartialMerkleTree(merkleTreeHeight, edge, elements, {
@@ -1919,7 +1873,7 @@ if (isNode && workerThreads) {
       hashFunction
     });
     postMessage(merkleTree.toString());
-  }));
+  });
 } else {
   throw new Error("This browser / environment does not support workers!");
 }

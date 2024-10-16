@@ -1,4 +1,4 @@
-import { FetchRequest, Network, EnsPlugin, GasCostPlugin, JsonRpcProvider, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
+import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
 import crossFetch from 'cross-fetch';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -12,26 +12,6 @@ import { MerkleTree, PartialMerkleTree } from '@tornado/fixed-merkle-tree';
 import * as websnarkUtils from '@tornado/websnark/src/utils';
 import websnarkGroth from '@tornado/websnark/src/groth16';
 
-var __async$i = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 BigInt.prototype.toJSON = function() {
   return this.toString();
 };
@@ -48,7 +28,7 @@ function validateUrl(url, protocols) {
       return protocols.map((p) => p.toLowerCase()).includes(parsedUrl.protocol);
     }
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -120,54 +100,10 @@ function substring(str, length = 10) {
   }
   return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
 }
-function digest(bytes, algo = "SHA-384") {
-  return __async$i(this, null, function* () {
-    return new Uint8Array(yield crypto.subtle.digest(algo, bytes));
-  });
+async function digest(bytes, algo = "SHA-384") {
+  return new Uint8Array(await crypto.subtle.digest(algo, bytes));
 }
 
-var __defProp$8 = Object.defineProperty;
-var __defProps$6 = Object.defineProperties;
-var __getOwnPropDescs$6 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$8 = Object.getOwnPropertySymbols;
-var __getProtoOf$2 = Object.getPrototypeOf;
-var __hasOwnProp$8 = Object.prototype.hasOwnProperty;
-var __propIsEnum$8 = Object.prototype.propertyIsEnumerable;
-var __reflectGet$2 = Reflect.get;
-var __defNormalProp$8 = (obj, key, value) => key in obj ? __defProp$8(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$8 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$8.call(b, prop))
-      __defNormalProp$8(a, prop, b[prop]);
-  if (__getOwnPropSymbols$8)
-    for (var prop of __getOwnPropSymbols$8(b)) {
-      if (__propIsEnum$8.call(b, prop))
-        __defNormalProp$8(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$6 = (a, b) => __defProps$6(a, __getOwnPropDescs$6(b));
-var __superGet$2 = (cls, obj, key) => __reflectGet$2(__getProtoOf$2(cls), key, obj);
-var __async$h = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0";
 const fetch = crossFetch;
 function getHttpAgent({
@@ -196,100 +132,97 @@ function getHttpAgent({
     return new HttpProxyAgent(proxyUrl);
   }
 }
-function fetchData(_0) {
-  return __async$h(this, arguments, function* (url, options = {}) {
-    var _a, _b, _c;
-    const MAX_RETRY = (_a = options.maxRetry) != null ? _a : 3;
-    const RETRY_ON = (_b = options.retryOn) != null ? _b : 500;
-    const userAgent = (_c = options.userAgent) != null ? _c : defaultUserAgent;
-    let retry = 0;
-    let errorObject;
-    if (!options.method) {
-      if (!options.body) {
-        options.method = "GET";
-      } else {
-        options.method = "POST";
-      }
+async function fetchData(url, options = {}) {
+  const MAX_RETRY = options.maxRetry ?? 3;
+  const RETRY_ON = options.retryOn ?? 500;
+  const userAgent = options.userAgent ?? defaultUserAgent;
+  let retry = 0;
+  let errorObject;
+  if (!options.method) {
+    if (!options.body) {
+      options.method = "GET";
+    } else {
+      options.method = "POST";
     }
-    if (!options.headers) {
-      options.headers = {};
+  }
+  if (!options.headers) {
+    options.headers = {};
+  }
+  if (isNode && !options.headers["User-Agent"]) {
+    options.headers["User-Agent"] = userAgent;
+  }
+  while (retry < MAX_RETRY + 1) {
+    let timeout;
+    if (!options.signal && options.timeout) {
+      const controller = new AbortController();
+      options.signal = controller.signal;
+      timeout = setTimeout(() => {
+        controller.abort();
+      }, options.timeout);
     }
-    if (isNode && !options.headers["User-Agent"]) {
-      options.headers["User-Agent"] = userAgent;
-    }
-    while (retry < MAX_RETRY + 1) {
-      let timeout;
-      if (!options.signal && options.timeout) {
-        const controller = new AbortController();
-        options.signal = controller.signal;
-        timeout = setTimeout(() => {
-          controller.abort();
-        }, options.timeout);
-      }
-      if (!options.agent && isNode && (options.proxy || options.torPort)) {
-        options.agent = getHttpAgent({
-          fetchUrl: url,
-          proxyUrl: options.proxy,
-          torPort: options.torPort,
-          retry
-        });
-      }
-      if (options.debug && typeof options.debug === "function") {
-        options.debug("request", {
-          url,
-          retry,
-          errorObject,
-          options
-        });
-      }
-      try {
-        const resp = yield fetch(url, {
-          method: options.method,
-          headers: options.headers,
-          body: options.body,
-          redirect: options.redirect,
-          signal: options.signal,
-          agent: options.agent
-        });
-        if (options.debug && typeof options.debug === "function") {
-          options.debug("response", resp);
-        }
-        if (!resp.ok) {
-          const errMsg = `Request to ${url} failed with error code ${resp.status}:
-` + (yield resp.text());
-          throw new Error(errMsg);
-        }
-        if (options.returnResponse) {
-          return resp;
-        }
-        const contentType = resp.headers.get("content-type");
-        if (contentType == null ? void 0 : contentType.includes("application/json")) {
-          return yield resp.json();
-        }
-        if (contentType == null ? void 0 : contentType.includes("text")) {
-          return yield resp.text();
-        }
-        return resp;
-      } catch (error) {
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-        errorObject = error;
-        retry++;
-        yield sleep(RETRY_ON);
-      } finally {
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-      }
+    if (!options.agent && isNode && (options.proxy || options.torPort)) {
+      options.agent = getHttpAgent({
+        fetchUrl: url,
+        proxyUrl: options.proxy,
+        torPort: options.torPort,
+        retry
+      });
     }
     if (options.debug && typeof options.debug === "function") {
-      options.debug("error", errorObject);
+      options.debug("request", {
+        url,
+        retry,
+        errorObject,
+        options
+      });
     }
-    throw errorObject;
-  });
+    try {
+      const resp = await fetch(url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+        redirect: options.redirect,
+        signal: options.signal,
+        agent: options.agent
+      });
+      if (options.debug && typeof options.debug === "function") {
+        options.debug("response", resp);
+      }
+      if (!resp.ok) {
+        const errMsg = `Request to ${url} failed with error code ${resp.status}:
+` + await resp.text();
+        throw new Error(errMsg);
+      }
+      if (options.returnResponse) {
+        return resp;
+      }
+      const contentType = resp.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        return await resp.json();
+      }
+      if (contentType?.includes("text")) {
+        return await resp.text();
+      }
+      return resp;
+    } catch (error) {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      errorObject = error;
+      retry++;
+      await sleep(RETRY_ON);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+  }
+  if (options.debug && typeof options.debug === "function") {
+    options.debug("error", errorObject);
+  }
+  throw errorObject;
 }
-const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$h(void 0, null, function* () {
+const fetchGetUrlFunc = (options = {}) => async (req, _signal) => {
   let signal;
   if (_signal) {
     const controller = new AbortController();
@@ -298,19 +231,20 @@ const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$h(void 0, nu
       controller.abort();
     });
   }
-  const init = __spreadProps$6(__spreadValues$8({}, options), {
+  const init = {
+    ...options,
     method: req.method || "POST",
     headers: req.headers,
     body: req.body || void 0,
     signal,
     returnResponse: true
-  });
-  const resp = yield fetchData(req.url, init);
+  };
+  const resp = await fetchData(req.url, init);
   const headers = {};
   resp.headers.forEach((value, key) => {
     headers[key.toLowerCase()] = value;
   });
-  const respBody = yield resp.arrayBuffer();
+  const respBody = await resp.arrayBuffer();
   const body = respBody == null ? null : new Uint8Array(respBody);
   return {
     statusCode: resp.status,
@@ -318,21 +252,19 @@ const fetchGetUrlFunc = (options = {}) => (req, _signal) => __async$h(void 0, nu
     headers,
     body
   };
-});
-function getProvider(rpcUrl, fetchOptions) {
-  return __async$h(this, null, function* () {
-    const fetchReq = new FetchRequest(rpcUrl);
-    fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
-    const staticNetwork = yield new JsonRpcProvider(fetchReq).getNetwork();
-    const chainId = Number(staticNetwork.chainId);
-    if ((fetchOptions == null ? void 0 : fetchOptions.netId) && fetchOptions.netId !== chainId) {
-      const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
-      throw new Error(errMsg);
-    }
-    return new JsonRpcProvider(fetchReq, staticNetwork, {
-      staticNetwork,
-      pollingInterval: (fetchOptions == null ? void 0 : fetchOptions.pollingInterval) || 1e3
-    });
+};
+async function getProvider(rpcUrl, fetchOptions) {
+  const fetchReq = new FetchRequest(rpcUrl);
+  fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
+  const staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
+  const chainId = Number(staticNetwork.chainId);
+  if (fetchOptions?.netId && fetchOptions.netId !== chainId) {
+    const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
+    throw new Error(errMsg);
+  }
+  return new JsonRpcProvider(fetchReq, staticNetwork, {
+    staticNetwork,
+    pollingInterval: fetchOptions?.pollingInterval || 1e3
   });
 }
 function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
@@ -347,11 +279,11 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   staticNetwork.attachPlugin(new GasCostPlugin());
   const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
-    pollingInterval: (fetchOptions == null ? void 0 : fetchOptions.pollingInterval) || pollInterval * 1e3
+    pollingInterval: fetchOptions?.pollingInterval || pollInterval * 1e3
   });
   return provider;
 }
-const populateTransaction = (signer, tx) => __async$h(void 0, null, function* () {
+const populateTransaction = async (signer, tx) => {
   const provider = signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
@@ -359,7 +291,7 @@ const populateTransaction = (signer, tx) => __async$h(void 0, null, function* ()
     const errMsg = `populateTransaction: signer mismatch for tx, wants ${tx.from} have ${signer.address}`;
     throw new Error(errMsg);
   }
-  const [feeData, nonce] = yield Promise.all([
+  const [feeData, nonce] = await Promise.all([
     tx.maxFeePerGas || tx.gasPrice ? void 0 : provider.getFeeData(),
     tx.nonce ? void 0 : provider.getTransactionCount(signer.address, "pending")
   ]);
@@ -385,7 +317,7 @@ const populateTransaction = (signer, tx) => __async$h(void 0, null, function* ()
   }
   if (!tx.gasLimit) {
     try {
-      const gasLimit = yield provider.estimateGas(tx);
+      const gasLimit = await provider.estimateGas(tx);
       tx.gasLimit = gasLimit === BigInt(21e3) ? gasLimit : gasLimit * (BigInt(1e4) + BigInt(signer.gasLimitBump)) / BigInt(1e4);
     } catch (error) {
       if (signer.gasFailover) {
@@ -397,81 +329,88 @@ const populateTransaction = (signer, tx) => __async$h(void 0, null, function* ()
     }
   }
   return tx;
-});
+};
 class TornadoWallet extends Wallet {
+  nonce;
+  gasPriceBump;
+  gasLimitBump;
+  gasFailover;
+  bumpNonce;
   constructor(key, provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(key, provider);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
-    this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
-    this.gasFailover = gasFailover != null ? gasFailover : false;
-    this.bumpNonce = bumpNonce != null ? bumpNonce : false;
+    this.gasPriceBump = gasPriceBump ?? 0;
+    this.gasLimitBump = gasLimitBump ?? 3e3;
+    this.gasFailover = gasFailover ?? false;
+    this.bumpNonce = bumpNonce ?? false;
   }
   static fromMnemonic(mneomnic, provider, index = 0, options) {
     const defaultPath = `m/44'/60'/0'/0/${index}`;
     const { privateKey } = HDNodeWallet.fromPhrase(mneomnic, void 0, defaultPath);
     return new TornadoWallet(privateKey, provider, options);
   }
-  populateTransaction(tx) {
-    return __async$h(this, null, function* () {
-      const txObject = yield populateTransaction(this, tx);
-      this.nonce = Number(txObject.nonce);
-      return __superGet$2(TornadoWallet.prototype, this, "populateTransaction").call(this, txObject);
-    });
+  async populateTransaction(tx) {
+    const txObject = await populateTransaction(this, tx);
+    this.nonce = Number(txObject.nonce);
+    return super.populateTransaction(txObject);
   }
 }
 class TornadoVoidSigner extends VoidSigner {
+  nonce;
+  gasPriceBump;
+  gasLimitBump;
+  gasFailover;
+  bumpNonce;
   constructor(address, provider, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(address, provider);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
-    this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
-    this.gasFailover = gasFailover != null ? gasFailover : false;
-    this.bumpNonce = bumpNonce != null ? bumpNonce : false;
+    this.gasPriceBump = gasPriceBump ?? 0;
+    this.gasLimitBump = gasLimitBump ?? 3e3;
+    this.gasFailover = gasFailover ?? false;
+    this.bumpNonce = bumpNonce ?? false;
   }
-  populateTransaction(tx) {
-    return __async$h(this, null, function* () {
-      const txObject = yield populateTransaction(this, tx);
-      this.nonce = Number(txObject.nonce);
-      return __superGet$2(TornadoVoidSigner.prototype, this, "populateTransaction").call(this, txObject);
-    });
+  async populateTransaction(tx) {
+    const txObject = await populateTransaction(this, tx);
+    this.nonce = Number(txObject.nonce);
+    return super.populateTransaction(txObject);
   }
 }
 class TornadoRpcSigner extends JsonRpcSigner {
+  nonce;
+  gasPriceBump;
+  gasLimitBump;
+  gasFailover;
+  bumpNonce;
   constructor(provider, address, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
     super(provider, address);
-    this.gasPriceBump = gasPriceBump != null ? gasPriceBump : 0;
-    this.gasLimitBump = gasLimitBump != null ? gasLimitBump : 3e3;
-    this.gasFailover = gasFailover != null ? gasFailover : false;
-    this.bumpNonce = bumpNonce != null ? bumpNonce : false;
+    this.gasPriceBump = gasPriceBump ?? 0;
+    this.gasLimitBump = gasLimitBump ?? 3e3;
+    this.gasFailover = gasFailover ?? false;
+    this.bumpNonce = bumpNonce ?? false;
   }
-  sendUncheckedTransaction(tx) {
-    return __async$h(this, null, function* () {
-      return __superGet$2(TornadoRpcSigner.prototype, this, "sendUncheckedTransaction").call(this, yield populateTransaction(this, tx));
-    });
+  async sendUncheckedTransaction(tx) {
+    return super.sendUncheckedTransaction(await populateTransaction(this, tx));
   }
 }
 class TornadoBrowserProvider extends BrowserProvider {
+  options;
   constructor(ethereum, network, options) {
     super(ethereum, network);
     this.options = options;
   }
-  getSigner(address) {
-    return __async$h(this, null, function* () {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
-      const signerAddress = (yield __superGet$2(TornadoBrowserProvider.prototype, this, "getSigner").call(this, address)).address;
-      if (((_a = this.options) == null ? void 0 : _a.netId) && ((_b = this.options) == null ? void 0 : _b.connectWallet) && Number(yield __superGet$2(TornadoBrowserProvider.prototype, this, "send").call(this, "net_version", [])) !== ((_c = this.options) == null ? void 0 : _c.netId)) {
-        yield this.options.connectWallet((_d = this.options) == null ? void 0 : _d.netId);
-      }
-      if ((_e = this.options) == null ? void 0 : _e.handleNetworkChanges) {
-        (_f = window == null ? void 0 : window.ethereum) == null ? void 0 : _f.on("chainChanged", this.options.handleNetworkChanges);
-      }
-      if ((_g = this.options) == null ? void 0 : _g.handleAccountChanges) {
-        (_h = window == null ? void 0 : window.ethereum) == null ? void 0 : _h.on("accountsChanged", this.options.handleAccountChanges);
-      }
-      if ((_i = this.options) == null ? void 0 : _i.handleAccountDisconnect) {
-        (_j = window == null ? void 0 : window.ethereum) == null ? void 0 : _j.on("disconnect", this.options.handleAccountDisconnect);
-      }
-      return new TornadoRpcSigner(this, signerAddress, this.options);
-    });
+  async getSigner(address) {
+    const signerAddress = (await super.getSigner(address)).address;
+    if (this.options?.netId && this.options?.connectWallet && Number(await super.send("net_version", [])) !== this.options?.netId) {
+      await this.options.connectWallet(this.options?.netId);
+    }
+    if (this.options?.handleNetworkChanges) {
+      window?.ethereum?.on("chainChanged", this.options.handleNetworkChanges);
+    }
+    if (this.options?.handleAccountChanges) {
+      window?.ethereum?.on("accountsChanged", this.options.handleAccountChanges);
+    }
+    if (this.options?.handleAccountDisconnect) {
+      window?.ethereum?.on("disconnect", this.options.handleAccountDisconnect);
+    }
+    return new TornadoRpcSigner(this, signerAddress, this.options);
   }
 }
 
@@ -664,150 +603,105 @@ const GET_GOVERNANCE_APY = `
   }
 `;
 
-var __defProp$7 = Object.defineProperty;
-var __defProps$5 = Object.defineProperties;
-var __getOwnPropDescs$5 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$7 = Object.getOwnPropertySymbols;
-var __hasOwnProp$7 = Object.prototype.hasOwnProperty;
-var __propIsEnum$7 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$7 = (obj, key, value) => key in obj ? __defProp$7(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$7 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$7.call(b, prop))
-      __defNormalProp$7(a, prop, b[prop]);
-  if (__getOwnPropSymbols$7)
-    for (var prop of __getOwnPropSymbols$7(b)) {
-      if (__propIsEnum$7.call(b, prop))
-        __defNormalProp$7(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$5 = (a, b) => __defProps$5(a, __getOwnPropDescs$5(b));
-var __async$g = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const isEmptyArray = (arr) => !Array.isArray(arr) || !arr.length;
 const GRAPHQL_LIMIT = 1e3;
-function queryGraph(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    query,
-    variables,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    var _a;
-    const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
-    const { data, errors } = yield fetchData(graphUrl, __spreadProps$5(__spreadValues$7({}, fetchDataOptions2), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+async function queryGraph({
+  graphApi,
+  subgraphName,
+  query,
+  variables,
+  fetchDataOptions: fetchDataOptions2
+}) {
+  const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
+  const { data, errors } = await fetchData(graphUrl, {
+    ...fetchDataOptions2,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      query,
+      variables
+    })
+  });
+  if (errors) {
+    throw new Error(JSON.stringify(errors));
+  }
+  if (data?._meta?.hasIndexingErrors) {
+    throw new Error("Subgraph has indexing errors");
+  }
+  return data;
+}
+async function getStatistic({
+  graphApi,
+  subgraphName,
+  currency,
+  amount,
+  fetchDataOptions: fetchDataOptions2
+}) {
+  try {
+    const {
+      deposits,
+      _meta: {
+        block: { number: lastSyncBlock }
+      }
+    } = await queryGraph({
+      graphApi,
+      subgraphName,
+      query: GET_STATISTIC,
+      variables: {
+        currency,
+        first: 10,
+        orderBy: "index",
+        orderDirection: "desc",
+        amount
       },
-      body: JSON.stringify({
-        query,
-        variables
-      })
-    }));
-    if (errors) {
-      throw new Error(JSON.stringify(errors));
-    }
-    if ((_a = data == null ? void 0 : data._meta) == null ? void 0 : _a.hasIndexingErrors) {
-      throw new Error("Subgraph has indexing errors");
-    }
-    return data;
-  });
+      fetchDataOptions: fetchDataOptions2
+    });
+    const events = deposits.map((e) => ({
+      timestamp: Number(e.timestamp),
+      leafIndex: Number(e.index),
+      blockNumber: Number(e.blockNumber)
+    })).reverse();
+    const [lastEvent] = events.slice(-1);
+    return {
+      events,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getStatistic query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: null
+    };
+  }
 }
-function getStatistic(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    currency,
-    amount,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    try {
-      const {
-        deposits,
-        _meta: {
-          block: { number: lastSyncBlock }
-        }
-      } = yield queryGraph({
-        graphApi,
-        subgraphName,
-        query: GET_STATISTIC,
-        variables: {
-          currency,
-          first: 10,
-          orderBy: "index",
-          orderDirection: "desc",
-          amount
-        },
-        fetchDataOptions: fetchDataOptions2
-      });
-      const events = deposits.map((e) => ({
-        timestamp: Number(e.timestamp),
-        leafIndex: Number(e.index),
-        blockNumber: Number(e.blockNumber)
-      })).reverse();
-      const [lastEvent] = events.slice(-1);
-      return {
-        events,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getStatistic query");
-      console.log(err);
-      return {
-        events: [],
-        lastSyncBlock: null
-      };
-    }
-  });
-}
-function getMeta(_0) {
-  return __async$g(this, arguments, function* ({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
-    try {
-      const {
-        _meta: {
-          block: { number: lastSyncBlock },
-          hasIndexingErrors
-        }
-      } = yield queryGraph({
-        graphApi,
-        subgraphName,
-        query: _META,
-        fetchDataOptions: fetchDataOptions2
-      });
-      return {
-        lastSyncBlock,
+async function getMeta({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
+  try {
+    const {
+      _meta: {
+        block: { number: lastSyncBlock },
         hasIndexingErrors
-      };
-    } catch (err) {
-      console.log("Error from getMeta query");
-      console.log(err);
-      return {
-        lastSyncBlock: null,
-        hasIndexingErrors: null
-      };
-    }
-  });
+      }
+    } = await queryGraph({
+      graphApi,
+      subgraphName,
+      query: _META,
+      fetchDataOptions: fetchDataOptions2
+    });
+    return {
+      lastSyncBlock,
+      hasIndexingErrors
+    };
+  } catch (err) {
+    console.log("Error from getMeta query");
+    console.log(err);
+    return {
+      lastSyncBlock: null,
+      hasIndexingErrors: null
+    };
+  }
 }
 function getRegisters({
   graphApi,
@@ -826,73 +720,71 @@ function getRegisters({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllRegisters(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const events = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        let {
-          relayers: result2,
-          _meta: {
-            // eslint-disable-next-line prefer-const
-            block: { number: currentBlock }
-          }
-        } = yield getRegisters({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        if (isEmptyArray(result2)) {
-          break;
+async function getAllRegisters({
+  graphApi,
+  subgraphName,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const events = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      let {
+        relayers: result2,
+        _meta: {
+          // eslint-disable-next-line prefer-const
+          block: { number: currentBlock }
         }
-        const [firstEvent] = result2;
-        const [lastEvent] = result2.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "Registers",
-            fromBlock: Number(firstEvent.blockRegistration),
-            toBlock: Number(lastEvent.blockRegistration),
-            count: result2.length
-          });
-        }
-        if (result2.length < 900) {
-          events.push(...result2);
-          break;
-        }
-        result2 = result2.filter(({ blockRegistration }) => blockRegistration !== lastEvent.blockRegistration);
-        fromBlock = Number(lastEvent.blockRegistration);
+      } = await getRegisters({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      if (isEmptyArray(result2)) {
+        break;
+      }
+      const [firstEvent] = result2;
+      const [lastEvent] = result2.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "Registers",
+          fromBlock: Number(firstEvent.blockRegistration),
+          toBlock: Number(lastEvent.blockRegistration),
+          count: result2.length
+        });
+      }
+      if (result2.length < 900) {
         events.push(...result2);
+        break;
       }
-      if (!events.length) {
-        return {
-          events: [],
-          lastSyncBlock
-        };
-      }
-      const result = events.map(({ id, address, ensName, blockRegistration }) => {
-        const [transactionHash, logIndex] = id.split("-");
-        return {
-          blockNumber: Number(blockRegistration),
-          logIndex: Number(logIndex),
-          transactionHash,
-          ensName,
-          relayerAddress: getAddress(address)
-        };
-      });
+      result2 = result2.filter(({ blockRegistration }) => blockRegistration !== lastEvent.blockRegistration);
+      fromBlock = Number(lastEvent.blockRegistration);
+      events.push(...result2);
+    }
+    if (!events.length) {
       return {
-        events: result,
+        events: [],
         lastSyncBlock
       };
-    } catch (err) {
-      console.log("Error from getAllRegisters query");
-      console.log(err);
-      return { events: [], lastSyncBlock: fromBlock };
     }
-  });
+    const result = events.map(({ id, address, ensName, blockRegistration }) => {
+      const [transactionHash, logIndex] = id.split("-");
+      return {
+        blockNumber: Number(blockRegistration),
+        logIndex: Number(logIndex),
+        transactionHash,
+        ensName,
+        relayerAddress: getAddress(address)
+      };
+    });
+    return {
+      events: result,
+      lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllRegisters query");
+    console.log(err);
+    return { events: [], lastSyncBlock: fromBlock };
+  }
 }
 function getDeposits({
   graphApi,
@@ -915,81 +807,79 @@ function getDeposits({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllDeposits(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    currency,
-    amount,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const events = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        let {
-          deposits: result2,
-          _meta: {
-            // eslint-disable-next-line prefer-const
-            block: { number: currentBlock }
-          }
-        } = yield getDeposits({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        if (isEmptyArray(result2)) {
-          break;
+async function getAllDeposits({
+  graphApi,
+  subgraphName,
+  currency,
+  amount,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const events = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      let {
+        deposits: result2,
+        _meta: {
+          // eslint-disable-next-line prefer-const
+          block: { number: currentBlock }
         }
-        const [firstEvent] = result2;
-        const [lastEvent2] = result2.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "Deposits",
-            fromBlock: Number(firstEvent.blockNumber),
-            toBlock: Number(lastEvent2.blockNumber),
-            count: result2.length
-          });
-        }
-        if (result2.length < 900) {
-          events.push(...result2);
-          break;
-        }
-        result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-        fromBlock = Number(lastEvent2.blockNumber);
+      } = await getDeposits({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      if (isEmptyArray(result2)) {
+        break;
+      }
+      const [firstEvent] = result2;
+      const [lastEvent2] = result2.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "Deposits",
+          fromBlock: Number(firstEvent.blockNumber),
+          toBlock: Number(lastEvent2.blockNumber),
+          count: result2.length
+        });
+      }
+      if (result2.length < 900) {
         events.push(...result2);
+        break;
       }
-      if (!events.length) {
-        return {
-          events: [],
-          lastSyncBlock
-        };
-      }
-      const result = events.map(({ id, blockNumber, commitment, index, timestamp, from }) => {
-        const [transactionHash, logIndex] = id.split("-");
-        return {
-          blockNumber: Number(blockNumber),
-          logIndex: Number(logIndex),
-          transactionHash,
-          commitment,
-          leafIndex: Number(index),
-          timestamp: Number(timestamp),
-          from: getAddress(from)
-        };
-      });
-      const [lastEvent] = result.slice(-1);
-      return {
-        events: result,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getAllDeposits query");
-      console.log(err);
+      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
+      fromBlock = Number(lastEvent2.blockNumber);
+      events.push(...result2);
+    }
+    if (!events.length) {
       return {
         events: [],
-        lastSyncBlock: fromBlock
+        lastSyncBlock
       };
     }
-  });
+    const result = events.map(({ id, blockNumber, commitment, index, timestamp, from }) => {
+      const [transactionHash, logIndex] = id.split("-");
+      return {
+        blockNumber: Number(blockNumber),
+        logIndex: Number(logIndex),
+        transactionHash,
+        commitment,
+        leafIndex: Number(index),
+        timestamp: Number(timestamp),
+        from: getAddress(from)
+      };
+    });
+    const [lastEvent] = result.slice(-1);
+    return {
+      events: result,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllDeposits query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: fromBlock
+    };
+  }
 }
 function getWithdrawals({
   graphApi,
@@ -1012,117 +902,113 @@ function getWithdrawals({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllWithdrawals(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    currency,
-    amount,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const events = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        let {
-          withdrawals: result2,
-          _meta: {
-            // eslint-disable-next-line prefer-const
-            block: { number: currentBlock }
-          }
-        } = yield getWithdrawals({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        if (isEmptyArray(result2)) {
-          break;
+async function getAllWithdrawals({
+  graphApi,
+  subgraphName,
+  currency,
+  amount,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const events = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      let {
+        withdrawals: result2,
+        _meta: {
+          // eslint-disable-next-line prefer-const
+          block: { number: currentBlock }
         }
-        const [firstEvent] = result2;
-        const [lastEvent2] = result2.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "Withdrawals",
-            fromBlock: Number(firstEvent.blockNumber),
-            toBlock: Number(lastEvent2.blockNumber),
-            count: result2.length
-          });
-        }
-        if (result2.length < 900) {
-          events.push(...result2);
-          break;
-        }
-        result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-        fromBlock = Number(lastEvent2.blockNumber);
+      } = await getWithdrawals({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      if (isEmptyArray(result2)) {
+        break;
+      }
+      const [firstEvent] = result2;
+      const [lastEvent2] = result2.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "Withdrawals",
+          fromBlock: Number(firstEvent.blockNumber),
+          toBlock: Number(lastEvent2.blockNumber),
+          count: result2.length
+        });
+      }
+      if (result2.length < 900) {
         events.push(...result2);
+        break;
       }
-      if (!events.length) {
-        return {
-          events: [],
-          lastSyncBlock
-        };
-      }
-      const result = events.map(({ id, blockNumber, nullifier, to, fee, timestamp }) => {
-        const [transactionHash, logIndex] = id.split("-");
-        return {
-          blockNumber: Number(blockNumber),
-          logIndex: Number(logIndex),
-          transactionHash,
-          nullifierHash: nullifier,
-          to: getAddress(to),
-          fee,
-          timestamp: Number(timestamp)
-        };
-      });
-      const [lastEvent] = result.slice(-1);
-      return {
-        events: result,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getAllWithdrawals query");
-      console.log(err);
+      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
+      fromBlock = Number(lastEvent2.blockNumber);
+      events.push(...result2);
+    }
+    if (!events.length) {
       return {
         events: [],
-        lastSyncBlock: fromBlock
-      };
-    }
-  });
-}
-function getNoteAccounts(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    address,
-    fetchDataOptions: fetchDataOptions2
-  }) {
-    try {
-      const {
-        noteAccounts: events,
-        _meta: {
-          block: { number: lastSyncBlock }
-        }
-      } = yield queryGraph({
-        graphApi,
-        subgraphName,
-        query: GET_NOTE_ACCOUNTS,
-        variables: {
-          address: address.toLowerCase()
-        },
-        fetchDataOptions: fetchDataOptions2
-      });
-      return {
-        events,
         lastSyncBlock
       };
-    } catch (err) {
-      console.log("Error from getNoteAccounts query");
-      console.log(err);
-      return {
-        events: [],
-        lastSyncBlock: null
-      };
     }
-  });
+    const result = events.map(({ id, blockNumber, nullifier, to, fee, timestamp }) => {
+      const [transactionHash, logIndex] = id.split("-");
+      return {
+        blockNumber: Number(blockNumber),
+        logIndex: Number(logIndex),
+        transactionHash,
+        nullifierHash: nullifier,
+        to: getAddress(to),
+        fee,
+        timestamp: Number(timestamp)
+      };
+    });
+    const [lastEvent] = result.slice(-1);
+    return {
+      events: result,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllWithdrawals query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: fromBlock
+    };
+  }
+}
+async function getNoteAccounts({
+  graphApi,
+  subgraphName,
+  address,
+  fetchDataOptions: fetchDataOptions2
+}) {
+  try {
+    const {
+      noteAccounts: events,
+      _meta: {
+        block: { number: lastSyncBlock }
+      }
+    } = await queryGraph({
+      graphApi,
+      subgraphName,
+      query: GET_NOTE_ACCOUNTS,
+      variables: {
+        address: address.toLowerCase()
+      },
+      fetchDataOptions: fetchDataOptions2
+    });
+    return {
+      events,
+      lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getNoteAccounts query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: null
+    };
+  }
 }
 function getGraphEchoEvents({
   graphApi,
@@ -1141,77 +1027,75 @@ function getGraphEchoEvents({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllGraphEchoEvents(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const events = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        let {
-          noteAccounts: result2,
-          _meta: {
-            // eslint-disable-next-line prefer-const
-            block: { number: currentBlock }
-          }
-        } = yield getGraphEchoEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        if (isEmptyArray(result2)) {
-          break;
+async function getAllGraphEchoEvents({
+  graphApi,
+  subgraphName,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const events = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      let {
+        noteAccounts: result2,
+        _meta: {
+          // eslint-disable-next-line prefer-const
+          block: { number: currentBlock }
         }
-        const [firstEvent] = result2;
-        const [lastEvent2] = result2.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "EchoEvents",
-            fromBlock: Number(firstEvent.blockNumber),
-            toBlock: Number(lastEvent2.blockNumber),
-            count: result2.length
-          });
-        }
-        if (result2.length < 900) {
-          events.push(...result2);
-          break;
-        }
-        result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-        fromBlock = Number(lastEvent2.blockNumber);
+      } = await getGraphEchoEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      if (isEmptyArray(result2)) {
+        break;
+      }
+      const [firstEvent] = result2;
+      const [lastEvent2] = result2.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "EchoEvents",
+          fromBlock: Number(firstEvent.blockNumber),
+          toBlock: Number(lastEvent2.blockNumber),
+          count: result2.length
+        });
+      }
+      if (result2.length < 900) {
         events.push(...result2);
+        break;
       }
-      if (!events.length) {
-        return {
-          events: [],
-          lastSyncBlock
-        };
-      }
-      const result = events.map((e) => {
-        const [transactionHash, logIndex] = e.id.split("-");
-        return {
-          blockNumber: Number(e.blockNumber),
-          logIndex: Number(logIndex),
-          transactionHash,
-          address: getAddress(e.address),
-          encryptedAccount: e.encryptedAccount
-        };
-      });
-      const [lastEvent] = result.slice(-1);
-      return {
-        events: result,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getAllGraphEchoEvents query");
-      console.log(err);
+      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
+      fromBlock = Number(lastEvent2.blockNumber);
+      events.push(...result2);
+    }
+    if (!events.length) {
       return {
         events: [],
-        lastSyncBlock: fromBlock
+        lastSyncBlock
       };
     }
-  });
+    const result = events.map((e) => {
+      const [transactionHash, logIndex] = e.id.split("-");
+      return {
+        blockNumber: Number(e.blockNumber),
+        logIndex: Number(logIndex),
+        transactionHash,
+        address: getAddress(e.address),
+        encryptedAccount: e.encryptedAccount
+      };
+    });
+    const [lastEvent] = result.slice(-1);
+    return {
+      events: result,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllGraphEchoEvents query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: fromBlock
+    };
+  }
 }
 function getEncryptedNotes({
   graphApi,
@@ -1230,73 +1114,71 @@ function getEncryptedNotes({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllEncryptedNotes(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const events = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        let {
-          encryptedNotes: result2,
-          _meta: {
-            // eslint-disable-next-line prefer-const
-            block: { number: currentBlock }
-          }
-        } = yield getEncryptedNotes({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        if (isEmptyArray(result2)) {
-          break;
+async function getAllEncryptedNotes({
+  graphApi,
+  subgraphName,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const events = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      let {
+        encryptedNotes: result2,
+        _meta: {
+          // eslint-disable-next-line prefer-const
+          block: { number: currentBlock }
         }
-        const [firstEvent] = result2;
-        const [lastEvent2] = result2.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "EncryptedNotes",
-            fromBlock: Number(firstEvent.blockNumber),
-            toBlock: Number(lastEvent2.blockNumber),
-            count: result2.length
-          });
-        }
-        if (result2.length < 900) {
-          events.push(...result2);
-          break;
-        }
-        result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-        fromBlock = Number(lastEvent2.blockNumber);
+      } = await getEncryptedNotes({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      if (isEmptyArray(result2)) {
+        break;
+      }
+      const [firstEvent] = result2;
+      const [lastEvent2] = result2.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "EncryptedNotes",
+          fromBlock: Number(firstEvent.blockNumber),
+          toBlock: Number(lastEvent2.blockNumber),
+          count: result2.length
+        });
+      }
+      if (result2.length < 900) {
         events.push(...result2);
+        break;
       }
-      if (!events.length) {
-        return {
-          events: [],
-          lastSyncBlock
-        };
-      }
-      const result = events.map((e) => ({
-        blockNumber: Number(e.blockNumber),
-        logIndex: Number(e.index),
-        transactionHash: e.transactionHash,
-        encryptedNote: e.encryptedNote
-      }));
-      const [lastEvent] = result.slice(-1);
-      return {
-        events: result,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getAllEncryptedNotes query");
-      console.log(err);
+      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
+      fromBlock = Number(lastEvent2.blockNumber);
+      events.push(...result2);
+    }
+    if (!events.length) {
       return {
         events: [],
-        lastSyncBlock: fromBlock
+        lastSyncBlock
       };
     }
-  });
+    const result = events.map((e) => ({
+      blockNumber: Number(e.blockNumber),
+      logIndex: Number(e.index),
+      transactionHash: e.transactionHash,
+      encryptedNote: e.encryptedNote
+    }));
+    const [lastEvent] = result.slice(-1);
+    return {
+      events: result,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllEncryptedNotes query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: fromBlock
+    };
+  }
 }
 function getGovernanceEvents({
   graphApi,
@@ -1315,134 +1197,132 @@ function getGovernanceEvents({
     fetchDataOptions: fetchDataOptions2
   });
 }
-function getAllGovernanceEvents(_0) {
-  return __async$g(this, arguments, function* ({
-    graphApi,
-    subgraphName,
-    fromBlock,
-    fetchDataOptions: fetchDataOptions2,
-    onProgress
-  }) {
-    try {
-      const result = [];
-      let lastSyncBlock = fromBlock;
-      while (true) {
-        const {
-          proposals,
-          votes,
-          delegates,
-          undelegates,
-          _meta: {
-            block: { number: currentBlock }
-          }
-        } = yield getGovernanceEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
-        lastSyncBlock = currentBlock;
-        const eventsLength = proposals.length + votes.length + delegates.length + undelegates.length;
-        if (eventsLength === 0) {
-          break;
+async function getAllGovernanceEvents({
+  graphApi,
+  subgraphName,
+  fromBlock,
+  fetchDataOptions: fetchDataOptions2,
+  onProgress
+}) {
+  try {
+    const result = [];
+    let lastSyncBlock = fromBlock;
+    while (true) {
+      const {
+        proposals,
+        votes,
+        delegates,
+        undelegates,
+        _meta: {
+          block: { number: currentBlock }
         }
-        const formattedProposals = proposals.map(
-          ({ blockNumber, logIndex, transactionHash, proposalId, proposer, target, startTime, endTime, description }) => {
-            return {
-              blockNumber: Number(blockNumber),
-              logIndex: Number(logIndex),
-              transactionHash,
-              event: "ProposalCreated",
-              id: Number(proposalId),
-              proposer: getAddress(proposer),
-              target: getAddress(target),
-              startTime: Number(startTime),
-              endTime: Number(endTime),
-              description
-            };
-          }
-        );
-        const formattedVotes = votes.map(
-          ({ blockNumber, logIndex, transactionHash, proposalId, voter, support, votes: votes2, from, input }) => {
-            if (!input || input.length > 2048) {
-              input = "";
-            }
-            return {
-              blockNumber: Number(blockNumber),
-              logIndex: Number(logIndex),
-              transactionHash,
-              event: "Voted",
-              proposalId: Number(proposalId),
-              voter: getAddress(voter),
-              support,
-              votes: votes2,
-              from: getAddress(from),
-              input
-            };
-          }
-        );
-        const formattedDelegates = delegates.map(
-          ({ blockNumber, logIndex, transactionHash, account, delegateTo }) => {
-            return {
-              blockNumber: Number(blockNumber),
-              logIndex: Number(logIndex),
-              transactionHash,
-              event: "Delegated",
-              account: getAddress(account),
-              delegateTo: getAddress(delegateTo)
-            };
-          }
-        );
-        const formattedUndelegates = undelegates.map(
-          ({ blockNumber, logIndex, transactionHash, account, delegateFrom }) => {
-            return {
-              blockNumber: Number(blockNumber),
-              logIndex: Number(logIndex),
-              transactionHash,
-              event: "Undelegated",
-              account: getAddress(account),
-              delegateFrom: getAddress(delegateFrom)
-            };
-          }
-        );
-        let formattedEvents = [
-          ...formattedProposals,
-          ...formattedVotes,
-          ...formattedDelegates,
-          ...formattedUndelegates
-        ].sort((a, b) => {
-          if (a.blockNumber === b.blockNumber) {
-            return a.logIndex - b.logIndex;
-          }
-          return a.blockNumber - b.blockNumber;
-        });
-        if (eventsLength < 900) {
-          result.push(...formattedEvents);
-          break;
-        }
-        const [firstEvent] = formattedEvents;
-        const [lastEvent2] = formattedEvents.slice(-1);
-        if (typeof onProgress === "function") {
-          onProgress({
-            type: "Governance Events",
-            fromBlock: Number(firstEvent.blockNumber),
-            toBlock: Number(lastEvent2.blockNumber),
-            count: eventsLength
-          });
-        }
-        formattedEvents = formattedEvents.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-        fromBlock = Number(lastEvent2.blockNumber);
-        result.push(...formattedEvents);
+      } = await getGovernanceEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      lastSyncBlock = currentBlock;
+      const eventsLength = proposals.length + votes.length + delegates.length + undelegates.length;
+      if (eventsLength === 0) {
+        break;
       }
-      const [lastEvent] = result.slice(-1);
-      return {
-        events: result,
-        lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-      };
-    } catch (err) {
-      console.log("Error from getAllGovernance query");
-      console.log(err);
-      return {
-        events: [],
-        lastSyncBlock: fromBlock
-      };
+      const formattedProposals = proposals.map(
+        ({ blockNumber, logIndex, transactionHash, proposalId, proposer, target, startTime, endTime, description }) => {
+          return {
+            blockNumber: Number(blockNumber),
+            logIndex: Number(logIndex),
+            transactionHash,
+            event: "ProposalCreated",
+            id: Number(proposalId),
+            proposer: getAddress(proposer),
+            target: getAddress(target),
+            startTime: Number(startTime),
+            endTime: Number(endTime),
+            description
+          };
+        }
+      );
+      const formattedVotes = votes.map(
+        ({ blockNumber, logIndex, transactionHash, proposalId, voter, support, votes: votes2, from, input }) => {
+          if (!input || input.length > 2048) {
+            input = "";
+          }
+          return {
+            blockNumber: Number(blockNumber),
+            logIndex: Number(logIndex),
+            transactionHash,
+            event: "Voted",
+            proposalId: Number(proposalId),
+            voter: getAddress(voter),
+            support,
+            votes: votes2,
+            from: getAddress(from),
+            input
+          };
+        }
+      );
+      const formattedDelegates = delegates.map(
+        ({ blockNumber, logIndex, transactionHash, account, delegateTo }) => {
+          return {
+            blockNumber: Number(blockNumber),
+            logIndex: Number(logIndex),
+            transactionHash,
+            event: "Delegated",
+            account: getAddress(account),
+            delegateTo: getAddress(delegateTo)
+          };
+        }
+      );
+      const formattedUndelegates = undelegates.map(
+        ({ blockNumber, logIndex, transactionHash, account, delegateFrom }) => {
+          return {
+            blockNumber: Number(blockNumber),
+            logIndex: Number(logIndex),
+            transactionHash,
+            event: "Undelegated",
+            account: getAddress(account),
+            delegateFrom: getAddress(delegateFrom)
+          };
+        }
+      );
+      let formattedEvents = [
+        ...formattedProposals,
+        ...formattedVotes,
+        ...formattedDelegates,
+        ...formattedUndelegates
+      ].sort((a, b) => {
+        if (a.blockNumber === b.blockNumber) {
+          return a.logIndex - b.logIndex;
+        }
+        return a.blockNumber - b.blockNumber;
+      });
+      if (eventsLength < 900) {
+        result.push(...formattedEvents);
+        break;
+      }
+      const [firstEvent] = formattedEvents;
+      const [lastEvent2] = formattedEvents.slice(-1);
+      if (typeof onProgress === "function") {
+        onProgress({
+          type: "Governance Events",
+          fromBlock: Number(firstEvent.blockNumber),
+          toBlock: Number(lastEvent2.blockNumber),
+          count: eventsLength
+        });
+      }
+      formattedEvents = formattedEvents.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
+      fromBlock = Number(lastEvent2.blockNumber);
+      result.push(...formattedEvents);
     }
-  });
+    const [lastEvent] = result.slice(-1);
+    return {
+      events: result,
+      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
+    };
+  } catch (err) {
+    console.log("Error from getAllGovernance query");
+    console.log(err);
+    return {
+      events: [],
+      lastSyncBlock: fromBlock
+    };
+  }
 }
 
 var graph = /*#__PURE__*/Object.freeze({
@@ -1475,27 +1355,14 @@ var graph = /*#__PURE__*/Object.freeze({
   queryGraph: queryGraph
 });
 
-var __async$f = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class BatchBlockService {
+  provider;
+  onProgress;
+  concurrencySize;
+  batchSize;
+  shouldRetry;
+  retryMax;
+  retryOn;
   constructor({
     provider,
     onProgress,
@@ -1513,56 +1380,59 @@ class BatchBlockService {
     this.retryMax = retryMax;
     this.retryOn = retryOn;
   }
-  getBlock(blockTag) {
-    return __async$f(this, null, function* () {
-      const blockObject = yield this.provider.getBlock(blockTag);
-      if (!blockObject) {
-        const errMsg = `No block for ${blockTag}`;
-        throw new Error(errMsg);
-      }
-      return blockObject;
-    });
+  async getBlock(blockTag) {
+    const blockObject = await this.provider.getBlock(blockTag);
+    if (!blockObject) {
+      const errMsg = `No block for ${blockTag}`;
+      throw new Error(errMsg);
+    }
+    return blockObject;
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((blocks, index) => __async$f(this, null, function* () {
-      yield sleep(20 * index);
-      return (() => __async$f(this, null, function* () {
+    return batchArray.map(async (blocks, index) => {
+      await sleep(20 * index);
+      return (async () => {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
           try {
-            return yield Promise.all(blocks.map((b) => this.getBlock(b)));
+            return await Promise.all(blocks.map((b) => this.getBlock(b)));
           } catch (e) {
             retries++;
             err = e;
-            yield sleep(this.retryOn);
+            await sleep(this.retryOn);
           }
         }
         throw err;
-      }))();
-    }));
-  }
-  getBatchBlocks(blocks) {
-    return __async$f(this, null, function* () {
-      let blockCount = 0;
-      const results = [];
-      for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
-        const chunksResult = (yield Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
-        results.push(...chunksResult);
-        blockCount += chunks.length;
-        if (typeof this.onProgress === "function") {
-          this.onProgress({
-            percentage: blockCount / blocks.length,
-            currentIndex: blockCount,
-            totalIndex: blocks.length
-          });
-        }
-      }
-      return results;
+      })();
     });
+  }
+  async getBatchBlocks(blocks) {
+    let blockCount = 0;
+    const results = [];
+    for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
+      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
+      results.push(...chunksResult);
+      blockCount += chunks.length;
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: blockCount / blocks.length,
+          currentIndex: blockCount,
+          totalIndex: blocks.length
+        });
+      }
+    }
+    return results;
   }
 }
 class BatchTransactionService {
+  provider;
+  onProgress;
+  concurrencySize;
+  batchSize;
+  shouldRetry;
+  retryMax;
+  retryOn;
   constructor({
     provider,
     onProgress,
@@ -1580,52 +1450,56 @@ class BatchTransactionService {
     this.retryMax = retryMax;
     this.retryOn = retryOn;
   }
-  getTransaction(txHash) {
-    return __async$f(this, null, function* () {
-      const txObject = yield this.provider.getTransaction(txHash);
-      if (!txObject) {
-        const errMsg = `No transaction for ${txHash}`;
-        throw new Error(errMsg);
-      }
-      return txObject;
-    });
+  async getTransaction(txHash) {
+    const txObject = await this.provider.getTransaction(txHash);
+    if (!txObject) {
+      const errMsg = `No transaction for ${txHash}`;
+      throw new Error(errMsg);
+    }
+    return txObject;
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((txs, index) => __async$f(this, null, function* () {
-      yield sleep(20 * index);
-      return (() => __async$f(this, null, function* () {
+    return batchArray.map(async (txs, index) => {
+      await sleep(20 * index);
+      return (async () => {
         let retries = 0;
         let err;
         while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
           try {
-            return yield Promise.all(txs.map((tx) => this.getTransaction(tx)));
+            return await Promise.all(txs.map((tx) => this.getTransaction(tx)));
           } catch (e) {
             retries++;
             err = e;
-            yield sleep(this.retryOn);
+            await sleep(this.retryOn);
           }
         }
         throw err;
-      }))();
-    }));
-  }
-  getBatchTransactions(txs) {
-    return __async$f(this, null, function* () {
-      let txCount = 0;
-      const results = [];
-      for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
-        const chunksResult = (yield Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
-        results.push(...chunksResult);
-        txCount += chunks.length;
-        if (typeof this.onProgress === "function") {
-          this.onProgress({ percentage: txCount / txs.length, currentIndex: txCount, totalIndex: txs.length });
-        }
-      }
-      return results;
+      })();
     });
+  }
+  async getBatchTransactions(txs) {
+    let txCount = 0;
+    const results = [];
+    for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
+      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
+      results.push(...chunksResult);
+      txCount += chunks.length;
+      if (typeof this.onProgress === "function") {
+        this.onProgress({ percentage: txCount / txs.length, currentIndex: txCount, totalIndex: txs.length });
+      }
+    }
+    return results;
   }
 }
 class BatchEventsService {
+  provider;
+  contract;
+  onProgress;
+  concurrencySize;
+  blocksPerRequest;
+  shouldRetry;
+  retryMax;
+  retryOn;
   constructor({
     provider,
     contract,
@@ -1645,80 +1519,60 @@ class BatchEventsService {
     this.retryMax = retryMax;
     this.retryOn = retryOn;
   }
-  getPastEvents(_0) {
-    return __async$f(this, arguments, function* ({ fromBlock, toBlock, type }) {
-      let err;
-      let retries = 0;
-      while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
-        try {
-          return yield this.contract.queryFilter(type, fromBlock, toBlock);
-        } catch (e) {
-          err = e;
-          retries++;
-          if (e.message.includes("after last accepted block")) {
-            const acceptedBlock = parseInt(e.message.split("after last accepted block ")[1]);
-            toBlock = acceptedBlock;
-          }
-          yield sleep(this.retryOn);
+  async getPastEvents({ fromBlock, toBlock, type }) {
+    let err;
+    let retries = 0;
+    while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
+      try {
+        return await this.contract.queryFilter(type, fromBlock, toBlock);
+      } catch (e) {
+        err = e;
+        retries++;
+        if (e.message.includes("after last accepted block")) {
+          const acceptedBlock = parseInt(e.message.split("after last accepted block ")[1]);
+          toBlock = acceptedBlock;
         }
+        await sleep(this.retryOn);
       }
-      throw err;
-    });
+    }
+    throw err;
   }
   createBatchRequest(batchArray) {
-    return batchArray.map((event, index) => __async$f(this, null, function* () {
-      yield sleep(20 * index);
+    return batchArray.map(async (event, index) => {
+      await sleep(20 * index);
       return this.getPastEvents(event);
-    }));
-  }
-  getBatchEvents(_0) {
-    return __async$f(this, arguments, function* ({ fromBlock, toBlock, type = "*" }) {
-      if (!toBlock) {
-        toBlock = yield this.provider.getBlockNumber();
-      }
-      const eventsToSync = [];
-      for (let i = fromBlock; i < toBlock; i += this.blocksPerRequest) {
-        const j = i + this.blocksPerRequest - 1 > toBlock ? toBlock : i + this.blocksPerRequest - 1;
-        eventsToSync.push({ fromBlock: i, toBlock: j, type });
-      }
-      const events = [];
-      const eventChunk = chunk(eventsToSync, this.concurrencySize);
-      let chunkCount = 0;
-      for (const chunk2 of eventChunk) {
-        chunkCount++;
-        const fetchedEvents = (yield Promise.all(this.createBatchRequest(chunk2))).flat();
-        events.push(...fetchedEvents);
-        if (typeof this.onProgress === "function") {
-          this.onProgress({
-            percentage: chunkCount / eventChunk.length,
-            type,
-            fromBlock: chunk2[0].fromBlock,
-            toBlock: chunk2[chunk2.length - 1].toBlock,
-            count: fetchedEvents.length
-          });
-        }
-      }
-      return events;
     });
+  }
+  async getBatchEvents({ fromBlock, toBlock, type = "*" }) {
+    if (!toBlock) {
+      toBlock = await this.provider.getBlockNumber();
+    }
+    const eventsToSync = [];
+    for (let i = fromBlock; i < toBlock; i += this.blocksPerRequest) {
+      const j = i + this.blocksPerRequest - 1 > toBlock ? toBlock : i + this.blocksPerRequest - 1;
+      eventsToSync.push({ fromBlock: i, toBlock: j, type });
+    }
+    const events = [];
+    const eventChunk = chunk(eventsToSync, this.concurrencySize);
+    let chunkCount = 0;
+    for (const chunk2 of eventChunk) {
+      chunkCount++;
+      const fetchedEvents = (await Promise.all(this.createBatchRequest(chunk2))).flat();
+      events.push(...fetchedEvents);
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: chunkCount / eventChunk.length,
+          type,
+          fromBlock: chunk2[0].fromBlock,
+          toBlock: chunk2[chunk2.length - 1].toBlock,
+          count: fetchedEvents.length
+        });
+      }
+    }
+    return events;
   }
 }
 
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropSymbols$6 = Object.getOwnPropertySymbols;
-var __hasOwnProp$6 = Object.prototype.hasOwnProperty;
-var __propIsEnum$6 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$6 = (obj, key, value) => key in obj ? __defProp$6(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$6 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$6.call(b, prop))
-      __defNormalProp$6(a, prop, b[prop]);
-  if (__getOwnPropSymbols$6)
-    for (var prop of __getOwnPropSymbols$6(b)) {
-      if (__propIsEnum$6.call(b, prop))
-        __defNormalProp$6(a, prop, b[prop]);
-    }
-  return a;
-};
 var NetId = /* @__PURE__ */ ((NetId2) => {
   NetId2[NetId2["MAINNET"] = 1] = "MAINNET";
   NetId2[NetId2["BSC"] = 56] = "BSC";
@@ -1763,11 +1617,12 @@ const defaultConfig = {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/ethereum-mainnet"
       },
-      oneRPC: {
+      oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/eth"
       }
     },
+    stablecoin: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b",
     echoContract: "0x9B27DD5Bb15d42DC224FCD0B7caEbBe16161Df42",
@@ -1881,6 +1736,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Binance Smart Chain",
     deployedBlock: 8158799,
+    stablecoin: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -1904,7 +1760,7 @@ const defaultConfig = {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/bsc-mainnet"
       },
-      oneRPC: {
+      oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/bnb"
       }
@@ -1943,6 +1799,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Polygon (Matic) Network",
     deployedBlock: 16257962,
+    stablecoin: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -1993,6 +1850,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Optimism",
     deployedBlock: 2243689,
+    stablecoin: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -2001,17 +1859,13 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      optimism: {
-        name: "Optimism",
-        url: "https://mainnet.optimism.io"
+      oneRpc: {
+        name: "1RPC",
+        url: "https://1rpc.io/op"
       },
       stackup: {
         name: "Stackup RPC",
         url: "https://public.stackup.sh/api/v1/node/optimism-mainnet"
-      },
-      oneRpc: {
-        name: "1RPC",
-        url: "https://1rpc.io/op"
       }
     },
     tokens: {
@@ -2048,6 +1902,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Arbitrum One",
     deployedBlock: 3430648,
+    stablecoin: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -2064,7 +1919,7 @@ const defaultConfig = {
         url: "https://public.stackup.sh/api/v1/node/arbitrum-one"
       },
       oneRpc: {
-        name: "1rpc",
+        name: "1RPC",
         url: "https://1rpc.io/arb"
       }
     },
@@ -2102,6 +1957,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Gnosis Chain",
     deployedBlock: 17754561,
+    stablecoin: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -2113,12 +1969,8 @@ const defaultConfig = {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
       },
-      blockPi: {
-        name: "BlockPi",
-        url: "https://gnosis.blockpi.network/v1/rpc/public"
-      },
       oneRpc: {
-        name: "1rpc",
+        name: "1RPC",
         url: "https://1rpc.io/gnosis"
       }
     },
@@ -2156,6 +2008,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Avalanche Mainnet",
     deployedBlock: 4429818,
+    stablecoin: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -2163,13 +2016,13 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      publicRpc: {
-        name: "Avalanche RPC",
-        url: "https://api.avax.network/ext/bc/C/rpc"
-      },
-      oneRPC: {
-        name: "OneRPC",
+      oneRpc: {
+        name: "1RPC",
         url: "https://1rpc.io/avax/c"
+      },
+      stackup: {
+        name: "Stackup RPC",
+        url: "https://public.stackup.sh/api/v1/node/avalanche-mainnet"
       }
     },
     tokens: {
@@ -2205,6 +2058,7 @@ const defaultConfig = {
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
     networkName: "Ethereum Sepolia",
     deployedBlock: 5594395,
+    stablecoin: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x1572AFE6949fdF51Cb3E0856216670ae9Ee160Ee",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
@@ -2225,8 +2079,8 @@ const defaultConfig = {
         name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/ethereum-sepolia"
       },
-      onerpc: {
-        name: "1rpc",
+      oneRpc: {
+        name: "1RPC",
         url: "https://1rpc.io/sepolia"
       },
       ethpandaops: {
@@ -2275,10 +2129,16 @@ function addNetwork(newConfig) {
   enabledChains.push(
     ...Object.keys(newConfig).map((netId) => Number(netId)).filter((netId) => !enabledChains.includes(netId))
   );
-  customConfig = __spreadValues$6(__spreadValues$6({}, customConfig), newConfig);
+  customConfig = {
+    ...customConfig,
+    ...newConfig
+  };
 }
 function getNetworkConfig() {
-  const allConfig = __spreadValues$6(__spreadValues$6({}, defaultConfig), customConfig);
+  const allConfig = {
+    ...defaultConfig,
+    ...customConfig
+  };
   return enabledChains.reduce((acc, curr) => {
     acc[curr] = allConfig[curr];
     return acc;
@@ -2295,12 +2155,12 @@ function getConfig(netId) {
 }
 function getActiveTokens(config) {
   const { tokens, disabledTokens } = config;
-  return Object.keys(tokens).filter((t) => !(disabledTokens == null ? void 0 : disabledTokens.includes(t)));
+  return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
 }
 function getActiveTokenInstances(config) {
   const { tokens, disabledTokens } = config;
   return Object.entries(tokens).reduce((acc, [token, instances]) => {
-    if (!(disabledTokens == null ? void 0 : disabledTokens.includes(token))) {
+    if (!disabledTokens?.includes(token)) {
       acc[token] = instances;
     }
     return acc;
@@ -2309,7 +2169,7 @@ function getActiveTokenInstances(config) {
 function getInstanceByAddress(config, address) {
   const { tokens, disabledTokens } = config;
   for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
-    if (disabledTokens == null ? void 0 : disabledTokens.includes(currency)) {
+    if (disabledTokens?.includes(currency)) {
       continue;
     }
     for (const [amount, instance] of Object.entries(instanceAddress)) {
@@ -2338,7 +2198,7 @@ ajv.addKeyword({
     try {
       BigInt(data);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   },
@@ -2350,32 +2210,13 @@ ajv.addKeyword({
   validate: (schema, data) => {
     try {
       return isAddress(data);
-    } catch (e) {
+    } catch {
       return false;
     }
   },
   errors: true
 });
 
-var __defProp$5 = Object.defineProperty;
-var __defProps$4 = Object.defineProperties;
-var __getOwnPropDescs$4 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$5 = Object.getOwnPropertySymbols;
-var __hasOwnProp$5 = Object.prototype.hasOwnProperty;
-var __propIsEnum$5 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$5 = (obj, key, value) => key in obj ? __defProp$5(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$5 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$5.call(b, prop))
-      __defNormalProp$5(a, prop, b[prop]);
-  if (__getOwnPropSymbols$5)
-    for (var prop of __getOwnPropSymbols$5(b)) {
-      if (__propIsEnum$5.call(b, prop))
-        __defNormalProp$5(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$4 = (a, b) => __defProps$4(a, __getOwnPropDescs$4(b));
 const addressSchemaType = {
   type: "string",
   pattern: "^0x[a-fA-F0-9]{40}$",
@@ -2384,27 +2225,8 @@ const addressSchemaType = {
 const bnSchemaType = { type: "string", BN: true };
 const proofSchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{512}$" };
 const bytes32SchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" };
-const bytes32BNSchemaType = __spreadProps$4(__spreadValues$5({}, bytes32SchemaType), { BN: true });
+const bytes32BNSchemaType = { ...bytes32SchemaType, BN: true };
 
-var __defProp$4 = Object.defineProperty;
-var __defProps$3 = Object.defineProperties;
-var __getOwnPropDescs$3 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$4 = Object.getOwnPropertySymbols;
-var __hasOwnProp$4 = Object.prototype.hasOwnProperty;
-var __propIsEnum$4 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$4 = (obj, key, value) => key in obj ? __defProp$4(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$4 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$4.call(b, prop))
-      __defNormalProp$4(a, prop, b[prop]);
-  if (__getOwnPropSymbols$4)
-    for (var prop of __getOwnPropSymbols$4(b)) {
-      if (__propIsEnum$4.call(b, prop))
-        __defNormalProp$4(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$3 = (a, b) => __defProps$3(a, __getOwnPropDescs$3(b));
 const baseEventsSchemaProperty = {
   blockNumber: {
     type: "number"
@@ -2421,7 +2243,8 @@ const governanceEventsSchema = {
     anyOf: [
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+        properties: {
+          ...baseEventsSchemaProperty,
           event: { type: "string" },
           id: { type: "number" },
           proposer: addressSchemaType,
@@ -2429,7 +2252,7 @@ const governanceEventsSchema = {
           startTime: { type: "number" },
           endTime: { type: "number" },
           description: { type: "string" }
-        }),
+        },
         required: [
           ...baseEventsSchemaRequired,
           "event",
@@ -2444,7 +2267,8 @@ const governanceEventsSchema = {
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+        properties: {
+          ...baseEventsSchemaProperty,
           event: { type: "string" },
           proposalId: { type: "number" },
           voter: addressSchemaType,
@@ -2452,27 +2276,29 @@ const governanceEventsSchema = {
           votes: { type: "string" },
           from: addressSchemaType,
           input: { type: "string" }
-        }),
+        },
         required: [...baseEventsSchemaRequired, "event", "proposalId", "voter", "support", "votes", "from", "input"],
         additionalProperties: false
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+        properties: {
+          ...baseEventsSchemaProperty,
           event: { type: "string" },
           account: addressSchemaType,
           delegateTo: addressSchemaType
-        }),
+        },
         required: [...baseEventsSchemaRequired, "account", "delegateTo"],
         additionalProperties: false
       },
       {
         type: "object",
-        properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+        properties: {
+          ...baseEventsSchemaProperty,
           event: { type: "string" },
           account: addressSchemaType,
           delegateFrom: addressSchemaType
-        }),
+        },
         required: [...baseEventsSchemaRequired, "account", "delegateFrom"],
         additionalProperties: false
       }
@@ -2483,10 +2309,11 @@ const registeredEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+    properties: {
+      ...baseEventsSchemaProperty,
       ensName: { type: "string" },
       relayerAddress: addressSchemaType
-    }),
+    },
     required: [...baseEventsSchemaRequired, "ensName", "relayerAddress"],
     additionalProperties: false
   }
@@ -2495,12 +2322,13 @@ const depositsEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+    properties: {
+      ...baseEventsSchemaProperty,
       commitment: bytes32SchemaType,
       leafIndex: { type: "number" },
       timestamp: { type: "number" },
       from: addressSchemaType
-    }),
+    },
     required: [...baseEventsSchemaRequired, "commitment", "leafIndex", "timestamp", "from"],
     additionalProperties: false
   }
@@ -2509,12 +2337,13 @@ const withdrawalsEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+    properties: {
+      ...baseEventsSchemaProperty,
       nullifierHash: bytes32SchemaType,
       to: addressSchemaType,
       fee: bnSchemaType,
       timestamp: { type: "number" }
-    }),
+    },
     required: [...baseEventsSchemaRequired, "nullifierHash", "to", "fee", "timestamp"],
     additionalProperties: false
   }
@@ -2523,10 +2352,11 @@ const echoEventsSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+    properties: {
+      ...baseEventsSchemaProperty,
       address: addressSchemaType,
       encryptedAccount: { type: "string" }
-    }),
+    },
     required: [...baseEventsSchemaRequired, "address", "encryptedAccount"],
     additionalProperties: false
   }
@@ -2535,9 +2365,10 @@ const encryptedNotesSchema = {
   type: "array",
   items: {
     type: "object",
-    properties: __spreadProps$3(__spreadValues$4({}, baseEventsSchemaProperty), {
+    properties: {
+      ...baseEventsSchemaProperty,
       encryptedNote: { type: "string" }
-    }),
+    },
     required: [...baseEventsSchemaRequired, "encryptedNote"],
     additionalProperties: false
   }
@@ -2635,7 +2466,7 @@ function getStatusSchema(netId, config, tovarish) {
         instanceProperties.properties.symbol = { enum: [symbol] };
       }
       acc.properties[token] = instanceProperties;
-      if (!(optionalTokens == null ? void 0 : optionalTokens.includes(token)) && !(disabledTokens == null ? void 0 : disabledTokens.includes(token))) {
+      if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
         acc.required.push(token);
       }
       return acc;
@@ -2648,10 +2479,7 @@ function getStatusSchema(netId, config, tovarish) {
   );
   schema.properties.instances = instances;
   const _tokens = Object.keys(tokens).filter(
-    (t) => {
-      var _a, _b;
-      return t !== nativeCurrency && !((_a = config.optionalTokens) == null ? void 0 : _a.includes(t)) && !((_b = config.disabledTokens) == null ? void 0 : _b.includes(t));
-    }
+    (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t)
   );
   if (netId === NetId.MAINNET) {
     _tokens.push("torn");
@@ -2693,46 +2521,11 @@ const jobsSchema = {
   },
   required: ["id", "status"]
 };
+const jobRequestSchema = {
+  ...jobsSchema,
+  required: ["id"]
+};
 
-var __defProp$3 = Object.defineProperty;
-var __defProps$2 = Object.defineProperties;
-var __getOwnPropDescs$2 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$3 = Object.getOwnPropertySymbols;
-var __hasOwnProp$3 = Object.prototype.hasOwnProperty;
-var __propIsEnum$3 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$3 = (obj, key, value) => key in obj ? __defProp$3(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$3 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$3.call(b, prop))
-      __defNormalProp$3(a, prop, b[prop]);
-  if (__getOwnPropSymbols$3)
-    for (var prop of __getOwnPropSymbols$3(b)) {
-      if (__propIsEnum$3.call(b, prop))
-        __defNormalProp$3(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$2 = (a, b) => __defProps$2(a, __getOwnPropDescs$2(b));
-var __async$e = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const MIN_FEE = 0.1;
 const MAX_FEE = 0.9;
 const MIN_STAKE_BALANCE = parseEther("500");
@@ -2772,219 +2565,194 @@ function pickWeightedRandomRelayer(relayers) {
   return relayers[weightRandomIndex];
 }
 class RelayerClient {
+  netId;
+  config;
+  selectedRelayer;
+  fetchDataOptions;
+  tovarish;
   constructor({ netId, config, fetchDataOptions: fetchDataOptions2 }) {
     this.netId = netId;
     this.config = config;
     this.fetchDataOptions = fetchDataOptions2;
     this.tovarish = false;
   }
-  askRelayerStatus(_0) {
-    return __async$e(this, arguments, function* ({
-      hostname,
-      url,
-      relayerAddress
-    }) {
-      var _a;
-      if (!url && hostname) {
-        url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
-      } else if (url && !url.endsWith("/")) {
-        url += "/";
-      } else {
-        url = "";
-      }
-      const rawStatus = yield fetchData(`${url}status`, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
-        headers: {
-          "Content-Type": "application/json, application/x-www-form-urlencoded"
-        },
-        timeout: 6e4,
-        maxRetry: ((_a = this.fetchDataOptions) == null ? void 0 : _a.torPort) ? 2 : 0
-      }));
-      const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
-      if (!statusValidator(rawStatus)) {
-        throw new Error("Invalid status schema");
-      }
-      const status = __spreadProps$2(__spreadValues$3({}, rawStatus), {
-        url
-      });
-      if (status.currentQueue > 5) {
-        throw new Error("Withdrawal queue is overloaded");
-      }
-      if (status.netId !== this.netId) {
-        throw new Error("This relayer serves a different network");
-      }
-      if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
-        throw new Error("The Relayer reward address must match registered address");
-      }
-      return status;
+  async askRelayerStatus({
+    hostname,
+    url,
+    relayerAddress
+  }) {
+    if (!url && hostname) {
+      url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
+    } else if (url && !url.endsWith("/")) {
+      url += "/";
+    } else {
+      url = "";
+    }
+    const rawStatus = await fetchData(`${url}status`, {
+      ...this.fetchDataOptions,
+      headers: {
+        "Content-Type": "application/json, application/x-www-form-urlencoded"
+      },
+      timeout: 3e4,
+      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
     });
+    const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
+    if (!statusValidator(rawStatus)) {
+      throw new Error("Invalid status schema");
+    }
+    const status = {
+      ...rawStatus,
+      url
+    };
+    if (status.currentQueue > 5) {
+      throw new Error("Withdrawal queue is overloaded");
+    }
+    if (status.netId !== this.netId) {
+      throw new Error("This relayer serves a different network");
+    }
+    if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
+      throw new Error("The Relayer reward address must match registered address");
+    }
+    return status;
   }
-  filterRelayer(relayer) {
-    return __async$e(this, null, function* () {
-      var _a;
-      const hostname = relayer.hostnames[this.netId];
-      const { ensName, relayerAddress } = relayer;
-      if (!hostname) {
-        return;
-      }
-      try {
-        const status = yield this.askRelayerStatus({ hostname, relayerAddress });
-        return {
-          netId: status.netId,
-          url: status.url,
-          hostname,
-          ensName,
-          relayerAddress,
-          rewardAccount: getAddress(status.rewardAccount),
-          instances: getSupportedInstances(status.instances),
-          stakeBalance: relayer.stakeBalance,
-          gasPrice: (_a = status.gasPrices) == null ? void 0 : _a.fast,
-          ethPrices: status.ethPrices,
-          currentQueue: status.currentQueue,
-          tornadoServiceFee: status.tornadoServiceFee
-        };
-      } catch (err) {
-        return {
-          hostname,
-          relayerAddress,
-          errorMessage: err.message,
-          hasError: true
-        };
-      }
-    });
-  }
-  getValidRelayers(relayers) {
-    return __async$e(this, null, function* () {
-      const invalidRelayers = [];
-      const validRelayers = (yield Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
-        if (!r) {
-          return false;
-        }
-        if (r.hasError) {
-          invalidRelayers.push(r);
-          return false;
-        }
-        return true;
-      });
+  async filterRelayer(relayer) {
+    const hostname = relayer.hostnames[this.netId];
+    const { ensName, relayerAddress } = relayer;
+    if (!hostname) {
+      return;
+    }
+    try {
+      const status = await this.askRelayerStatus({ hostname, relayerAddress });
       return {
-        validRelayers,
-        invalidRelayers
+        netId: status.netId,
+        url: status.url,
+        hostname,
+        ensName,
+        relayerAddress,
+        rewardAccount: getAddress(status.rewardAccount),
+        instances: getSupportedInstances(status.instances),
+        stakeBalance: relayer.stakeBalance,
+        gasPrice: status.gasPrices?.fast,
+        ethPrices: status.ethPrices,
+        currentQueue: status.currentQueue,
+        tornadoServiceFee: status.tornadoServiceFee
       };
+    } catch (err) {
+      return {
+        hostname,
+        relayerAddress,
+        errorMessage: err.message,
+        hasError: true
+      };
+    }
+  }
+  async getValidRelayers(relayers) {
+    const invalidRelayers = [];
+    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
+      if (!r) {
+        return false;
+      }
+      if (r.hasError) {
+        invalidRelayers.push(r);
+        return false;
+      }
+      return true;
     });
+    return {
+      validRelayers,
+      invalidRelayers
+    };
   }
   pickWeightedRandomRelayer(relayers) {
     return pickWeightedRandomRelayer(relayers);
   }
-  tornadoWithdraw(_0, _1) {
-    return __async$e(this, arguments, function* ({ contract, proof, args }, callback) {
-      const { url } = this.selectedRelayer;
-      const withdrawResponse = yield fetchData(`${url}v1/tornadoWithdraw`, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
-        method: "POST",
+  async tornadoWithdraw({ contract, proof, args }, callback) {
+    const { url } = this.selectedRelayer;
+    const withdrawResponse = await fetchData(`${url}v1/tornadoWithdraw`, {
+      ...this.fetchDataOptions,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contract,
+        proof,
+        args
+      })
+    });
+    const { id, error } = withdrawResponse;
+    if (error) {
+      throw new Error(error);
+    }
+    const jobValidator = ajv.compile(jobRequestSchema);
+    if (!jobValidator(withdrawResponse)) {
+      const errMsg = `${url}v1/tornadoWithdraw has an invalid job response`;
+      throw new Error(errMsg);
+    }
+    if (typeof callback === "function") {
+      callback(withdrawResponse);
+    }
+    let relayerStatus;
+    const jobUrl = `${url}v1/jobs/${id}`;
+    console.log(`Job submitted: ${jobUrl}
+`);
+    while (!relayerStatus || !["FAILED", "CONFIRMED"].includes(relayerStatus)) {
+      const jobResponse = await fetchData(jobUrl, {
+        ...this.fetchDataOptions,
+        method: "GET",
         headers: {
           "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contract,
-          proof,
-          args
-        })
-      }));
-      const { id, error } = withdrawResponse;
-      if (error) {
+        }
+      });
+      if (jobResponse.error) {
         throw new Error(error);
       }
-      let relayerStatus;
-      const jobUrl = `${url}v1/jobs/${id}`;
-      console.log(`Job submitted: ${jobUrl}
-`);
-      while (!relayerStatus || !["FAILED", "CONFIRMED"].includes(relayerStatus)) {
-        const jobResponse = yield fetchData(jobUrl, __spreadProps$2(__spreadValues$3({}, this.fetchDataOptions), {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }));
-        if (jobResponse.error) {
-          throw new Error(error);
-        }
-        const jobValidator = ajv.compile(jobsSchema);
-        if (!jobValidator(jobResponse)) {
-          const errMsg = `${jobUrl} has an invalid job response`;
-          throw new Error(errMsg);
-        }
-        const { status, txHash, confirmations, failedReason } = jobResponse;
-        if (relayerStatus !== status) {
-          if (status === "FAILED") {
-            const errMsg = `Job ${status}: ${jobUrl} failed reason: ${failedReason}`;
-            throw new Error(errMsg);
-          } else if (status === "SENT") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}
-`);
-          } else if (status === "MINED") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
-`);
-          } else if (status === "CONFIRMED") {
-            console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
-`);
-          } else {
-            console.log(`Job ${status}: ${jobUrl}
-`);
-          }
-          relayerStatus = status;
-          if (typeof callback === "function") {
-            callback(jobResponse);
-          }
-        }
-        yield sleep(3e3);
+      const jobValidator2 = ajv.compile(jobsSchema);
+      if (!jobValidator2(jobResponse)) {
+        const errMsg = `${jobUrl} has an invalid job response`;
+        throw new Error(errMsg);
       }
-    });
+      const { status, txHash, confirmations, failedReason } = jobResponse;
+      if (relayerStatus !== status) {
+        if (status === "FAILED") {
+          const errMsg = `Job ${status}: ${jobUrl} failed reason: ${failedReason}`;
+          throw new Error(errMsg);
+        } else if (status === "SENT") {
+          console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}
+`);
+        } else if (status === "MINED") {
+          console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
+`);
+        } else if (status === "CONFIRMED") {
+          console.log(`Job ${status}: ${jobUrl}, txhash: ${txHash}, confirmations: ${confirmations}
+`);
+        } else {
+          console.log(`Job ${status}: ${jobUrl}
+`);
+        }
+        relayerStatus = status;
+        if (typeof callback === "function") {
+          callback(jobResponse);
+        }
+      }
+      await sleep(3e3);
+    }
   }
 }
 
-var __defProp$2 = Object.defineProperty;
-var __defProps$1 = Object.defineProperties;
-var __getOwnPropDescs$1 = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
-var __getProtoOf$1 = Object.getPrototypeOf;
-var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
-var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
-var __reflectGet$1 = Reflect.get;
-var __defNormalProp$2 = (obj, key, value) => key in obj ? __defProp$2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$2 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$2.call(b, prop))
-      __defNormalProp$2(a, prop, b[prop]);
-  if (__getOwnPropSymbols$2)
-    for (var prop of __getOwnPropSymbols$2(b)) {
-      if (__propIsEnum$2.call(b, prop))
-        __defNormalProp$2(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps$1 = (a, b) => __defProps$1(a, __getOwnPropDescs$1(b));
-var __superGet$1 = (cls, obj, key) => __reflectGet$1(__getProtoOf$1(cls), key, obj);
-var __async$d = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const DEPOSIT = "deposit";
 const WITHDRAWAL = "withdrawal";
 class BaseEventsService {
+  netId;
+  provider;
+  graphApi;
+  subgraphName;
+  contract;
+  type;
+  deployedBlock;
+  batchEventsService;
+  fetchDataOptions;
+  tovarishClient;
   constructor({
     netId,
     provider,
@@ -3041,119 +2809,105 @@ class BaseEventsService {
   updateGraphProgress({ type, fromBlock, toBlock, count }) {
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      return yield new Promise((resolve) => resolve(events));
-    });
+  async formatEvents(events) {
+    return await new Promise((resolve) => resolve(events));
   }
   /**
    * Get saved or cached events
    */
-  getEventsFromDB() {
-    return __async$d(this, null, function* () {
-      return {
-        events: [],
-        lastBlock: 0
-      };
-    });
+  async getEventsFromDB() {
+    return {
+      events: [],
+      lastBlock: 0
+    };
   }
   /**
    * Events from remote cache (Either from local cache, CDN, or from IPFS)
    */
-  getEventsFromCache() {
-    return __async$d(this, null, function* () {
-      return {
-        events: [],
-        lastBlock: 0,
-        fromCache: true
-      };
-    });
+  async getEventsFromCache() {
+    return {
+      events: [],
+      lastBlock: 0,
+      fromCache: true
+    };
   }
-  getSavedEvents() {
-    return __async$d(this, null, function* () {
-      let dbEvents = yield this.getEventsFromDB();
-      if (!dbEvents.lastBlock) {
-        dbEvents = yield this.getEventsFromCache();
-      }
-      return dbEvents;
-    });
+  async getSavedEvents() {
+    let dbEvents = await this.getEventsFromDB();
+    if (!dbEvents.lastBlock) {
+      dbEvents = await this.getEventsFromCache();
+    }
+    return dbEvents;
   }
   /**
    * Get latest events
    */
-  getEventsFromGraph(_0) {
-    return __async$d(this, arguments, function* ({
+  async getEventsFromGraph({
+    fromBlock,
+    methodName = ""
+  }) {
+    if (!this.graphApi || !this.subgraphName) {
+      return {
+        events: [],
+        lastBlock: fromBlock
+      };
+    }
+    const { events, lastSyncBlock } = await graph[methodName || this.getGraphMethod()]({
       fromBlock,
-      methodName = ""
-    }) {
-      if (!this.graphApi || !this.subgraphName) {
+      ...this.getGraphParams()
+    });
+    return {
+      events,
+      lastBlock: lastSyncBlock
+    };
+  }
+  async getEventsFromRpc({
+    fromBlock,
+    toBlock
+  }) {
+    try {
+      if (!toBlock) {
+        toBlock = await this.provider.getBlockNumber();
+      }
+      if (fromBlock >= toBlock) {
         return {
           events: [],
-          lastBlock: fromBlock
-        };
-      }
-      const { events, lastSyncBlock } = yield graph[methodName || this.getGraphMethod()](__spreadValues$2({
-        fromBlock
-      }, this.getGraphParams()));
-      return {
-        events,
-        lastBlock: lastSyncBlock
-      };
-    });
-  }
-  getEventsFromRpc(_0) {
-    return __async$d(this, arguments, function* ({
-      fromBlock,
-      toBlock
-    }) {
-      try {
-        if (!toBlock) {
-          toBlock = yield this.provider.getBlockNumber();
-        }
-        if (fromBlock >= toBlock) {
-          return {
-            events: [],
-            lastBlock: toBlock
-          };
-        }
-        this.updateEventProgress({ percentage: 0, type: this.getType() });
-        const events = yield this.formatEvents(
-          yield this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
-        );
-        return {
-          events,
           lastBlock: toBlock
         };
-      } catch (err) {
-        console.log(err);
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
       }
-    });
-  }
-  getLatestEvents(_0) {
-    return __async$d(this, arguments, function* ({ fromBlock }) {
-      var _a;
-      if (((_a = this.tovarishClient) == null ? void 0 : _a.selectedRelayer) && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
-        const { events, lastSyncBlock: lastBlock } = yield this.tovarishClient.getEvents({
-          type: this.getTovarishType(),
-          fromBlock
-        });
-        return {
-          events,
-          lastBlock
-        };
-      }
-      const graphEvents = yield this.getEventsFromGraph({ fromBlock });
-      const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
-      const rpcEvents = yield this.getEventsFromRpc({ fromBlock: lastSyncBlock });
+      this.updateEventProgress({ percentage: 0, type: this.getType() });
+      const events = await this.formatEvents(
+        await this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
+      );
       return {
-        events: [...graphEvents.events, ...rpcEvents.events],
-        lastBlock: rpcEvents.lastBlock
+        events,
+        lastBlock: toBlock
       };
-    });
+    } catch (err) {
+      console.log(err);
+      return {
+        events: [],
+        lastBlock: fromBlock
+      };
+    }
+  }
+  async getLatestEvents({ fromBlock }) {
+    if (this.tovarishClient?.selectedRelayer && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
+      const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
+        type: this.getTovarishType(),
+        fromBlock
+      });
+      return {
+        events,
+        lastBlock
+      };
+    }
+    const graphEvents = await this.getEventsFromGraph({ fromBlock });
+    const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
+    const rpcEvents = await this.getEventsFromRpc({ fromBlock: lastSyncBlock });
+    return {
+      events: [...graphEvents.events, ...rpcEvents.events],
+      lastBlock: rpcEvents.lastBlock
+    };
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   validateEvents({ events, lastBlock }) {
@@ -3162,47 +2916,46 @@ class BaseEventsService {
    * Handle saving events
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  saveEvents(_0) {
-    return __async$d(this, arguments, function* ({ events, lastBlock }) {
-    });
+  async saveEvents({ events, lastBlock }) {
   }
   /**
    * Trigger saving and receiving latest events
    */
-  updateEvents() {
-    return __async$d(this, null, function* () {
-      var _a;
-      const savedEvents = yield this.getSavedEvents();
-      let fromBlock = this.deployedBlock;
-      if (savedEvents && savedEvents.lastBlock) {
-        fromBlock = savedEvents.lastBlock + 1;
+  async updateEvents() {
+    const savedEvents = await this.getSavedEvents();
+    let fromBlock = this.deployedBlock;
+    if (savedEvents && savedEvents.lastBlock) {
+      fromBlock = savedEvents.lastBlock + 1;
+    }
+    const newEvents = await this.getLatestEvents({ fromBlock });
+    const eventSet = /* @__PURE__ */ new Set();
+    const allEvents = [...savedEvents.events, ...newEvents.events].sort((a, b) => {
+      if (a.blockNumber === b.blockNumber) {
+        return a.logIndex - b.logIndex;
       }
-      const newEvents = yield this.getLatestEvents({ fromBlock });
-      const eventSet = /* @__PURE__ */ new Set();
-      const allEvents = [...savedEvents.events, ...newEvents.events].sort((a, b) => {
-        if (a.blockNumber === b.blockNumber) {
-          return a.logIndex - b.logIndex;
-        }
-        return a.blockNumber - b.blockNumber;
-      }).filter(({ transactionHash, logIndex }) => {
-        const eventKey = `${transactionHash}_${logIndex}`;
-        const hasEvent = eventSet.has(eventKey);
-        eventSet.add(eventKey);
-        return !hasEvent;
-      });
-      const lastBlock = newEvents.lastBlock || ((_a = allEvents[allEvents.length - 1]) == null ? void 0 : _a.blockNumber);
-      this.validateEvents({ events: allEvents, lastBlock });
-      if (savedEvents.fromCache || newEvents.events.length) {
-        yield this.saveEvents({ events: allEvents, lastBlock });
-      }
-      return {
-        events: allEvents,
-        lastBlock
-      };
+      return a.blockNumber - b.blockNumber;
+    }).filter(({ transactionHash, logIndex }) => {
+      const eventKey = `${transactionHash}_${logIndex}`;
+      const hasEvent = eventSet.has(eventKey);
+      eventSet.add(eventKey);
+      return !hasEvent;
     });
+    const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
+    this.validateEvents({ events: allEvents, lastBlock });
+    if (savedEvents.fromCache || newEvents.events.length) {
+      await this.saveEvents({ events: allEvents, lastBlock });
+    }
+    return {
+      events: allEvents,
+      lastBlock
+    };
   }
 }
 class BaseTornadoService extends BaseEventsService {
+  amount;
+  currency;
+  batchTransactionService;
+  batchBlockService;
   constructor({
     netId,
     provider,
@@ -3254,53 +3007,53 @@ class BaseTornadoService extends BaseEventsService {
       onProgress: this.updateGraphProgress
     };
   }
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      const type = this.getType().toLowerCase();
-      if (type === DEPOSIT) {
-        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-          const { commitment, leafIndex, timestamp } = args;
-          return {
-            blockNumber,
-            logIndex,
-            transactionHash,
-            commitment,
-            leafIndex: Number(leafIndex),
-            timestamp: Number(timestamp)
-          };
-        });
-        const txs = yield this.batchTransactionService.getBatchTransactions([
-          ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash))
-        ]);
-        return formattedEvents.map((event) => {
-          const { from } = txs.find(({ hash }) => hash === event.transactionHash);
-          return __spreadProps$1(__spreadValues$2({}, event), {
-            from
-          });
-        });
-      } else {
-        const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-          const { nullifierHash, to, fee } = args;
-          return {
-            blockNumber,
-            logIndex,
-            transactionHash,
-            nullifierHash: String(nullifierHash),
-            to: getAddress(to),
-            fee: String(fee)
-          };
-        });
-        const blocks = yield this.batchBlockService.getBatchBlocks([
-          ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber))
-        ]);
-        return formattedEvents.map((event) => {
-          const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
-          return __spreadProps$1(__spreadValues$2({}, event), {
-            timestamp
-          });
-        });
-      }
-    });
+  async formatEvents(events) {
+    const type = this.getType().toLowerCase();
+    if (type === DEPOSIT) {
+      const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        const { commitment, leafIndex, timestamp } = args;
+        return {
+          blockNumber,
+          logIndex,
+          transactionHash,
+          commitment,
+          leafIndex: Number(leafIndex),
+          timestamp: Number(timestamp)
+        };
+      });
+      const txs = await this.batchTransactionService.getBatchTransactions([
+        ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash))
+      ]);
+      return formattedEvents.map((event) => {
+        const { from } = txs.find(({ hash }) => hash === event.transactionHash);
+        return {
+          ...event,
+          from
+        };
+      });
+    } else {
+      const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        const { nullifierHash, to, fee } = args;
+        return {
+          blockNumber,
+          logIndex,
+          transactionHash,
+          nullifierHash: String(nullifierHash),
+          to: getAddress(to),
+          fee: String(fee)
+        };
+      });
+      const blocks = await this.batchBlockService.getBatchBlocks([
+        ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber))
+      ]);
+      return formattedEvents.map((event) => {
+        const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
+        return {
+          ...event,
+          timestamp
+        };
+      });
+    }
   }
   validateEvents({ events }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
@@ -3311,23 +3064,20 @@ class BaseTornadoService extends BaseEventsService {
       }
     }
   }
-  getLatestEvents(_0) {
-    return __async$d(this, arguments, function* ({ fromBlock }) {
-      var _a;
-      if ((_a = this.tovarishClient) == null ? void 0 : _a.selectedRelayer) {
-        const { events, lastSyncBlock: lastBlock } = yield this.tovarishClient.getEvents({
-          type: this.getTovarishType(),
-          currency: this.currency,
-          amount: this.amount,
-          fromBlock
-        });
-        return {
-          events,
-          lastBlock
-        };
-      }
-      return __superGet$1(BaseTornadoService.prototype, this, "getLatestEvents").call(this, { fromBlock });
-    });
+  async getLatestEvents({ fromBlock }) {
+    if (this.tovarishClient?.selectedRelayer) {
+      const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
+        type: this.getTovarishType(),
+        currency: this.currency,
+        amount: this.amount,
+        fromBlock
+      });
+      return {
+        events,
+        lastBlock
+      };
+    }
+    return super.getLatestEvents({ fromBlock });
   }
 }
 class BaseEchoService extends BaseEventsService {
@@ -3347,6 +3097,7 @@ class BaseEchoService extends BaseEventsService {
       graphApi,
       subgraphName,
       contract: Echoer,
+      type: "Echo",
       deployedBlock,
       fetchDataOptions: fetchDataOptions2,
       tovarishClient
@@ -3355,40 +3106,34 @@ class BaseEchoService extends BaseEventsService {
   getInstanceName() {
     return `echo_${this.netId}`;
   }
-  getType() {
-    return "Echo";
-  }
   getGraphMethod() {
     return "getAllGraphEchoEvents";
   }
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const { who, data } = args;
-        if (who && data) {
-          const eventObjects = {
-            blockNumber,
-            logIndex,
-            transactionHash
-          };
-          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-            address: who,
-            encryptedAccount: data
-          });
-        }
-      }).filter((e) => e);
-    });
-  }
-  getEventsFromGraph(_0) {
-    return __async$d(this, arguments, function* ({ fromBlock }) {
-      if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
+  async formatEvents(events) {
+    return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const { who, data } = args;
+      if (who && data) {
+        const eventObjects = {
+          blockNumber,
+          logIndex,
+          transactionHash
+        };
         return {
-          events: [],
-          lastBlock: fromBlock
+          ...eventObjects,
+          address: who,
+          encryptedAccount: data
         };
       }
-      return __superGet$1(BaseEchoService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
-    });
+    }).filter((e) => e);
+  }
+  async getEventsFromGraph({ fromBlock }) {
+    if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
+      return {
+        events: [],
+        lastBlock: fromBlock
+      };
+    }
+    return super.getEventsFromGraph({ fromBlock });
   }
 }
 class BaseEncryptedNotesService extends BaseEventsService {
@@ -3408,6 +3153,7 @@ class BaseEncryptedNotesService extends BaseEventsService {
       graphApi,
       subgraphName,
       contract: Router,
+      type: "EncryptedNote",
       deployedBlock,
       fetchDataOptions: fetchDataOptions2,
       tovarishClient
@@ -3416,34 +3162,31 @@ class BaseEncryptedNotesService extends BaseEventsService {
   getInstanceName() {
     return `encrypted_notes_${this.netId}`;
   }
-  getType() {
-    return "EncryptedNote";
-  }
   getTovarishType() {
     return "encrypted_notes";
   }
   getGraphMethod() {
     return "getAllEncryptedNotes";
   }
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const { encryptedNote } = args;
-        if (encryptedNote && encryptedNote !== "0x") {
-          const eventObjects = {
-            blockNumber,
-            logIndex,
-            transactionHash
-          };
-          return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-            encryptedNote
-          });
-        }
-      }).filter((e) => e);
-    });
+  async formatEvents(events) {
+    return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const { encryptedNote } = args;
+      if (encryptedNote && encryptedNote !== "0x") {
+        const eventObjects = {
+          blockNumber,
+          logIndex,
+          transactionHash
+        };
+        return {
+          ...eventObjects,
+          encryptedNote
+        };
+      }
+    }).filter((e) => e);
   }
 }
 class BaseGovernanceService extends BaseEventsService {
+  batchTransactionService;
   constructor({
     netId,
     provider,
@@ -3460,6 +3203,7 @@ class BaseGovernanceService extends BaseEventsService {
       graphApi,
       subgraphName,
       contract: Governance,
+      type: "*",
       deployedBlock,
       fetchDataOptions: fetchDataOptions2,
       tovarishClient
@@ -3472,113 +3216,108 @@ class BaseGovernanceService extends BaseEventsService {
   getInstanceName() {
     return `governance_${this.netId}`;
   }
-  getType() {
-    return "*";
-  }
   getTovarishType() {
     return "governance";
   }
   getGraphMethod() {
     return "getAllGovernanceEvents";
   }
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      const proposalEvents = [];
-      const votedEvents = [];
-      const delegatedEvents = [];
-      const undelegatedEvents = [];
-      events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
-        const eventObjects = {
-          blockNumber,
-          logIndex,
-          transactionHash,
-          event
-        };
-        if (event === "ProposalCreated") {
-          const { id, proposer, target, startTime, endTime, description } = args;
-          proposalEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            id: Number(id),
-            proposer,
-            target,
-            startTime: Number(startTime),
-            endTime: Number(endTime),
-            description
-          }));
-        }
-        if (event === "Voted") {
-          const { proposalId, voter, support, votes } = args;
-          votedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            proposalId: Number(proposalId),
-            voter,
-            support,
-            votes,
-            from: "",
-            input: ""
-          }));
-        }
-        if (event === "Delegated") {
-          const { account, to: delegateTo } = args;
-          delegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            account,
-            delegateTo
-          }));
-        }
-        if (event === "Undelegated") {
-          const { account, from: delegateFrom } = args;
-          undelegatedEvents.push(__spreadProps$1(__spreadValues$2({}, eventObjects), {
-            account,
-            delegateFrom
-          }));
-        }
-      });
-      if (votedEvents.length) {
-        this.updateTransactionProgress({ percentage: 0 });
-        const txs = yield this.batchTransactionService.getBatchTransactions([
-          ...new Set(votedEvents.map(({ transactionHash }) => transactionHash))
-        ]);
-        votedEvents.forEach((event, index) => {
-          let { data: input, from } = txs.find((t) => t.hash === event.transactionHash);
-          if (!input || input.length > 2048) {
-            input = "";
-          }
-          votedEvents[index].from = from;
-          votedEvents[index].input = input;
+  async formatEvents(events) {
+    const proposalEvents = [];
+    const votedEvents = [];
+    const delegatedEvents = [];
+    const undelegatedEvents = [];
+    events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
+      const eventObjects = {
+        blockNumber,
+        logIndex,
+        transactionHash,
+        event
+      };
+      if (event === "ProposalCreated") {
+        const { id, proposer, target, startTime, endTime, description } = args;
+        proposalEvents.push({
+          ...eventObjects,
+          id: Number(id),
+          proposer,
+          target,
+          startTime: Number(startTime),
+          endTime: Number(endTime),
+          description
         });
       }
-      return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
-    });
-  }
-  getEventsFromGraph(_0) {
-    return __async$d(this, arguments, function* ({ fromBlock }) {
-      if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
-        return {
-          events: [],
-          lastBlock: fromBlock
-        };
+      if (event === "Voted") {
+        const { proposalId, voter, support, votes } = args;
+        votedEvents.push({
+          ...eventObjects,
+          proposalId: Number(proposalId),
+          voter,
+          support,
+          votes,
+          from: "",
+          input: ""
+        });
       }
-      return __superGet$1(BaseGovernanceService.prototype, this, "getEventsFromGraph").call(this, { fromBlock });
+      if (event === "Delegated") {
+        const { account, to: delegateTo } = args;
+        delegatedEvents.push({
+          ...eventObjects,
+          account,
+          delegateTo
+        });
+      }
+      if (event === "Undelegated") {
+        const { account, from: delegateFrom } = args;
+        undelegatedEvents.push({
+          ...eventObjects,
+          account,
+          delegateFrom
+        });
+      }
     });
+    if (votedEvents.length) {
+      this.updateTransactionProgress({ percentage: 0 });
+      const txs = await this.batchTransactionService.getBatchTransactions([
+        ...new Set(votedEvents.map(({ transactionHash }) => transactionHash))
+      ]);
+      votedEvents.forEach((event, index) => {
+        let { data: input, from } = txs.find((t) => t.hash === event.transactionHash);
+        if (!input || input.length > 2048) {
+          input = "";
+        }
+        votedEvents[index].from = from;
+        votedEvents[index].input = input;
+      });
+    }
+    return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
+  }
+  async getEventsFromGraph({ fromBlock }) {
+    if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
+      return {
+        events: [],
+        lastBlock: fromBlock
+      };
+    }
+    return super.getEventsFromGraph({ fromBlock });
   }
 }
-function getTovarishNetworks(registryService, relayers) {
-  return __async$d(this, null, function* () {
-    yield Promise.all(
-      relayers.filter((r) => r.tovarishHost).map((relayer) => __async$d(this, null, function* () {
-        var _a;
-        try {
-          relayer.tovarishNetworks = yield fetchData(relayer.tovarishHost, __spreadProps$1(__spreadValues$2({}, registryService.fetchDataOptions), {
-            headers: {
-              "Content-Type": "application/json"
-            },
-            timeout: 6e4,
-            maxRetry: ((_a = registryService.fetchDataOptions) == null ? void 0 : _a.torPort) ? 2 : 0
-          }));
-        } catch (e) {
-          relayer.tovarishNetworks = [];
-        }
-      }))
-    );
-  });
+async function getTovarishNetworks(registryService, relayers) {
+  await Promise.all(
+    relayers.filter((r) => r.tovarishHost).map(async (relayer) => {
+      try {
+        relayer.tovarishNetworks = await fetchData(relayer.tovarishHost, {
+          ...registryService.fetchDataOptions,
+          headers: {
+            "Content-Type": "application/json"
+          },
+          timeout: 3e4,
+          maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0
+        });
+      } catch {
+        relayer.tovarishNetworks = [];
+      }
+    })
+  );
 }
 const staticRelayers = [
   {
@@ -3590,6 +3329,9 @@ const staticRelayers = [
   }
 ];
 class BaseRegistryService extends BaseEventsService {
+  Aggregator;
+  relayerEnsSubdomains;
+  updateInterval;
   constructor({
     netId,
     provider,
@@ -3608,6 +3350,7 @@ class BaseRegistryService extends BaseEventsService {
       graphApi,
       subgraphName,
       contract: RelayerRegistry,
+      type: "RelayerRegistered",
       deployedBlock,
       fetchDataOptions: fetchDataOptions2,
       tovarishClient
@@ -3619,10 +3362,6 @@ class BaseRegistryService extends BaseEventsService {
   getInstanceName() {
     return `registered_${this.netId}`;
   }
-  // Name of type used for events
-  getType() {
-    return "RelayerRegistered";
-  }
   getTovarishType() {
     return "registered";
   }
@@ -3630,159 +3369,126 @@ class BaseRegistryService extends BaseEventsService {
   getGraphMethod() {
     return "getAllRegisters";
   }
-  formatEvents(events) {
-    return __async$d(this, null, function* () {
-      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
-        const eventObjects = {
-          blockNumber,
-          logIndex,
-          transactionHash
-        };
-        return __spreadProps$1(__spreadValues$2({}, eventObjects), {
-          ensName: args.ensName,
-          relayerAddress: args.relayerAddress
-        });
-      });
+  async formatEvents(events) {
+    return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const eventObjects = {
+        blockNumber,
+        logIndex,
+        transactionHash
+      };
+      return {
+        ...eventObjects,
+        ensName: args.ensName,
+        relayerAddress: args.relayerAddress
+      };
     });
   }
   /**
    * Get saved or cached relayers
    */
-  getRelayersFromDB() {
-    return __async$d(this, null, function* () {
-      return {
-        lastBlock: 0,
-        timestamp: 0,
-        relayers: []
-      };
-    });
+  async getRelayersFromDB() {
+    return {
+      lastBlock: 0,
+      timestamp: 0,
+      relayers: []
+    };
   }
   /**
    * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
    */
-  getRelayersFromCache() {
-    return __async$d(this, null, function* () {
-      return {
-        lastBlock: 0,
-        timestamp: 0,
-        relayers: [],
-        fromCache: true
-      };
-    });
+  async getRelayersFromCache() {
+    return {
+      lastBlock: 0,
+      timestamp: 0,
+      relayers: [],
+      fromCache: true
+    };
   }
-  getSavedRelayers() {
-    return __async$d(this, null, function* () {
-      let cachedRelayers = yield this.getRelayersFromDB();
-      if (!cachedRelayers || !cachedRelayers.relayers.length) {
-        cachedRelayers = yield this.getRelayersFromCache();
+  async getSavedRelayers() {
+    let cachedRelayers = await this.getRelayersFromDB();
+    if (!cachedRelayers || !cachedRelayers.relayers.length) {
+      cachedRelayers = await this.getRelayersFromCache();
+    }
+    return cachedRelayers;
+  }
+  async getLatestRelayers() {
+    const { events, lastBlock } = await this.updateEvents();
+    const subdomains = Object.values(this.relayerEnsSubdomains);
+    const registerSet = /* @__PURE__ */ new Set();
+    const uniqueRegisters = events.filter(({ ensName }) => {
+      if (!registerSet.has(ensName)) {
+        registerSet.add(ensName);
+        return true;
       }
-      return cachedRelayers;
+      return false;
     });
-  }
-  getLatestRelayers() {
-    return __async$d(this, null, function* () {
-      const { events, lastBlock } = yield this.updateEvents();
-      const subdomains = Object.values(this.relayerEnsSubdomains);
-      const registerSet = /* @__PURE__ */ new Set();
-      const uniqueRegisters = events.filter(({ ensName }) => {
-        if (!registerSet.has(ensName)) {
-          registerSet.add(ensName);
-          return true;
-        }
-        return false;
-      });
-      const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
-      const [relayersData, timestamp] = yield Promise.all([
-        this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat("tovarish-relayer")),
-        this.provider.getBlock(lastBlock).then((b) => Number(b == null ? void 0 : b.timestamp))
-      ]);
-      const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
-        const { ensName, relayerAddress } = uniqueRegisters[index];
-        let tovarishHost = void 0;
-        const hostnames = records.reduce((acc, record, recordIndex) => {
-          if (record) {
-            if (recordIndex === records.length - 1) {
-              tovarishHost = record;
-              return acc;
-            }
-            acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+    const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
+    const [relayersData, timestamp] = await Promise.all([
+      this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat("tovarish-relayer")),
+      this.provider.getBlock(lastBlock).then((b) => Number(b?.timestamp))
+    ]);
+    const relayers = relayersData.map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
+      const { ensName, relayerAddress } = uniqueRegisters[index];
+      let tovarishHost = void 0;
+      const hostnames = records.reduce((acc, record, recordIndex) => {
+        if (record) {
+          if (recordIndex === records.length - 1) {
+            tovarishHost = record;
+            return acc;
           }
-          return acc;
-        }, {});
-        const isOwner = !relayerAddress || relayerAddress === owner;
-        const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
-        const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
-        if (preCondition) {
-          return {
-            ensName,
-            relayerAddress,
-            isRegistered,
-            owner,
-            stakeBalance: formatEther(stakeBalance),
-            hostnames,
-            tovarishHost
-          };
+          acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
         }
-      }).filter((r) => r);
-      yield getTovarishNetworks(this, relayers);
-      const allRelayers = [...staticRelayers, ...relayers];
-      const tovarishRelayers = allRelayers.filter((r) => r.tovarishHost);
-      const classicRelayers = allRelayers.filter((r) => !r.tovarishHost);
-      return {
-        lastBlock,
-        timestamp,
-        relayers: [...tovarishRelayers, ...classicRelayers]
-      };
-    });
+        return acc;
+      }, {});
+      const isOwner = !relayerAddress || relayerAddress === owner;
+      const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+      const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
+      if (preCondition) {
+        return {
+          ensName,
+          relayerAddress,
+          isRegistered,
+          owner,
+          stakeBalance: formatEther(stakeBalance),
+          hostnames,
+          tovarishHost
+        };
+      }
+    }).filter((r) => r);
+    await getTovarishNetworks(this, relayers);
+    const allRelayers = [...staticRelayers, ...relayers];
+    const tovarishRelayers = allRelayers.filter((r) => r.tovarishHost);
+    const classicRelayers = allRelayers.filter((r) => !r.tovarishHost);
+    return {
+      lastBlock,
+      timestamp,
+      relayers: [...tovarishRelayers, ...classicRelayers]
+    };
   }
   /**
    * Handle saving relayers
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  saveRelayers(_0) {
-    return __async$d(this, arguments, function* ({ lastBlock, timestamp, relayers }) {
-    });
+  async saveRelayers({ lastBlock, timestamp, relayers }) {
   }
   /**
    * Get cached or latest relayer and save to local
    */
-  updateRelayers() {
-    return __async$d(this, null, function* () {
-      let { lastBlock, timestamp, relayers, fromCache } = yield this.getSavedRelayers();
-      let shouldSave = fromCache != null ? fromCache : false;
-      if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
-        console.log("\nUpdating relayers from registry\n");
-        ({ lastBlock, timestamp, relayers } = yield this.getLatestRelayers());
-        shouldSave = true;
-      }
-      if (shouldSave) {
-        yield this.saveRelayers({ lastBlock, timestamp, relayers });
-      }
-      return { lastBlock, timestamp, relayers };
-    });
+  async updateRelayers() {
+    let { lastBlock, timestamp, relayers, fromCache } = await this.getSavedRelayers();
+    let shouldSave = fromCache ?? false;
+    if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1e3)) {
+      console.log("\nUpdating relayers from registry\n");
+      ({ lastBlock, timestamp, relayers } = await this.getLatestRelayers());
+      shouldSave = true;
+    }
+    if (shouldSave) {
+      await this.saveRelayers({ lastBlock, timestamp, relayers });
+    }
+    return { lastBlock, timestamp, relayers };
   }
 }
 
-var __async$c = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 function zipAsync(file) {
   return new Promise((res, rej) => {
     zip(file, { mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
@@ -3805,177 +3511,145 @@ function unzipAsync(data) {
     });
   });
 }
-function downloadZip(_0) {
-  return __async$c(this, arguments, function* ({
-    staticUrl = "",
-    zipName,
-    zipDigest,
-    parseJson = true
-  }) {
-    const url = `${staticUrl}/${zipName}.zip`;
-    const resp = yield fetchData(url, {
-      method: "GET",
-      returnResponse: true
-    });
-    const data = new Uint8Array(yield resp.arrayBuffer());
-    if (zipDigest) {
-      const hash = "sha384-" + bytesToBase64(yield digest(data));
-      if (zipDigest !== hash) {
-        const errMsg = `Invalid digest hash for file ${url}, wants ${zipDigest} has ${hash}`;
-        throw new Error(errMsg);
-      }
-    }
-    const { [zipName]: content } = yield unzipAsync(data);
-    console.log(`Downloaded ${url}${zipDigest ? ` ( Digest: ${zipDigest} )` : ""}`);
-    if (parseJson) {
-      return JSON.parse(new TextDecoder().decode(content));
-    }
-    return content;
+async function downloadZip({
+  staticUrl = "",
+  zipName,
+  zipDigest,
+  parseJson = true
+}) {
+  const url = `${staticUrl}/${zipName}.zip`;
+  const resp = await fetchData(url, {
+    method: "GET",
+    returnResponse: true
   });
+  const data = new Uint8Array(await resp.arrayBuffer());
+  if (zipDigest) {
+    const hash = "sha384-" + bytesToBase64(await digest(data));
+    if (zipDigest !== hash) {
+      const errMsg = `Invalid digest hash for file ${url}, wants ${zipDigest} has ${hash}`;
+      throw new Error(errMsg);
+    }
+  }
+  const { [zipName]: content } = await unzipAsync(data);
+  console.log(`Downloaded ${url}${zipDigest ? ` ( Digest: ${zipDigest} )` : ""}`);
+  if (parseJson) {
+    return JSON.parse(new TextDecoder().decode(content));
+  }
+  return content;
 }
 
-var __async$b = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function saveDBEvents(_0) {
-  return __async$b(this, arguments, function* ({
-    idb,
-    instanceName,
-    events,
-    lastBlock
-  }) {
-    try {
-      yield idb.createMultipleTransactions({
-        data: events,
-        storeName: instanceName
-      });
-      yield idb.putItem({
-        data: {
-          blockNumber: lastBlock,
-          name: instanceName
-        },
-        storeName: "lastEvents"
-      });
-    } catch (err) {
-      console.log("Method saveDBEvents has error");
-      console.log(err);
-    }
-  });
+async function saveDBEvents({
+  idb,
+  instanceName,
+  events,
+  lastBlock
+}) {
+  try {
+    await idb.createMultipleTransactions({
+      data: events,
+      storeName: instanceName
+    });
+    await idb.putItem({
+      data: {
+        blockNumber: lastBlock,
+        name: instanceName
+      },
+      storeName: "lastEvents"
+    });
+  } catch (err) {
+    console.log("Method saveDBEvents has error");
+    console.log(err);
+  }
 }
-function loadDBEvents(_0) {
-  return __async$b(this, arguments, function* ({
-    idb,
-    instanceName
-  }) {
-    try {
-      const lastBlockStore = yield idb.getItem({
-        storeName: "lastEvents",
-        key: instanceName
-      });
-      if (!(lastBlockStore == null ? void 0 : lastBlockStore.blockNumber)) {
-        return {
-          events: [],
-          lastBlock: 0
-        };
-      }
-      return {
-        events: yield idb.getAll({ storeName: instanceName }),
-        lastBlock: lastBlockStore.blockNumber
-      };
-    } catch (err) {
-      console.log("Method loadDBEvents has error");
-      console.log(err);
+async function loadDBEvents({
+  idb,
+  instanceName
+}) {
+  try {
+    const lastBlockStore = await idb.getItem({
+      storeName: "lastEvents",
+      key: instanceName
+    });
+    if (!lastBlockStore?.blockNumber) {
       return {
         events: [],
         lastBlock: 0
       };
     }
-  });
+    return {
+      events: await idb.getAll({ storeName: instanceName }),
+      lastBlock: lastBlockStore.blockNumber
+    };
+  } catch (err) {
+    console.log("Method loadDBEvents has error");
+    console.log(err);
+    return {
+      events: [],
+      lastBlock: 0
+    };
+  }
 }
-function loadRemoteEvents(_0) {
-  return __async$b(this, arguments, function* ({
-    staticUrl,
-    instanceName,
-    deployedBlock,
-    zipDigest
-  }) {
-    var _a;
-    try {
-      const zipName = `${instanceName}.json`.toLowerCase();
-      const events = yield downloadZip({
-        staticUrl,
-        zipName,
-        zipDigest
-      });
-      if (!Array.isArray(events)) {
-        const errStr = `Invalid events from ${staticUrl}/${zipName}`;
-        throw new Error(errStr);
-      }
-      return {
-        events,
-        lastBlock: ((_a = events[events.length - 1]) == null ? void 0 : _a.blockNumber) || deployedBlock,
-        fromCache: true
-      };
-    } catch (err) {
-      console.log("Method loadRemoteEvents has error");
-      console.log(err);
-      return {
-        events: [],
-        lastBlock: deployedBlock,
-        fromCache: true
-      };
+async function loadRemoteEvents({
+  staticUrl,
+  instanceName,
+  deployedBlock,
+  zipDigest
+}) {
+  try {
+    const zipName = `${instanceName}.json`.toLowerCase();
+    const events = await downloadZip({
+      staticUrl,
+      zipName,
+      zipDigest
+    });
+    if (!Array.isArray(events)) {
+      const errStr = `Invalid events from ${staticUrl}/${zipName}`;
+      throw new Error(errStr);
     }
-  });
+    return {
+      events,
+      lastBlock: events[events.length - 1]?.blockNumber || deployedBlock,
+      fromCache: true
+    };
+  } catch (err) {
+    console.log("Method loadRemoteEvents has error");
+    console.log(err);
+    return {
+      events: [],
+      lastBlock: deployedBlock,
+      fromCache: true
+    };
+  }
 }
 class DBTornadoService extends BaseTornadoService {
+  staticUrl;
+  idb;
+  zipDigest;
   constructor(params) {
     super(params);
     this.staticUrl = params.staticUrl;
     this.idb = params.idb;
   }
-  getEventsFromDB() {
-    return __async$b(this, null, function* () {
-      return yield loadDBEvents({
-        idb: this.idb,
-        instanceName: this.getInstanceName()
-      });
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
     });
   }
-  getEventsFromCache() {
-    return __async$b(this, null, function* () {
-      return yield loadRemoteEvents({
-        staticUrl: this.staticUrl,
-        instanceName: this.getInstanceName(),
-        deployedBlock: this.deployedBlock,
-        zipDigest: this.zipDigest
-      });
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
     });
   }
-  saveEvents(_0) {
-    return __async$b(this, arguments, function* ({ events, lastBlock }) {
-      yield saveDBEvents({
-        idb: this.idb,
-        instanceName: this.getInstanceName(),
-        events,
-        lastBlock
-      });
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
     });
   }
 }
@@ -4662,6 +4336,7 @@ const _abi$5 = [
   }
 ];
 class ENS__factory {
+  static abi = _abi$5;
   static createInterface() {
     return new Interface(_abi$5);
   }
@@ -4669,7 +4344,6 @@ class ENS__factory {
     return new Contract(address, _abi$5, runner);
   }
 }
-ENS__factory.abi = _abi$5;
 
 const _abi$4 = [
   {
@@ -4973,6 +4647,7 @@ const _abi$4 = [
   }
 ];
 class ERC20__factory {
+  static abi = _abi$4;
   static createInterface() {
     return new Interface(_abi$4);
   }
@@ -4980,7 +4655,6 @@ class ERC20__factory {
     return new Contract(address, _abi$4, runner);
   }
 }
-ERC20__factory.abi = _abi$4;
 
 const _abi$3 = [
   {
@@ -5423,6 +5097,7 @@ const _abi$3 = [
   }
 ];
 class Multicall__factory {
+  static abi = _abi$3;
   static createInterface() {
     return new Interface(_abi$3);
   }
@@ -5430,7 +5105,6 @@ class Multicall__factory {
     return new Contract(address, _abi$3, runner);
   }
 }
-Multicall__factory.abi = _abi$3;
 
 const _abi$2 = [
   {
@@ -5948,6 +5622,7 @@ const _abi$2 = [
   }
 ];
 class OffchainOracle__factory {
+  static abi = _abi$2;
   static createInterface() {
     return new Interface(_abi$2);
   }
@@ -5955,7 +5630,6 @@ class OffchainOracle__factory {
     return new Contract(address, _abi$2, runner);
   }
 }
-OffchainOracle__factory.abi = _abi$2;
 
 const _abi$1 = [
   {
@@ -6256,6 +5930,7 @@ const _abi$1 = [
   }
 ];
 class OvmGasPriceOracle__factory {
+  static abi = _abi$1;
   static createInterface() {
     return new Interface(_abi$1);
   }
@@ -6263,7 +5938,6 @@ class OvmGasPriceOracle__factory {
     return new Contract(address, _abi$1, runner);
   }
 }
-OvmGasPriceOracle__factory.abi = _abi$1;
 
 const _abi = [
   {
@@ -6298,6 +5972,7 @@ const _abi = [
   }
 ];
 class ReverseRecords__factory {
+  static abi = _abi;
   static createInterface() {
     return new Interface(_abi);
   }
@@ -6305,7 +5980,6 @@ class ReverseRecords__factory {
     return new Contract(address, _abi, runner);
   }
 }
-ReverseRecords__factory.abi = _abi;
 
 var index = /*#__PURE__*/Object.freeze({
   __proto__: null,
@@ -6317,95 +5991,58 @@ var index = /*#__PURE__*/Object.freeze({
   ReverseRecords__factory: ReverseRecords__factory
 });
 
-var __async$a = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class Pedersen {
+  pedersenHash;
+  babyJub;
+  pedersenPromise;
   constructor() {
     this.pedersenPromise = this.initPedersen();
   }
-  initPedersen() {
-    return __async$a(this, null, function* () {
-      this.pedersenHash = yield buildPedersenHash();
-      this.babyJub = this.pedersenHash.babyJub;
-    });
+  async initPedersen() {
+    this.pedersenHash = await buildPedersenHash();
+    this.babyJub = this.pedersenHash.babyJub;
   }
-  unpackPoint(buffer) {
-    return __async$a(this, null, function* () {
-      var _a, _b;
-      yield this.pedersenPromise;
-      return (_b = this.babyJub) == null ? void 0 : _b.unpackPoint((_a = this.pedersenHash) == null ? void 0 : _a.hash(buffer));
-    });
+  async unpackPoint(buffer) {
+    await this.pedersenPromise;
+    return this.babyJub?.unpackPoint(this.pedersenHash?.hash(buffer));
   }
   toStringBuffer(buffer) {
-    var _a;
-    return (_a = this.babyJub) == null ? void 0 : _a.F.toString(buffer);
+    return this.babyJub?.F.toString(buffer);
   }
 }
 const pedersen = new Pedersen();
-function buffPedersenHash(buffer) {
-  return __async$a(this, null, function* () {
-    const [hash] = yield pedersen.unpackPoint(buffer);
-    return pedersen.toStringBuffer(hash);
-  });
+async function buffPedersenHash(buffer) {
+  const [hash] = await pedersen.unpackPoint(buffer);
+  return pedersen.toStringBuffer(hash);
 }
 
-var __async$9 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function createDeposit(_0) {
-  return __async$9(this, arguments, function* ({ nullifier, secret }) {
-    const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
-    const noteHex = toFixedHex(bytesToBN(preimage), 62);
-    const commitment = BigInt(yield buffPedersenHash(preimage));
-    const commitmentHex = toFixedHex(commitment);
-    const nullifierHash = BigInt(yield buffPedersenHash(leInt2Buff(nullifier)));
-    const nullifierHex = toFixedHex(nullifierHash);
-    return {
-      preimage,
-      noteHex,
-      commitment,
-      commitmentHex,
-      nullifierHash,
-      nullifierHex
-    };
-  });
+async function createDeposit({ nullifier, secret }) {
+  const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
+  const noteHex = toFixedHex(bytesToBN(preimage), 62);
+  const commitment = BigInt(await buffPedersenHash(preimage));
+  const commitmentHex = toFixedHex(commitment);
+  const nullifierHash = BigInt(await buffPedersenHash(leInt2Buff(nullifier)));
+  const nullifierHex = toFixedHex(nullifierHash);
+  return {
+    preimage,
+    noteHex,
+    commitment,
+    commitmentHex,
+    nullifierHash,
+    nullifierHex
+  };
 }
 class Deposit {
+  currency;
+  amount;
+  netId;
+  nullifier;
+  secret;
+  note;
+  noteHex;
+  invoice;
+  commitmentHex;
+  nullifierHex;
   constructor({
     currency,
     amount,
@@ -6447,73 +6084,74 @@ class Deposit {
       2
     );
   }
-  static createNote(_0) {
-    return __async$9(this, arguments, function* ({ currency, amount, netId, nullifier, secret }) {
-      if (!nullifier) {
-        nullifier = rBigInt(31);
-      }
-      if (!secret) {
-        secret = rBigInt(31);
-      }
-      const depositObject = yield createDeposit({
-        nullifier,
-        secret
-      });
-      const newDeposit = new Deposit({
-        currency: currency.toLowerCase(),
-        amount,
-        netId,
-        note: `tornado-${currency.toLowerCase()}-${amount}-${netId}-${depositObject.noteHex}`,
-        noteHex: depositObject.noteHex,
-        invoice: `tornadoInvoice-${currency.toLowerCase()}-${amount}-${netId}-${depositObject.commitmentHex}`,
-        nullifier,
-        secret,
-        commitmentHex: depositObject.commitmentHex,
-        nullifierHex: depositObject.nullifierHex
-      });
-      return newDeposit;
+  static async createNote({ currency, amount, netId, nullifier, secret }) {
+    if (!nullifier) {
+      nullifier = rBigInt(31);
+    }
+    if (!secret) {
+      secret = rBigInt(31);
+    }
+    const depositObject = await createDeposit({
+      nullifier,
+      secret
     });
+    const newDeposit = new Deposit({
+      currency: currency.toLowerCase(),
+      amount,
+      netId,
+      note: `tornado-${currency.toLowerCase()}-${amount}-${netId}-${depositObject.noteHex}`,
+      noteHex: depositObject.noteHex,
+      invoice: `tornadoInvoice-${currency.toLowerCase()}-${amount}-${netId}-${depositObject.commitmentHex}`,
+      nullifier,
+      secret,
+      commitmentHex: depositObject.commitmentHex,
+      nullifierHex: depositObject.nullifierHex
+    });
+    return newDeposit;
   }
-  static parseNote(noteString) {
-    return __async$9(this, null, function* () {
-      const noteRegex = new RegExp("tornado-(?<currency>\\w+)-(?<amount>[\\d.]+)-(?<netId>\\d+)-0x(?<note>[0-9a-fA-F]{124})", "g");
-      const match = noteRegex.exec(noteString);
-      if (!match) {
-        throw new Error("The note has invalid format");
-      }
-      const matchGroup = match == null ? void 0 : match.groups;
-      const currency = matchGroup.currency.toLowerCase();
-      const amount = matchGroup.amount;
-      const netId = Number(matchGroup.netId);
-      const bytes = bnToBytes("0x" + matchGroup.note);
-      const nullifier = BigInt(leBuff2Int(bytes.slice(0, 31)).toString());
-      const secret = BigInt(leBuff2Int(bytes.slice(31, 62)).toString());
-      const depositObject = yield createDeposit({ nullifier, secret });
-      const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${depositObject.commitmentHex}`;
-      const newDeposit = new Deposit({
-        currency,
-        amount,
-        netId,
-        note: noteString,
-        noteHex: depositObject.noteHex,
-        invoice,
-        nullifier,
-        secret,
-        commitmentHex: depositObject.commitmentHex,
-        nullifierHex: depositObject.nullifierHex
-      });
-      return newDeposit;
+  static async parseNote(noteString) {
+    const noteRegex = /tornado-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<note>[0-9a-fA-F]{124})/g;
+    const match = noteRegex.exec(noteString);
+    if (!match) {
+      throw new Error("The note has invalid format");
+    }
+    const matchGroup = match?.groups;
+    const currency = matchGroup.currency.toLowerCase();
+    const amount = matchGroup.amount;
+    const netId = Number(matchGroup.netId);
+    const bytes = bnToBytes("0x" + matchGroup.note);
+    const nullifier = BigInt(leBuff2Int(bytes.slice(0, 31)).toString());
+    const secret = BigInt(leBuff2Int(bytes.slice(31, 62)).toString());
+    const depositObject = await createDeposit({ nullifier, secret });
+    const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${depositObject.commitmentHex}`;
+    const newDeposit = new Deposit({
+      currency,
+      amount,
+      netId,
+      note: noteString,
+      noteHex: depositObject.noteHex,
+      invoice,
+      nullifier,
+      secret,
+      commitmentHex: depositObject.commitmentHex,
+      nullifierHex: depositObject.nullifierHex
     });
+    return newDeposit;
   }
 }
 class Invoice {
+  currency;
+  amount;
+  netId;
+  commitment;
+  invoice;
   constructor(invoiceString) {
-    const invoiceRegex = new RegExp("tornadoInvoice-(?<currency>\\w+)-(?<amount>[\\d.]+)-(?<netId>\\d+)-0x(?<commitment>[0-9a-fA-F]{64})", "g");
+    const invoiceRegex = /tornadoInvoice-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<commitment>[0-9a-fA-F]{64})/g;
     const match = invoiceRegex.exec(invoiceString);
     if (!match) {
       throw new Error("The note has invalid format");
     }
-    const matchGroup = match == null ? void 0 : match.groups;
+    const matchGroup = match?.groups;
     const currency = matchGroup.currency.toLowerCase();
     const amount = matchGroup.amount;
     const netId = Number(matchGroup.netId);
@@ -6559,6 +6197,16 @@ function unpackEncryptedMessage(encryptedMessage) {
   };
 }
 class NoteAccount {
+  netId;
+  blockNumber;
+  // Dedicated 32 bytes private key only used for note encryption, backed up to an Echoer and local for future derivation
+  // Note that unlike the private key it shouldn't have the 0x prefix
+  recoveryKey;
+  // Address derived from recoveryKey, only used for frontend UI
+  recoveryAddress;
+  // Note encryption public key derived from recoveryKey
+  recoveryPublicKey;
+  Echoer;
   constructor({ netId, blockNumber, recoveryKey, Echoer: Echoer2 }) {
     if (!recoveryKey) {
       recoveryKey = bytesToHex(crypto.getRandomValues(new Uint8Array(32))).slice(2);
@@ -6624,7 +6272,7 @@ class NoteAccount {
             Echoer: this.Echoer
           })
         );
-      } catch (e) {
+      } catch {
         continue;
       }
     }
@@ -6644,7 +6292,7 @@ class NoteAccount {
           address: getAddress(address),
           noteHex
         });
-      } catch (e) {
+      } catch {
         continue;
       }
     }
@@ -6660,26 +6308,6 @@ class NoteAccount {
   }
 }
 
-var __async$8 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const DUMMY_ADDRESS = "0x1111111111111111111111111111111111111111";
 const DUMMY_NONCE = 1024;
 const DUMMY_WITHDRAW_DATA = "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
@@ -6688,6 +6316,8 @@ function convertETHToTokenAmount(amountInWei, tokenPriceInWei, tokenDecimals = 1
   return BigInt(amountInWei) * tokenDecimalsMultiplier / BigInt(tokenPriceInWei);
 }
 class TornadoFeeOracle {
+  provider;
+  ovmGasPriceOracle;
   constructor(provider, ovmGasPriceOracle) {
     this.provider = provider;
     if (ovmGasPriceOracle) {
@@ -6701,27 +6331,25 @@ class TornadoFeeOracle {
    * (A single block can bump 12.5% of fees, see the methodology https://hackmd.io/@tvanepps/1559-wallets)
    * (Still it is recommended to use 100% premium for sending transactions to prevent stucking it)
    */
-  gasPrice() {
-    return __async$8(this, null, function* () {
-      const [block, getGasPrice, getPriorityFee] = yield Promise.all([
-        this.provider.getBlock("latest"),
-        (() => __async$8(this, null, function* () {
-          try {
-            return BigInt(yield this.provider.send("eth_gasPrice", []));
-          } catch (e) {
-            return parseUnits("1", "gwei");
-          }
-        }))(),
-        (() => __async$8(this, null, function* () {
-          try {
-            return BigInt(yield this.provider.send("eth_maxPriorityFeePerGas", []));
-          } catch (e) {
-            return BigInt(0);
-          }
-        }))()
-      ]);
-      return (block == null ? void 0 : block.baseFeePerGas) ? block.baseFeePerGas * BigInt(15) / BigInt(10) + getPriorityFee : getGasPrice;
-    });
+  async gasPrice() {
+    const [block, getGasPrice, getPriorityFee] = await Promise.all([
+      this.provider.getBlock("latest"),
+      (async () => {
+        try {
+          return BigInt(await this.provider.send("eth_gasPrice", []));
+        } catch {
+          return parseUnits("1", "gwei");
+        }
+      })(),
+      (async () => {
+        try {
+          return BigInt(await this.provider.send("eth_maxPriorityFeePerGas", []));
+        } catch {
+          return BigInt(0);
+        }
+      })()
+    ]);
+    return block?.baseFeePerGas ? block.baseFeePerGas * BigInt(15) / BigInt(10) + getPriorityFee : getGasPrice;
   }
   /**
    * Calculate L1 fee for op-stack chains
@@ -6784,44 +6412,59 @@ class TornadoFeeOracle {
   }
 }
 
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
-var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
-var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$1 = (obj, key, value) => key in obj ? __defProp$1(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues$1 = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp$1.call(b, prop))
-      __defNormalProp$1(a, prop, b[prop]);
-  if (__getOwnPropSymbols$1)
-    for (var prop of __getOwnPropSymbols$1(b)) {
-      if (__propIsEnum$1.call(b, prop))
-        __defNormalProp$1(a, prop, b[prop]);
+const gasZipInbounds = {
+  [NetId.MAINNET]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.BSC]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.POLYGON]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.OPTIMISM]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.ARBITRUM]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.GNOSIS]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.AVALANCHE]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604"
+};
+const gasZipID = {
+  [NetId.MAINNET]: 255,
+  [NetId.BSC]: 14,
+  [NetId.POLYGON]: 17,
+  [NetId.OPTIMISM]: 55,
+  [NetId.ARBITRUM]: 57,
+  [NetId.GNOSIS]: 16,
+  [NetId.AVALANCHE]: 15,
+  [NetId.SEPOLIA]: 102
+};
+function gasZipInput(to, shorts) {
+  let data = "0x";
+  if (isAddress(to)) {
+    if (to.length === 42) {
+      data += "02";
+      data += to.slice(2);
+    } else {
+      return null;
     }
-  return a;
-};
-var __async$7 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
+  } else {
+    data += "01";
+  }
+  for (const i in shorts) {
+    data += "0x" + Number(shorts[i]).toString(16).slice(2).padStart(4, "0");
+  }
+  return data;
+}
+function gasZipMinMax(ethUsd) {
+  return {
+    min: 1 / ethUsd,
+    max: 50 / ethUsd,
+    ethUsd
+  };
+}
+
 const INDEX_DB_ERROR = "A mutation operation was attempted on a database that did not allow mutations.";
 class IndexedDB {
+  dbExists;
+  isBlocked;
+  // todo: TestDBSchema on any
+  options;
+  dbName;
+  dbVersion;
+  db;
   constructor({ dbName, stores }) {
     this.dbExists = false;
     this.isBlocked = false;
@@ -6846,146 +6489,128 @@ class IndexedDB {
     this.dbName = dbName;
     this.dbVersion = 34;
   }
-  initDB() {
-    return __async$7(this, null, function* () {
-      try {
-        if (this.dbExists || this.isBlocked) {
-          return;
-        }
-        this.db = yield openDB(this.dbName, this.dbVersion, this.options);
-        this.db.addEventListener("onupgradeneeded", () => __async$7(this, null, function* () {
-          yield this._removeExist();
-        }));
-        this.dbExists = true;
-      } catch (err) {
-        if (err.message.includes(INDEX_DB_ERROR)) {
-          console.log("This browser does not support IndexedDB!");
-          this.isBlocked = true;
-          return;
-        }
-        if (err.message.includes("less than the existing version")) {
-          console.log(`Upgrading DB ${this.dbName} to ${this.dbVersion}`);
-          yield this._removeExist();
-          return;
-        }
-        console.error(`Method initDB has error: ${err.message}`);
-      }
-    });
-  }
-  _removeExist() {
-    return __async$7(this, null, function* () {
-      yield deleteDB(this.dbName);
-      this.dbExists = false;
-      yield this.initDB();
-    });
-  }
-  getFromIndex(_0) {
-    return __async$7(this, arguments, function* ({
-      storeName,
-      indexName,
-      key
-    }) {
-      yield this.initDB();
-      if (!this.db) {
+  async initDB() {
+    try {
+      if (this.dbExists || this.isBlocked) {
         return;
       }
-      try {
-        return yield this.db.getFromIndex(storeName, indexName, key);
-      } catch (err) {
-        throw new Error(`Method getFromIndex has error: ${err.message}`);
-      }
-    });
-  }
-  getAllFromIndex(_0) {
-    return __async$7(this, arguments, function* ({
-      storeName,
-      indexName,
-      key,
-      count
-    }) {
-      yield this.initDB();
-      if (!this.db) {
-        return [];
-      }
-      try {
-        return yield this.db.getAllFromIndex(storeName, indexName, key, count);
-      } catch (err) {
-        throw new Error(`Method getAllFromIndex has error: ${err.message}`);
-      }
-    });
-  }
-  getItem(_0) {
-    return __async$7(this, arguments, function* ({ storeName, key }) {
-      yield this.initDB();
-      if (!this.db) {
+      this.db = await openDB(this.dbName, this.dbVersion, this.options);
+      this.db.addEventListener("onupgradeneeded", async () => {
+        await this._removeExist();
+      });
+      this.dbExists = true;
+    } catch (err) {
+      if (err.message.includes(INDEX_DB_ERROR)) {
+        console.log("This browser does not support IndexedDB!");
+        this.isBlocked = true;
         return;
       }
-      try {
-        const store = this.db.transaction(storeName).objectStore(storeName);
-        return yield store.get(key);
-      } catch (err) {
-        throw new Error(`Method getItem has error: ${err.message}`);
-      }
-    });
-  }
-  addItem(_0) {
-    return __async$7(this, arguments, function* ({ storeName, data, key = "" }) {
-      yield this.initDB();
-      if (!this.db) {
+      if (err.message.includes("less than the existing version")) {
+        console.log(`Upgrading DB ${this.dbName} to ${this.dbVersion}`);
+        await this._removeExist();
         return;
       }
-      try {
-        const tx = this.db.transaction(storeName, "readwrite");
-        const isExist = yield tx.objectStore(storeName).get(key);
-        if (!isExist) {
-          yield tx.objectStore(storeName).add(data);
-        }
-      } catch (err) {
-        throw new Error(`Method addItem has error: ${err.message}`);
-      }
-    });
+      console.error(`Method initDB has error: ${err.message}`);
+    }
   }
-  putItem(_0) {
-    return __async$7(this, arguments, function* ({ storeName, data, key }) {
-      yield this.initDB();
-      if (!this.db) {
-        return;
-      }
-      try {
-        const tx = this.db.transaction(storeName, "readwrite");
-        yield tx.objectStore(storeName).put(data, key);
-      } catch (err) {
-        throw new Error(`Method putItem has error: ${err.message}`);
-      }
-    });
+  async _removeExist() {
+    await deleteDB(this.dbName);
+    this.dbExists = false;
+    await this.initDB();
   }
-  deleteItem(_0) {
-    return __async$7(this, arguments, function* ({ storeName, key }) {
-      yield this.initDB();
-      if (!this.db) {
-        return;
-      }
-      try {
-        const tx = this.db.transaction(storeName, "readwrite");
-        yield tx.objectStore(storeName).delete(key);
-      } catch (err) {
-        throw new Error(`Method deleteItem has error: ${err.message}`);
-      }
-    });
+  async getFromIndex({
+    storeName,
+    indexName,
+    key
+  }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      return await this.db.getFromIndex(storeName, indexName, key);
+    } catch (err) {
+      throw new Error(`Method getFromIndex has error: ${err.message}`);
+    }
   }
-  getAll(_0) {
-    return __async$7(this, arguments, function* ({ storeName }) {
-      yield this.initDB();
-      if (!this.db) {
-        return [];
+  async getAllFromIndex({
+    storeName,
+    indexName,
+    key,
+    count
+  }) {
+    await this.initDB();
+    if (!this.db) {
+      return [];
+    }
+    try {
+      return await this.db.getAllFromIndex(storeName, indexName, key, count);
+    } catch (err) {
+      throw new Error(`Method getAllFromIndex has error: ${err.message}`);
+    }
+  }
+  async getItem({ storeName, key }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const store = this.db.transaction(storeName).objectStore(storeName);
+      return await store.get(key);
+    } catch (err) {
+      throw new Error(`Method getItem has error: ${err.message}`);
+    }
+  }
+  async addItem({ storeName, data, key = "" }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, "readwrite");
+      const isExist = await tx.objectStore(storeName).get(key);
+      if (!isExist) {
+        await tx.objectStore(storeName).add(data);
       }
-      try {
-        const tx = this.db.transaction(storeName, "readonly");
-        return yield tx.objectStore(storeName).getAll();
-      } catch (err) {
-        throw new Error(`Method getAll has error: ${err.message}`);
-      }
-    });
+    } catch (err) {
+      throw new Error(`Method addItem has error: ${err.message}`);
+    }
+  }
+  async putItem({ storeName, data, key }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, "readwrite");
+      await tx.objectStore(storeName).put(data, key);
+    } catch (err) {
+      throw new Error(`Method putItem has error: ${err.message}`);
+    }
+  }
+  async deleteItem({ storeName, key }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, "readwrite");
+      await tx.objectStore(storeName).delete(key);
+    } catch (err) {
+      throw new Error(`Method deleteItem has error: ${err.message}`);
+    }
+  }
+  async getAll({ storeName }) {
+    await this.initDB();
+    if (!this.db) {
+      return [];
+    }
+    try {
+      const tx = this.db.transaction(storeName, "readonly");
+      return await tx.objectStore(storeName).getAll();
+    } catch (err) {
+      throw new Error(`Method getAll has error: ${err.message}`);
+    }
   }
   /**
    * Simple key-value store inspired by idb-keyval package
@@ -6999,201 +6624,158 @@ class IndexedDB {
   delValue(key) {
     return this.deleteItem({ storeName: "keyval", key });
   }
-  clearStore(_0) {
-    return __async$7(this, arguments, function* ({ storeName, mode = "readwrite" }) {
-      yield this.initDB();
-      if (!this.db) {
-        return;
-      }
-      try {
-        const tx = this.db.transaction(storeName, mode);
-        yield tx.objectStore(storeName).clear();
-      } catch (err) {
-        throw new Error(`Method clearStore has error: ${err.message}`);
-      }
-    });
+  async clearStore({ storeName, mode = "readwrite" }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, mode);
+      await tx.objectStore(storeName).clear();
+    } catch (err) {
+      throw new Error(`Method clearStore has error: ${err.message}`);
+    }
   }
-  createTransactions(_0) {
-    return __async$7(this, arguments, function* ({
-      storeName,
-      data,
-      mode = "readwrite"
-    }) {
-      yield this.initDB();
-      if (!this.db) {
-        return;
-      }
-      try {
-        const tx = this.db.transaction(storeName, mode);
-        yield tx.objectStore(storeName).add(data);
-        yield tx.done;
-      } catch (err) {
-        throw new Error(`Method createTransactions has error: ${err.message}`);
-      }
-    });
+  async createTransactions({
+    storeName,
+    data,
+    mode = "readwrite"
+  }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, mode);
+      await tx.objectStore(storeName).add(data);
+      await tx.done;
+    } catch (err) {
+      throw new Error(`Method createTransactions has error: ${err.message}`);
+    }
   }
-  createMultipleTransactions(_0) {
-    return __async$7(this, arguments, function* ({
-      storeName,
-      data,
-      index,
-      mode = "readwrite"
-    }) {
-      yield this.initDB();
-      if (!this.db) {
-        return;
-      }
-      try {
-        const tx = this.db.transaction(storeName, mode);
-        for (const item of data) {
-          if (item) {
-            yield tx.store.put(__spreadValues$1(__spreadValues$1({}, item), index));
-          }
+  async createMultipleTransactions({
+    storeName,
+    data,
+    index,
+    mode = "readwrite"
+  }) {
+    await this.initDB();
+    if (!this.db) {
+      return;
+    }
+    try {
+      const tx = this.db.transaction(storeName, mode);
+      for (const item of data) {
+        if (item) {
+          await tx.store.put({ ...item, ...index });
         }
-      } catch (err) {
-        throw new Error(`Method createMultipleTransactions has error: ${err.message}`);
       }
-    });
+    } catch (err) {
+      throw new Error(`Method createMultipleTransactions has error: ${err.message}`);
+    }
   }
 }
-function getIndexedDB(netId) {
-  return __async$7(this, null, function* () {
-    if (!netId) {
-      const idb2 = new IndexedDB({ dbName: "tornado-core" });
-      yield idb2.initDB();
-      return idb2;
+async function getIndexedDB(netId) {
+  if (!netId) {
+    const idb2 = new IndexedDB({ dbName: "tornado-core" });
+    await idb2.initDB();
+    return idb2;
+  }
+  const DEPOSIT_INDEXES = [
+    { name: "transactionHash", unique: false },
+    { name: "commitment", unique: true }
+  ];
+  const WITHDRAWAL_INDEXES = [
+    { name: "nullifierHash", unique: true }
+    // keys on which the index is created
+  ];
+  const LAST_EVENT_INDEXES = [{ name: "name", unique: false }];
+  const defaultState = [
+    {
+      name: "encrypted_events",
+      keyPath: "transactionHash"
+    },
+    {
+      name: "lastEvents",
+      keyPath: "name",
+      indexes: LAST_EVENT_INDEXES
     }
-    const DEPOSIT_INDEXES = [
-      { name: "transactionHash", unique: false },
-      { name: "commitment", unique: true }
-    ];
-    const WITHDRAWAL_INDEXES = [
-      { name: "nullifierHash", unique: true }
-      // keys on which the index is created
-    ];
-    const LAST_EVENT_INDEXES = [{ name: "name", unique: false }];
-    const defaultState = [
-      {
-        name: "encrypted_events",
-        keyPath: "transactionHash"
-      },
-      {
-        name: "lastEvents",
-        keyPath: "name",
-        indexes: LAST_EVENT_INDEXES
+  ];
+  const config = getConfig(netId);
+  const { tokens, nativeCurrency } = config;
+  const stores = [...defaultState];
+  if (netId === NetId.MAINNET) {
+    stores.push({
+      name: "register_events",
+      keyPath: "ensName"
+    });
+  }
+  Object.entries(tokens).forEach(([token, { instanceAddress }]) => {
+    Object.keys(instanceAddress).forEach((amount) => {
+      if (nativeCurrency === token) {
+        stores.push({
+          name: `stringify_bloom_${netId}_${token}_${amount}`,
+          keyPath: "hashBloom"
+        });
       }
-    ];
-    const config = getConfig(netId);
-    const { tokens, nativeCurrency } = config;
-    const stores = [...defaultState];
-    if (netId === NetId.MAINNET) {
-      stores.push({
-        name: "register_events",
-        keyPath: "ensName"
-      });
-    }
-    Object.entries(tokens).forEach(([token, { instanceAddress }]) => {
-      Object.keys(instanceAddress).forEach((amount) => {
-        if (nativeCurrency === token) {
-          stores.push({
-            name: `stringify_bloom_${netId}_${token}_${amount}`,
-            keyPath: "hashBloom"
-          });
+      stores.push(
+        {
+          name: `deposits_${netId}_${token}_${amount}`,
+          keyPath: "leafIndex",
+          // the key by which it refers to the object must be in all instances of the storage
+          indexes: DEPOSIT_INDEXES
+        },
+        {
+          name: `withdrawals_${netId}_${token}_${amount}`,
+          keyPath: "blockNumber",
+          indexes: WITHDRAWAL_INDEXES
+        },
+        {
+          name: `stringify_tree_${netId}_${token}_${amount}`,
+          keyPath: "hashTree"
         }
-        stores.push(
-          {
-            name: `deposits_${netId}_${token}_${amount}`,
-            keyPath: "leafIndex",
-            // the key by which it refers to the object must be in all instances of the storage
-            indexes: DEPOSIT_INDEXES
-          },
-          {
-            name: `withdrawals_${netId}_${token}_${amount}`,
-            keyPath: "blockNumber",
-            indexes: WITHDRAWAL_INDEXES
-          },
-          {
-            name: `stringify_tree_${netId}_${token}_${amount}`,
-            keyPath: "hashTree"
-          }
-        );
-      });
+      );
     });
-    const idb = new IndexedDB({
-      dbName: `tornado_core_${netId}`,
-      stores
-    });
-    yield idb.initDB();
-    return idb;
   });
+  const idb = new IndexedDB({
+    dbName: `tornado_core_${netId}`,
+    stores
+  });
+  await idb.initDB();
+  return idb;
 }
 
-var __async$6 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class Mimc {
+  sponge;
+  hash;
+  mimcPromise;
   constructor() {
     this.mimcPromise = this.initMimc();
   }
-  initMimc() {
-    return __async$6(this, null, function* () {
-      this.sponge = yield buildMimcSponge();
-      this.hash = (left, right) => {
-        var _a, _b;
-        return (_b = this.sponge) == null ? void 0 : _b.F.toString((_a = this.sponge) == null ? void 0 : _a.multiHash([BigInt(left), BigInt(right)]));
-      };
-    });
+  async initMimc() {
+    this.sponge = await buildMimcSponge();
+    this.hash = (left, right) => this.sponge?.F.toString(this.sponge?.multiHash([BigInt(left), BigInt(right)]));
   }
-  getHash() {
-    return __async$6(this, null, function* () {
-      yield this.mimcPromise;
-      return {
-        sponge: this.sponge,
-        hash: this.hash
-      };
-    });
+  async getHash() {
+    await this.mimcPromise;
+    return {
+      sponge: this.sponge,
+      hash: this.hash
+    };
   }
 }
 const mimc = new Mimc();
 
-var __async$5 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class MerkleTreeService {
+  currency;
+  amount;
+  netId;
+  Tornado;
+  commitmentHex;
+  instanceName;
+  merkleTreeHeight;
+  emptyElement;
+  merkleWorkerPath;
   constructor({
     netId,
     amount,
@@ -7215,554 +6797,542 @@ class MerkleTreeService {
     this.emptyElement = emptyElement;
     this.merkleWorkerPath = merkleWorkerPath;
   }
-  createTree(events) {
-    return __async$5(this, null, function* () {
-      const { hash: hashFunction } = yield mimc.getHash();
-      if (this.merkleWorkerPath) {
-        console.log("Using merkleWorker\n");
-        try {
-          if (isNode) {
-            const merkleWorkerPromise = new Promise((resolve, reject) => {
-              const worker = new Worker$1(this.merkleWorkerPath, {
-                workerData: {
-                  merkleTreeHeight: this.merkleTreeHeight,
-                  elements: events,
-                  zeroElement: this.emptyElement
-                }
-              });
-              worker.on("message", resolve);
-              worker.on("error", reject);
-              worker.on("exit", (code) => {
-                if (code !== 0) {
-                  reject(new Error(`Worker stopped with exit code ${code}`));
-                }
-              });
-            });
-            return MerkleTree.deserialize(JSON.parse(yield merkleWorkerPromise), hashFunction);
-          } else {
-            const merkleWorkerPromise = new Promise((resolve, reject) => {
-              const worker = new Worker(this.merkleWorkerPath);
-              worker.onmessage = (e) => {
-                resolve(e.data);
-              };
-              worker.onerror = (e) => {
-                reject(e);
-              };
-              worker.postMessage({
+  async createTree(events) {
+    const { hash: hashFunction } = await mimc.getHash();
+    if (this.merkleWorkerPath) {
+      console.log("Using merkleWorker\n");
+      try {
+        if (isNode) {
+          const merkleWorkerPromise = new Promise((resolve, reject) => {
+            const worker = new Worker$1(this.merkleWorkerPath, {
+              workerData: {
                 merkleTreeHeight: this.merkleTreeHeight,
                 elements: events,
                 zeroElement: this.emptyElement
-              });
+              }
             });
-            return MerkleTree.deserialize(JSON.parse(yield merkleWorkerPromise), hashFunction);
-          }
-        } catch (err) {
-          console.log("merkleWorker failed, falling back to synchronous merkle tree");
-          console.log(err);
+            worker.on("message", resolve);
+            worker.on("error", reject);
+            worker.on("exit", (code) => {
+              if (code !== 0) {
+                reject(new Error(`Worker stopped with exit code ${code}`));
+              }
+            });
+          });
+          return MerkleTree.deserialize(JSON.parse(await merkleWorkerPromise), hashFunction);
+        } else {
+          const merkleWorkerPromise = new Promise((resolve, reject) => {
+            const worker = new Worker(this.merkleWorkerPath);
+            worker.onmessage = (e) => {
+              resolve(e.data);
+            };
+            worker.onerror = (e) => {
+              reject(e);
+            };
+            worker.postMessage({
+              merkleTreeHeight: this.merkleTreeHeight,
+              elements: events,
+              zeroElement: this.emptyElement
+            });
+          });
+          return MerkleTree.deserialize(JSON.parse(await merkleWorkerPromise), hashFunction);
         }
+      } catch (err) {
+        console.log("merkleWorker failed, falling back to synchronous merkle tree");
+        console.log(err);
       }
-      return new MerkleTree(this.merkleTreeHeight, events, {
-        zeroElement: this.emptyElement,
-        hashFunction
-      });
+    }
+    return new MerkleTree(this.merkleTreeHeight, events, {
+      zeroElement: this.emptyElement,
+      hashFunction
     });
   }
-  createPartialTree(_0) {
-    return __async$5(this, arguments, function* ({ edge, elements }) {
-      const { hash: hashFunction } = yield mimc.getHash();
-      if (this.merkleWorkerPath) {
-        console.log("Using merkleWorker\n");
-        try {
-          if (isNode) {
-            const merkleWorkerPromise = new Promise((resolve, reject) => {
-              const worker = new Worker$1(this.merkleWorkerPath, {
-                workerData: {
-                  merkleTreeHeight: this.merkleTreeHeight,
-                  edge,
-                  elements,
-                  zeroElement: this.emptyElement
-                }
-              });
-              worker.on("message", resolve);
-              worker.on("error", reject);
-              worker.on("exit", (code) => {
-                if (code !== 0) {
-                  reject(new Error(`Worker stopped with exit code ${code}`));
-                }
-              });
-            });
-            return PartialMerkleTree.deserialize(JSON.parse(yield merkleWorkerPromise), hashFunction);
-          } else {
-            const merkleWorkerPromise = new Promise((resolve, reject) => {
-              const worker = new Worker(this.merkleWorkerPath);
-              worker.onmessage = (e) => {
-                resolve(e.data);
-              };
-              worker.onerror = (e) => {
-                reject(e);
-              };
-              worker.postMessage({
+  async createPartialTree({ edge, elements }) {
+    const { hash: hashFunction } = await mimc.getHash();
+    if (this.merkleWorkerPath) {
+      console.log("Using merkleWorker\n");
+      try {
+        if (isNode) {
+          const merkleWorkerPromise = new Promise((resolve, reject) => {
+            const worker = new Worker$1(this.merkleWorkerPath, {
+              workerData: {
                 merkleTreeHeight: this.merkleTreeHeight,
                 edge,
                 elements,
                 zeroElement: this.emptyElement
-              });
+              }
             });
-            return PartialMerkleTree.deserialize(JSON.parse(yield merkleWorkerPromise), hashFunction);
-          }
-        } catch (err) {
-          console.log("merkleWorker failed, falling back to synchronous merkle tree");
-          console.log(err);
+            worker.on("message", resolve);
+            worker.on("error", reject);
+            worker.on("exit", (code) => {
+              if (code !== 0) {
+                reject(new Error(`Worker stopped with exit code ${code}`));
+              }
+            });
+          });
+          return PartialMerkleTree.deserialize(JSON.parse(await merkleWorkerPromise), hashFunction);
+        } else {
+          const merkleWorkerPromise = new Promise((resolve, reject) => {
+            const worker = new Worker(this.merkleWorkerPath);
+            worker.onmessage = (e) => {
+              resolve(e.data);
+            };
+            worker.onerror = (e) => {
+              reject(e);
+            };
+            worker.postMessage({
+              merkleTreeHeight: this.merkleTreeHeight,
+              edge,
+              elements,
+              zeroElement: this.emptyElement
+            });
+          });
+          return PartialMerkleTree.deserialize(JSON.parse(await merkleWorkerPromise), hashFunction);
         }
+      } catch (err) {
+        console.log("merkleWorker failed, falling back to synchronous merkle tree");
+        console.log(err);
       }
-      return new PartialMerkleTree(this.merkleTreeHeight, edge, elements, {
-        zeroElement: this.emptyElement,
-        hashFunction
-      });
+    }
+    return new PartialMerkleTree(this.merkleTreeHeight, edge, elements, {
+      zeroElement: this.emptyElement,
+      hashFunction
     });
   }
-  verifyTree(events) {
-    return __async$5(this, null, function* () {
-      console.log(
-        `
+  async verifyTree(events) {
+    console.log(
+      `
 Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while
 `
-      );
-      console.time("Created tree in");
-      const tree = yield this.createTree(events.map(({ commitment }) => commitment));
-      console.timeEnd("Created tree in");
-      console.log("");
-      const isKnownRoot = yield this.Tornado.isKnownRoot(toFixedHex(BigInt(tree.root)));
-      if (!isKnownRoot) {
-        const errMsg = `Deposit Event ${this.netId} ${this.amount} ${this.currency} is invalid`;
-        throw new Error(errMsg);
-      }
-      return tree;
-    });
+    );
+    console.time("Created tree in");
+    const tree = await this.createTree(events.map(({ commitment }) => commitment));
+    console.timeEnd("Created tree in");
+    console.log("");
+    const isKnownRoot = await this.Tornado.isKnownRoot(toFixedHex(BigInt(tree.root)));
+    if (!isKnownRoot) {
+      const errMsg = `Deposit Event ${this.netId} ${this.amount} ${this.currency} is invalid`;
+      throw new Error(errMsg);
+    }
+    return tree;
   }
 }
 
-var __async$4 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
+async function multicall(Multicall2, calls) {
+  const calldata = calls.map((call) => {
+    const target = call.contract?.target || call.address;
+    const callInterface = call.contract?.interface || call.interface;
+    return {
+      target,
+      callData: callInterface.encodeFunctionData(call.name, call.params),
+      allowFailure: call.allowFailure ?? false
     };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
   });
-};
-function multicall(Multicall2, calls) {
-  return __async$4(this, null, function* () {
-    const calldata = calls.map((call) => {
-      var _a, _b, _c;
-      const target = ((_a = call.contract) == null ? void 0 : _a.target) || call.address;
-      const callInterface = ((_b = call.contract) == null ? void 0 : _b.interface) || call.interface;
-      return {
-        target,
-        callData: callInterface.encodeFunctionData(call.name, call.params),
-        allowFailure: (_c = call.allowFailure) != null ? _c : false
-      };
-    });
-    const returnData = yield Multicall2.aggregate3.staticCall(calldata);
-    const res = returnData.map((call, i) => {
-      var _a;
-      const callInterface = ((_a = calls[i].contract) == null ? void 0 : _a.interface) || calls[i].interface;
-      const [result, data] = call;
-      const decodeResult = result && data && data !== "0x" ? callInterface.decodeFunctionResult(calls[i].name, data) : null;
-      return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
-    });
-    return res;
+  const returnData = await Multicall2.aggregate3.staticCall(calldata);
+  const res = returnData.map((call, i) => {
+    const callInterface = calls[i].contract?.interface || calls[i].interface;
+    const [result, data] = call;
+    const decodeResult = result && data && data !== "0x" ? callInterface.decodeFunctionResult(calls[i].name, data) : null;
+    return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
   });
+  return res;
 }
 
-var __async$3 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 class TokenPriceOracle {
+  oracle;
+  multicall;
+  provider;
   constructor(provider, multicall2, oracle) {
     this.provider = provider;
     this.multicall = multicall2;
     this.oracle = oracle;
   }
-  fetchPrices(tokens) {
-    return __async$3(this, null, function* () {
-      if (!this.oracle) {
-        return new Promise((resolve) => resolve(tokens.map(() => parseEther("0.0001"))));
+  buildCalls(tokens) {
+    return tokens.map(({ tokenAddress }) => ({
+      contract: this.oracle,
+      name: "getRateToEth",
+      params: [tokenAddress, true]
+    }));
+  }
+  buildStable(stablecoinAddress) {
+    const stablecoin = ERC20__factory.connect(stablecoinAddress, this.provider);
+    return [
+      {
+        contract: stablecoin,
+        name: "decimals"
+      },
+      {
+        contract: this.oracle,
+        name: "getRateToEth",
+        params: [stablecoin.target, true]
       }
-      const prices = yield multicall(
-        this.multicall,
-        tokens.map(({ tokenAddress }) => ({
-          contract: this.oracle,
-          name: "getRateToEth",
-          params: [tokenAddress, true]
-        }))
-      );
-      return prices.map((price, index) => {
-        return price * BigInt(10 ** tokens[index].decimals) / BigInt(10 ** 18);
-      });
+    ];
+  }
+  async fetchPrice(tokenAddress, decimals) {
+    if (!this.oracle) {
+      return new Promise((resolve) => resolve(parseEther("0.0001")));
+    }
+    const price = await this.oracle.getRateToEth(tokenAddress, true);
+    return price * BigInt(10 ** decimals) / BigInt(10 ** 18);
+  }
+  async fetchPrices(tokens) {
+    if (!this.oracle) {
+      return new Promise((resolve) => resolve(tokens.map(() => parseEther("0.0001"))));
+    }
+    const prices = await multicall(this.multicall, this.buildCalls(tokens));
+    return prices.map((price, index) => {
+      return price * BigInt(10 ** tokens[index].decimals) / BigInt(10 ** 18);
     });
+  }
+  async fetchEthUSD(stablecoinAddress) {
+    if (!this.oracle) {
+      return new Promise((resolve) => resolve(1e4));
+    }
+    const [decimals, price] = await multicall(this.multicall, this.buildStable(stablecoinAddress));
+    const ethPrice = price * BigInt(10n ** decimals) / BigInt(10 ** 18);
+    return 1 / Number(formatEther(ethPrice));
   }
 }
 
-var __async$2 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function getTokenBalances(_0) {
-  return __async$2(this, arguments, function* ({
-    provider,
-    Multicall: Multicall2,
-    currencyName,
-    userAddress,
-    tokenAddresses = []
-  }) {
-    const tokenCalls = tokenAddresses.map((tokenAddress) => {
-      const Token = ERC20__factory.connect(tokenAddress, provider);
-      return [
-        {
-          contract: Token,
-          name: "balanceOf",
-          params: [userAddress]
-        },
-        {
-          contract: Token,
-          name: "name"
-        },
-        {
-          contract: Token,
-          name: "symbol"
-        },
-        {
-          contract: Token,
-          name: "decimals"
-        }
-      ];
-    }).flat();
-    const multicallResults = yield multicall(Multicall2, [
-      {
-        contract: Multicall2,
-        name: "getEthBalance",
-        params: [userAddress]
-      },
-      ...tokenCalls.length ? tokenCalls : []
-    ]);
-    const ethResults = multicallResults[0];
-    const tokenResults = multicallResults.slice(1).length ? chunk(multicallResults.slice(1), tokenCalls.length / tokenAddresses.length) : [];
-    const tokenBalances = tokenResults.map((tokenResult, index) => {
-      const [tokenBalance, tokenName, tokenSymbol, tokenDecimals] = tokenResult;
-      const tokenAddress = tokenAddresses[index];
-      return {
-        address: tokenAddress,
-        name: tokenName,
-        symbol: tokenSymbol,
-        decimals: Number(tokenDecimals),
-        balance: tokenBalance
-      };
-    });
+async function getTokenBalances({
+  provider,
+  Multicall: Multicall2,
+  currencyName,
+  userAddress,
+  tokenAddresses = []
+}) {
+  const tokenCalls = tokenAddresses.map((tokenAddress) => {
+    const Token = ERC20__factory.connect(tokenAddress, provider);
     return [
       {
-        address: ZeroAddress,
-        name: currencyName,
-        symbol: currencyName,
-        decimals: 18,
-        balance: ethResults
+        contract: Token,
+        name: "balanceOf",
+        params: [userAddress]
       },
-      ...tokenBalances
+      {
+        contract: Token,
+        name: "name"
+      },
+      {
+        contract: Token,
+        name: "symbol"
+      },
+      {
+        contract: Token,
+        name: "decimals"
+      }
     ];
+  }).flat();
+  const multicallResults = await multicall(Multicall2, [
+    {
+      contract: Multicall2,
+      name: "getEthBalance",
+      params: [userAddress]
+    },
+    ...tokenCalls.length ? tokenCalls : []
+  ]);
+  const ethResults = multicallResults[0];
+  const tokenResults = multicallResults.slice(1).length ? chunk(multicallResults.slice(1), tokenCalls.length / tokenAddresses.length) : [];
+  const tokenBalances = tokenResults.map((tokenResult, index) => {
+    const [tokenBalance, tokenName, tokenSymbol, tokenDecimals] = tokenResult;
+    const tokenAddress = tokenAddresses[index];
+    return {
+      address: tokenAddress,
+      name: tokenName,
+      symbol: tokenSymbol,
+      decimals: Number(tokenDecimals),
+      balance: tokenBalance
+    };
   });
+  return [
+    {
+      address: ZeroAddress,
+      name: currencyName,
+      symbol: currencyName,
+      decimals: 18,
+      balance: ethResults
+    },
+    ...tokenBalances
+  ];
 }
 
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __reflectGet = Reflect.get;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __superGet = (cls, obj, key) => __reflectGet(__getProtoOf(cls), key, obj);
-var __async$1 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 const MAX_TOVARISH_EVENTS = 5e3;
 class TovarishClient extends RelayerClient {
   constructor({ netId, config, fetchDataOptions }) {
     super({ netId, config, fetchDataOptions });
     this.tovarish = true;
   }
-  askRelayerStatus(_0) {
-    return __async$1(this, arguments, function* ({
-      hostname,
-      url,
-      relayerAddress
-    }) {
-      const status = yield __superGet(TovarishClient.prototype, this, "askRelayerStatus").call(this, { hostname, url, relayerAddress });
+  async askRelayerStatus({
+    hostname,
+    url,
+    relayerAddress
+  }) {
+    const status = await super.askRelayerStatus({ hostname, url, relayerAddress });
+    if (!status.version.includes("tovarish")) {
+      throw new Error("Not a tovarish relayer!");
+    }
+    return status;
+  }
+  /**
+   * Ask status for all enabled chains for tovarish relayer
+   */
+  async askAllStatus({
+    hostname,
+    url,
+    relayerAddress
+  }) {
+    if (!url && hostname) {
+      url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
+    } else if (url && !url.endsWith("/")) {
+      url += "/";
+    } else {
+      url = "";
+    }
+    const statusArray = await fetchData(`${url}status`, {
+      ...this.fetchDataOptions,
+      headers: {
+        "Content-Type": "application/json, application/x-www-form-urlencoded"
+      },
+      timeout: 3e4,
+      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
+    });
+    if (!Array.isArray(statusArray)) {
+      return [];
+    }
+    const tovarishStatus = [];
+    for (const rawStatus of statusArray) {
+      const netId = rawStatus.netId;
+      const config = getConfig(netId);
+      const statusValidator = ajv.compile(getStatusSchema(rawStatus.netId, config, this.tovarish));
+      if (!statusValidator) {
+        continue;
+      }
+      const status = {
+        ...rawStatus,
+        url: `${url}${netId}/`
+      };
+      if (status.currentQueue > 5) {
+        throw new Error("Withdrawal queue is overloaded");
+      }
+      if (!enabledChains.includes(status.netId)) {
+        throw new Error("This relayer serves a different network");
+      }
+      if (relayerAddress && status.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
+        throw new Error("The Relayer reward address must match registered address");
+      }
       if (!status.version.includes("tovarish")) {
         throw new Error("Not a tovarish relayer!");
       }
-      return status;
-    });
+      tovarishStatus.push(status);
+    }
+    return tovarishStatus;
   }
-  filterRelayer(relayer) {
-    return __async$1(this, null, function* () {
-      var _a;
-      const { ensName, relayerAddress, tovarishHost, tovarishNetworks } = relayer;
-      if (!tovarishHost || !(tovarishNetworks == null ? void 0 : tovarishNetworks.includes(this.netId))) {
-        return;
-      }
-      const hostname = `${tovarishHost}/${this.netId}`;
-      try {
-        const status = yield this.askRelayerStatus({ hostname, relayerAddress });
-        return {
-          netId: status.netId,
-          url: status.url,
-          hostname,
-          ensName,
-          relayerAddress,
-          rewardAccount: getAddress(status.rewardAccount),
-          instances: getSupportedInstances(status.instances),
-          stakeBalance: relayer.stakeBalance,
-          gasPrice: (_a = status.gasPrices) == null ? void 0 : _a.fast,
-          ethPrices: status.ethPrices,
-          currentQueue: status.currentQueue,
-          tornadoServiceFee: status.tornadoServiceFee,
-          // Additional fields for tovarish relayer
-          latestBlock: Number(status.latestBlock),
-          latestBalance: status.latestBalance,
-          version: status.version,
-          events: status.events,
-          syncStatus: status.syncStatus
-        };
-      } catch (err) {
-        return {
-          hostname,
-          relayerAddress,
-          errorMessage: err.message,
-          hasError: true
-        };
-      }
-    });
-  }
-  getValidRelayers(relayers) {
-    return __async$1(this, null, function* () {
-      const invalidRelayers = [];
-      const validRelayers = (yield Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
-        if (!r) {
-          return false;
-        }
-        if (r.hasError) {
-          invalidRelayers.push(r);
-          return false;
-        }
-        return true;
-      });
+  async filterRelayer(relayer) {
+    const { ensName, relayerAddress, tovarishHost, tovarishNetworks } = relayer;
+    if (!tovarishHost || !tovarishNetworks?.includes(this.netId)) {
+      return;
+    }
+    const hostname = `${tovarishHost}/${this.netId}`;
+    try {
+      const status = await this.askRelayerStatus({ hostname, relayerAddress });
       return {
-        validRelayers,
-        invalidRelayers
+        netId: status.netId,
+        url: status.url,
+        hostname,
+        ensName,
+        relayerAddress,
+        rewardAccount: getAddress(status.rewardAccount),
+        instances: getSupportedInstances(status.instances),
+        stakeBalance: relayer.stakeBalance,
+        gasPrice: status.gasPrices?.fast,
+        ethPrices: status.ethPrices,
+        currentQueue: status.currentQueue,
+        tornadoServiceFee: status.tornadoServiceFee,
+        // Additional fields for tovarish relayer
+        latestBlock: Number(status.latestBlock),
+        latestBalance: status.latestBalance,
+        version: status.version,
+        events: status.events,
+        syncStatus: status.syncStatus
       };
-    });
+    } catch (err) {
+      return {
+        hostname,
+        relayerAddress,
+        errorMessage: err.message,
+        hasError: true
+      };
+    }
   }
-  getEvents(_0) {
-    return __async$1(this, arguments, function* ({
-      type,
-      currency,
-      amount,
-      fromBlock,
-      recent
-    }) {
-      var _a;
-      const url = `${(_a = this.selectedRelayer) == null ? void 0 : _a.url}events`;
-      const schemaValidator = getEventsSchemaValidator(type);
-      try {
-        const events = [];
-        let lastSyncBlock = fromBlock;
-        while (true) {
-          let { events: fetchedEvents, lastSyncBlock: currentBlock } = yield fetchData(url, __spreadProps(__spreadValues({}, this.fetchDataOptions), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              type,
-              currency,
-              amount,
-              fromBlock,
-              recent
-            })
-          }));
-          if (!schemaValidator(fetchedEvents)) {
-            const errMsg = `Schema validation failed for ${type} events`;
-            throw new Error(errMsg);
+  async getValidRelayers(relayers) {
+    const invalidRelayers = [];
+    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
+      if (!r) {
+        return false;
+      }
+      if (r.hasError) {
+        invalidRelayers.push(r);
+        return false;
+      }
+      return true;
+    });
+    return {
+      validRelayers,
+      invalidRelayers
+    };
+  }
+  async getTovarishRelayers(relayers) {
+    const validRelayers = [];
+    const invalidRelayers = [];
+    await Promise.all(
+      relayers.filter((r) => r.tovarishHost && r.tovarishNetworks?.length).map(async (relayer) => {
+        const { ensName, relayerAddress, tovarishHost } = relayer;
+        try {
+          const statusArray = await this.askAllStatus({ hostname: tovarishHost, relayerAddress });
+          for (const status of statusArray) {
+            validRelayers.push({
+              netId: status.netId,
+              url: status.url,
+              hostname: tovarishHost,
+              ensName,
+              relayerAddress,
+              rewardAccount: getAddress(status.rewardAccount),
+              instances: getSupportedInstances(status.instances),
+              stakeBalance: relayer.stakeBalance,
+              gasPrice: status.gasPrices?.fast,
+              ethPrices: status.ethPrices,
+              currentQueue: status.currentQueue,
+              tornadoServiceFee: status.tornadoServiceFee,
+              // Additional fields for tovarish relayer
+              latestBlock: Number(status.latestBlock),
+              latestBalance: status.latestBalance,
+              version: status.version,
+              events: status.events,
+              syncStatus: status.syncStatus
+            });
           }
-          lastSyncBlock = currentBlock;
-          if (!Array.isArray(fetchedEvents) || !fetchedEvents.length) {
-            break;
-          }
-          fetchedEvents = fetchedEvents.sort((a, b) => {
-            if (a.blockNumber === b.blockNumber) {
-              return a.logIndex - b.logIndex;
-            }
-            return a.blockNumber - b.blockNumber;
+        } catch (err) {
+          invalidRelayers.push({
+            hostname: tovarishHost,
+            relayerAddress,
+            errorMessage: err.message,
+            hasError: true
           });
-          const [lastEvent] = fetchedEvents.slice(-1);
-          if (fetchedEvents.length < MAX_TOVARISH_EVENTS - 100) {
-            events.push(...fetchedEvents);
-            break;
-          }
-          fetchedEvents = fetchedEvents.filter((e) => e.blockNumber !== lastEvent.blockNumber);
-          fromBlock = Number(lastEvent.blockNumber);
-          events.push(...fetchedEvents);
         }
-        return {
-          events,
-          lastSyncBlock
-        };
-      } catch (err) {
-        console.log("Error from TovarishClient events endpoint");
-        console.log(err);
-        return {
-          events: [],
-          lastSyncBlock: fromBlock
-        };
+      })
+    );
+    return {
+      validRelayers,
+      invalidRelayers
+    };
+  }
+  async getEvents({
+    type,
+    currency,
+    amount,
+    fromBlock,
+    recent
+  }) {
+    const url = `${this.selectedRelayer?.url}events`;
+    const schemaValidator = getEventsSchemaValidator(type);
+    try {
+      const events = [];
+      let lastSyncBlock = fromBlock;
+      while (true) {
+        let { events: fetchedEvents, lastSyncBlock: currentBlock } = await fetchData(url, {
+          ...this.fetchDataOptions,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type,
+            currency,
+            amount,
+            fromBlock,
+            recent
+          })
+        });
+        if (!schemaValidator(fetchedEvents)) {
+          const errMsg = `Schema validation failed for ${type} events`;
+          throw new Error(errMsg);
+        }
+        if (recent) {
+          return {
+            events: fetchedEvents,
+            lastSyncBlock: currentBlock
+          };
+        }
+        lastSyncBlock = currentBlock;
+        if (!Array.isArray(fetchedEvents) || !fetchedEvents.length) {
+          break;
+        }
+        fetchedEvents = fetchedEvents.sort((a, b) => {
+          if (a.blockNumber === b.blockNumber) {
+            return a.logIndex - b.logIndex;
+          }
+          return a.blockNumber - b.blockNumber;
+        });
+        const [lastEvent] = fetchedEvents.slice(-1);
+        if (fetchedEvents.length < MAX_TOVARISH_EVENTS - 100) {
+          events.push(...fetchedEvents);
+          break;
+        }
+        fetchedEvents = fetchedEvents.filter((e) => e.blockNumber !== lastEvent.blockNumber);
+        fromBlock = Number(lastEvent.blockNumber);
+        events.push(...fetchedEvents);
       }
-    });
+      return {
+        events,
+        lastSyncBlock
+      };
+    } catch (err) {
+      console.log("Error from TovarishClient events endpoint");
+      console.log(err);
+      return {
+        events: [],
+        lastSyncBlock: fromBlock
+      };
+    }
   }
 }
 
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
 let groth16;
-function initGroth16() {
-  return __async(this, null, function* () {
-    if (!groth16) {
-      groth16 = yield websnarkGroth({ wasmInitialMemory: 2e3 });
-    }
-  });
+async function initGroth16() {
+  if (!groth16) {
+    groth16 = await websnarkGroth({ wasmInitialMemory: 2e3 });
+  }
 }
-function calculateSnarkProof(input, circuit, provingKey) {
-  return __async(this, null, function* () {
-    if (!groth16) {
-      yield initGroth16();
-    }
-    const snarkInput = {
-      root: input.root,
-      nullifierHash: BigInt(input.nullifierHex).toString(),
-      recipient: BigInt(input.recipient),
-      relayer: BigInt(input.relayer),
-      fee: input.fee,
-      refund: input.refund,
-      nullifier: input.nullifier,
-      secret: input.secret,
-      pathElements: input.pathElements,
-      pathIndices: input.pathIndices
-    };
-    console.log("Start generating SNARK proof", snarkInput);
-    console.time("SNARK proof time");
-    const proofData = yield websnarkUtils.genWitnessAndProve(yield groth16, snarkInput, circuit, provingKey);
-    const proof = websnarkUtils.toSolidityInput(proofData).proof;
-    console.timeEnd("SNARK proof time");
-    const args = [
-      toFixedHex(input.root, 32),
-      toFixedHex(input.nullifierHex, 32),
-      input.recipient,
-      input.relayer,
-      toFixedHex(input.fee, 32),
-      toFixedHex(input.refund, 32)
-    ];
-    return { proof, args };
-  });
+async function calculateSnarkProof(input, circuit, provingKey) {
+  if (!groth16) {
+    await initGroth16();
+  }
+  const snarkInput = {
+    root: input.root,
+    nullifierHash: BigInt(input.nullifierHex).toString(),
+    recipient: BigInt(input.recipient),
+    relayer: BigInt(input.relayer),
+    fee: input.fee,
+    refund: input.refund,
+    nullifier: input.nullifier,
+    secret: input.secret,
+    pathElements: input.pathElements,
+    pathIndices: input.pathIndices
+  };
+  console.log("Start generating SNARK proof", snarkInput);
+  console.time("SNARK proof time");
+  const proofData = await websnarkUtils.genWitnessAndProve(await groth16, snarkInput, circuit, provingKey);
+  const proof = websnarkUtils.toSolidityInput(proofData).proof;
+  console.timeEnd("SNARK proof time");
+  const args = [
+    toFixedHex(input.root, 32),
+    toFixedHex(input.nullifierHex, 32),
+    input.recipient,
+    input.relayer,
+    toFixedHex(input.fee, 32),
+    toFixedHex(input.refund, 32)
+  ];
+  return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobRequestSchema, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
