@@ -103,6 +103,20 @@ function substring(str, length = 10) {
 async function digest(bytes, algo = "SHA-384") {
   return new Uint8Array(await crypto.subtle.digest(algo, bytes));
 }
+function numberFormatter(num, digits = 3) {
+  const lookup = [
+    { value: 1, symbol: "" },
+    { value: 1e3, symbol: "K" },
+    { value: 1e6, symbol: "M" },
+    { value: 1e9, symbol: "G" },
+    { value: 1e12, symbol: "T" },
+    { value: 1e15, symbol: "P" },
+    { value: 1e18, symbol: "E" }
+  ];
+  const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
+  const item = lookup.slice().reverse().find((item2) => Number(num) >= item2.value);
+  return item ? (Number(num) / item.value).toFixed(digits).replace(regexp, "").concat(item.symbol) : "0";
+}
 
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0";
 const fetch = crossFetch;
@@ -6520,7 +6534,7 @@ function gasZipInput(to, shorts) {
     data += "01";
   }
   for (const i in shorts) {
-    data += "0x" + Number(shorts[i]).toString(16).slice(2).padStart(4, "0");
+    data += Number(shorts[i]).toString(16).padStart(4, "0");
   }
   return data;
 }
@@ -7411,4 +7425,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobRequestSchema, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobRequestSchema, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, numberFormatter, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };

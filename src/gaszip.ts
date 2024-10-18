@@ -39,7 +39,7 @@ export function gasZipInput(to: string, shorts: number[]): string | null {
   }
 
   for (const i in shorts) {
-    data += '0x' + Number(shorts[i]).toString(16).slice(2).padStart(4, '0');
+    data += Number(shorts[i]).toString(16).padStart(4, '0');
   }
 
   return data;

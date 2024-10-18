@@ -147,3 +147,21 @@ export function substring(str: string, length: number = 10) {
 export async function digest(bytes: Uint8Array, algo: string = 'SHA-384') {
   return new Uint8Array(await crypto.subtle.digest(algo, bytes));
 }
+
+export function numberFormatter(num: string | number | bigint, digits: number = 3): string {
+  const lookup = [
+    { value: 1, symbol: '' },
+    { value: 1e3, symbol: 'K' },
+    { value: 1e6, symbol: 'M' },
+    { value: 1e9, symbol: 'G' },
+    { value: 1e12, symbol: 'T' },
+    { value: 1e15, symbol: 'P' },
+    { value: 1e18, symbol: 'E' },
+  ];
+  const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
+  const item = lookup
+    .slice()
+    .reverse()
+    .find((item) => Number(num) >= item.value);
+  return item ? (Number(num) / item.value).toFixed(digits).replace(regexp, '').concat(item.symbol) : '0';
+}
