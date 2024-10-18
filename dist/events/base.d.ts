@@ -143,6 +143,7 @@ export declare const proposalState: {
 };
 export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
     title: string;
+    proposerName?: string;
     forVotes: bigint;
     againstVotes: bigint;
     executed: boolean;
@@ -153,6 +154,8 @@ export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
 export interface GovernanceVotes extends GovernanceVotedEvents {
     contact: string;
     message: string;
+    fromName?: string;
+    voterName?: string;
 }
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Governance: Governance;
@@ -173,16 +176,14 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
         fromBlock: number;
     }): Promise<BaseEvents<AllGovernanceEvents>>;
     getAllProposals(): Promise<GovernanceProposals[]>;
-    getVotes(proposalId: number): Promise<{
-        votes: GovernanceVotes[];
-        ensNames: {
-            [key: string]: string;
-        };
-    }>;
+    getVotes(proposalId: number): Promise<GovernanceVotes[]>;
     getDelegatedBalance(ethAccount: string): Promise<{
         delegatedAccs: string[];
         undelegatedAccs: string[];
         uniq: string[];
+        uniqNames: {
+            [key: string]: string;
+        };
         balances: bigint[];
         balance: bigint;
     }>;

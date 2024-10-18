@@ -3330,44 +3330,47 @@ class BaseGovernanceService extends BaseEventsService {
   }
   async getAllProposals() {
     const { events } = await this.updateEvents();
-    const [QUORUM_VOTES, proposalStatus] = await Promise.all([
+    const proposalEvents = events.filter((e) => e.event === "ProposalCreated");
+    const allProposers = [...new Set(proposalEvents.map((e) => [e.proposer]).flat())];
+    const [QUORUM_VOTES, proposalStatus, proposerNameRecords] = await Promise.all([
       this.Governance.QUORUM_VOTES(),
-      this.Aggregator.getAllProposals(this.Governance.target)
+      this.Aggregator.getAllProposals(this.Governance.target),
+      this.ReverseRecords.getNames(allProposers)
     ]);
-    return events.filter((e) => e.event === "ProposalCreated").map(
-      (event, index) => {
-        const { id, description: text } = event;
-        const status = proposalStatus[index];
-        const { forVotes, againstVotes, executed, extended, state } = status;
-        const { title, description } = parseDescription(id, text);
-        const quorum = (Number(forVotes + againstVotes) / Number(QUORUM_VOTES) * 100).toFixed(0) + "%";
-        return {
-          ...event,
-          title,
-          description,
-          forVotes,
-          againstVotes,
-          executed,
-          extended,
-          quorum,
-          state: proposalState[String(state)]
-        };
-      }
+    const proposerNames = allProposers.reduce(
+      (acc, address, index) => {
+        if (proposerNameRecords[index]) {
+          acc[address] = proposerNameRecords[index];
+        }
+        return acc;
+      },
+      {}
     );
+    return proposalEvents.map((event, index) => {
+      const { id, proposer, description: text } = event;
+      const status = proposalStatus[index];
+      const { forVotes, againstVotes, executed, extended, state } = status;
+      const { title, description } = parseDescription(id, text);
+      const quorum = (Number(forVotes + againstVotes) / Number(QUORUM_VOTES) * 100).toFixed(0) + "%";
+      return {
+        ...event,
+        title,
+        proposerName: proposerNames[proposer] || void 0,
+        description,
+        forVotes,
+        againstVotes,
+        executed,
+        extended,
+        quorum,
+        state: proposalState[String(state)]
+      };
+    });
   }
   async getVotes(proposalId) {
     const { events } = await this.getSavedEvents();
     const votedEvents = events.filter(
       (e) => e.event === "Voted" && e.proposalId === proposalId
     );
-    const votes = votedEvents.map((event) => {
-      const { contact, message } = parseComment(this.Governance, event.input);
-      return {
-        ...event,
-        contact,
-        message
-      };
-    });
     const allVoters = [...new Set(votedEvents.map((e) => [e.from, e.voter]).flat())];
     const names = await this.ReverseRecords.getNames(allVoters);
     const ensNames = allVoters.reduce(
@@ -3379,10 +3382,18 @@ class BaseGovernanceService extends BaseEventsService {
       },
       {}
     );
-    return {
-      votes,
-      ensNames
-    };
+    const votes = votedEvents.map((event) => {
+      const { from, voter } = event;
+      const { contact, message } = parseComment(this.Governance, event.input);
+      return {
+        ...event,
+        contact,
+        message,
+        fromName: ensNames[from] || void 0,
+        voterName: ensNames[voter] || void 0
+      };
+    });
+    return votes;
   }
   async getDelegatedBalance(ethAccount) {
     const { events } = await this.getSavedEvents();
@@ -3397,11 +3408,24 @@ class BaseGovernanceService extends BaseEventsService {
       }
       return true;
     });
-    const balances = await this.Aggregator.getGovernanceBalances(this.Governance.target, uniq);
+    const [balances, uniqNameRecords] = await Promise.all([
+      this.Aggregator.getGovernanceBalances(this.Governance.target, uniq),
+      this.ReverseRecords.getNames(uniq)
+    ]);
+    const uniqNames = uniq.reduce(
+      (acc, address, index) => {
+        if (uniqNameRecords[index]) {
+          acc[address] = uniqNameRecords[index];
+        }
+        return acc;
+      },
+      {}
+    );
     return {
       delegatedAccs,
       undelegatedAccs,
       uniq,
+      uniqNames,
       balances,
       balance: balances.reduce((acc, curr) => acc + curr, BigInt(0))
     };

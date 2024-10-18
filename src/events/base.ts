@@ -686,6 +686,7 @@ function parseComment(Governance: Governance, calldata: string): { contact: stri
 
 export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
   title: string;
+  proposerName?: string;
   forVotes: bigint;
   againstVotes: bigint;
   executed: boolean;
@@ -697,6 +698,8 @@ export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
 export interface GovernanceVotes extends GovernanceVotedEvents {
   contact: string;
   message: string;
+  fromName?: string;
+  voterName?: string;
 }
 
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
@@ -845,59 +848,58 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
   async getAllProposals(): Promise<GovernanceProposals[]> {
     const { events } = await this.updateEvents();
 
-    const [QUORUM_VOTES, proposalStatus] = await Promise.all([
+    const proposalEvents = events.filter((e) => e.event === 'ProposalCreated') as GovernanceProposalCreatedEvents[];
+
+    const allProposers = [...new Set(proposalEvents.map((e) => [e.proposer]).flat())];
+
+    const [QUORUM_VOTES, proposalStatus, proposerNameRecords] = await Promise.all([
       this.Governance.QUORUM_VOTES(),
       this.Aggregator.getAllProposals(this.Governance.target),
+      this.ReverseRecords.getNames(allProposers),
     ]);
 
-    return (events.filter((e) => e.event === 'ProposalCreated') as GovernanceProposalCreatedEvents[]).map(
-      (event, index) => {
-        const { id, description: text } = event;
-
-        const status = proposalStatus[index];
-
-        const { forVotes, againstVotes, executed, extended, state } = status;
-
-        const { title, description } = parseDescription(id, text);
-
-        const quorum = ((Number(forVotes + againstVotes) / Number(QUORUM_VOTES)) * 100).toFixed(0) + '%';
-
-        return {
-          ...event,
-          title,
-          description,
-          forVotes,
-          againstVotes,
-          executed,
-          extended,
-          quorum,
-          state: proposalState[String(state)],
-        };
+    const proposerNames = allProposers.reduce(
+      (acc, address, index) => {
+        if (proposerNameRecords[index]) {
+          acc[address] = proposerNameRecords[index];
+        }
+        return acc;
       },
+      {} as { [key: string]: string },
     );
+
+    return proposalEvents.map((event, index) => {
+      const { id, proposer, description: text } = event;
+
+      const status = proposalStatus[index];
+
+      const { forVotes, againstVotes, executed, extended, state } = status;
+
+      const { title, description } = parseDescription(id, text);
+
+      const quorum = ((Number(forVotes + againstVotes) / Number(QUORUM_VOTES)) * 100).toFixed(0) + '%';
+
+      return {
+        ...event,
+        title,
+        proposerName: proposerNames[proposer] || undefined,
+        description,
+        forVotes,
+        againstVotes,
+        executed,
+        extended,
+        quorum,
+        state: proposalState[String(state)],
+      };
+    });
   }
 
-  async getVotes(proposalId: number): Promise<{
-    votes: GovernanceVotes[];
-    ensNames: {
-      [key: string]: string;
-    };
-  }> {
+  async getVotes(proposalId: number): Promise<GovernanceVotes[]> {
     const { events } = await this.getSavedEvents();
 
     const votedEvents = events.filter(
       (e) => e.event === 'Voted' && (e as GovernanceVotedEvents).proposalId === proposalId,
     ) as GovernanceVotedEvents[];
-
-    const votes = votedEvents.map((event) => {
-      const { contact, message } = parseComment(this.Governance, event.input);
-
-      return {
-        ...event,
-        contact,
-        message,
-      };
-    });
 
     const allVoters = [...new Set(votedEvents.map((e) => [e.from, e.voter]).flat())];
 
@@ -913,10 +915,21 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
       {} as { [key: string]: string },
     );
 
-    return {
-      votes,
-      ensNames,
-    };
+    const votes = votedEvents.map((event) => {
+      const { from, voter } = event;
+
+      const { contact, message } = parseComment(this.Governance, event.input);
+
+      return {
+        ...event,
+        contact,
+        message,
+        fromName: ensNames[from] || undefined,
+        voterName: ensNames[voter] || undefined,
+      };
+    });
+
+    return votes;
   }
 
   async getDelegatedBalance(ethAccount: string) {
@@ -941,12 +954,26 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
       return true;
     });
 
-    const balances = await this.Aggregator.getGovernanceBalances(this.Governance.target, uniq);
+    const [balances, uniqNameRecords] = await Promise.all([
+      this.Aggregator.getGovernanceBalances(this.Governance.target, uniq),
+      this.ReverseRecords.getNames(uniq),
+    ]);
+
+    const uniqNames = uniq.reduce(
+      (acc, address, index) => {
+        if (uniqNameRecords[index]) {
+          acc[address] = uniqNameRecords[index];
+        }
+        return acc;
+      },
+      {} as { [key: string]: string },
+    );
 
     return {
       delegatedAccs,
       undelegatedAccs,
       uniq,
+      uniqNames,
       balances,
       balance: balances.reduce((acc, curr) => acc + curr, BigInt(0)),
     };
