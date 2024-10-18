@@ -3158,15 +3158,91 @@ class BaseEncryptedNotesService extends BaseEventsService {
     }).filter((e) => e);
   }
 }
+const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+const proposalState = {
+  0: "Pending",
+  1: "Active",
+  2: "Defeated",
+  3: "Timelocked",
+  4: "AwaitingExecution",
+  5: "Executed",
+  6: "Expired"
+};
+function parseDescription(id, text) {
+  switch (id) {
+    case 1:
+      return {
+        title: text,
+        description: "See: https://torn.community/t/proposal-1-enable-torn-transfers/38"
+      };
+    case 10:
+      text = text.replace("\n", "\\n\\n");
+      break;
+    case 11:
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 13:
+      text = text.replace(/\\\\n\\\\n(\s)?(\\n)?/g, "\\n");
+      break;
+    case 15:
+      text = text.replaceAll("'", '"');
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 16:
+      text = text.replace("#16: ", "");
+      break;
+    case 21:
+      return {
+        title: "Proposal #21: Restore Governance",
+        description: ""
+      };
+  }
+  let title, description, rest;
+  try {
+    ({ title, description } = JSON.parse(text));
+  } catch {
+    [title, ...rest] = text.split("\n", 2);
+    description = rest.join("\n");
+  }
+  return {
+    title,
+    description
+  };
+}
+function parseComment(Governance, calldata) {
+  try {
+    const methodLength = 4;
+    const result = abiCoder.decode(["address[]", "uint256", "bool"], ethers.dataSlice(calldata, methodLength));
+    const data = Governance.interface.encodeFunctionData("castDelegatedVote", result);
+    const length = ethers.dataLength(data);
+    const str = abiCoder.decode(["string"], ethers.dataSlice(calldata, length))[0];
+    const [contact, message] = JSON.parse(str);
+    return {
+      contact,
+      message
+    };
+  } catch {
+    return {
+      contact: "",
+      message: ""
+    };
+  }
+}
 class BaseGovernanceService extends BaseEventsService {
+  Governance;
+  Aggregator;
+  ReverseRecords;
   batchTransactionService;
   constructor(serviceConstructor) {
-    const { Governance: contract, provider } = serviceConstructor;
+    const { Governance, Aggregator, ReverseRecords, provider } = serviceConstructor;
     super({
       ...serviceConstructor,
-      contract,
+      contract: Governance,
       type: "*"
     });
+    this.Governance = Governance;
+    this.Aggregator = Aggregator;
+    this.ReverseRecords = ReverseRecords;
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3258,6 +3334,84 @@ class BaseGovernanceService extends BaseEventsService {
       };
     }
     return super.getEventsFromGraph({ fromBlock });
+  }
+  async getAllProposals() {
+    const { events } = await this.updateEvents();
+    const [QUORUM_VOTES, proposalStatus] = await Promise.all([
+      this.Governance.QUORUM_VOTES(),
+      this.Aggregator.getAllProposals(this.Governance.target)
+    ]);
+    return events.filter((e) => e.event === "ProposalCreated").map(
+      (event, index) => {
+        const { id, description: text } = event;
+        const status = proposalStatus[index];
+        const { forVotes, againstVotes, executed, extended, state } = status;
+        const { title, description } = parseDescription(id, text);
+        const quorum = (Number(forVotes + againstVotes) / Number(QUORUM_VOTES) * 100).toFixed(0) + "%";
+        return {
+          ...event,
+          title,
+          description,
+          forVotes,
+          againstVotes,
+          executed,
+          extended,
+          quorum,
+          state: proposalState[String(state)]
+        };
+      }
+    );
+  }
+  async getVotes(proposalId) {
+    const { events } = await this.getSavedEvents();
+    const votedEvents = events.filter(
+      (e) => e.event === "Voted" && e.proposalId === proposalId
+    );
+    const votes = votedEvents.map((event) => {
+      const { contact, message } = parseComment(this.Governance, event.input);
+      return {
+        ...event,
+        contact,
+        message
+      };
+    });
+    const allVoters = [...new Set(votedEvents.map((e) => [e.from, e.voter]).flat())];
+    const names = await this.ReverseRecords.getNames(allVoters);
+    const ensNames = allVoters.reduce(
+      (acc, address, index) => {
+        if (names[index]) {
+          acc[address] = names[index];
+        }
+        return acc;
+      },
+      {}
+    );
+    return {
+      votes,
+      ensNames
+    };
+  }
+  async getDelegatedBalance(ethAccount) {
+    const { events } = await this.getSavedEvents();
+    const delegatedAccs = events.filter((e) => e.event === "Delegated" && e.delegateTo === ethAccount).map((e) => e.account);
+    const undelegatedAccs = events.filter((e) => e.event === "Undelegated" && e.delegateFrom === ethAccount).map((e) => e.account);
+    const undel = [...undelegatedAccs];
+    const uniq = delegatedAccs.filter((acc) => {
+      const indexUndelegated = undel.indexOf(acc);
+      if (indexUndelegated !== -1) {
+        undel.splice(indexUndelegated, 1);
+        return false;
+      }
+      return true;
+    });
+    const balances = await this.Aggregator.getGovernanceBalances(this.Governance.target, uniq);
+    return {
+      delegatedAccs,
+      undelegatedAccs,
+      uniq,
+      balances,
+      balance: balances.reduce((acc, curr) => acc + curr, BigInt(0))
+    };
   }
 }
 async function getTovarishNetworks(registryService, relayers) {
@@ -7412,6 +7566,7 @@ exports.pedersen = pedersen;
 exports.pickWeightedRandomRelayer = pickWeightedRandomRelayer;
 exports.populateTransaction = populateTransaction;
 exports.proofSchemaType = proofSchemaType;
+exports.proposalState = proposalState;
 exports.queryGraph = queryGraph;
 exports.rBigInt = rBigInt;
 exports.registeredEventsSchema = registeredEventsSchema;

@@ -5,7 +5,8 @@ import { fetchDataOptions } from '../providers';
 import { type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
-import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents, EchoEvents } from './types';
+import type { ReverseRecords } from '../typechain';
+import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, RegistersEvents, EchoEvents } from './types';
 export declare const DEPOSIT = "deposit";
 export declare const WITHDRAWAL = "withdrawal";
 export interface BaseEventsServiceConstructor {
@@ -137,10 +138,31 @@ export declare class BaseEncryptedNotesService extends BaseEventsService<Encrypt
     getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<EncryptedNotesEvents[]>;
 }
+export declare const proposalState: {
+    [key: string]: string;
+};
+export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
+    title: string;
+    forVotes: bigint;
+    againstVotes: bigint;
+    executed: boolean;
+    extended: boolean;
+    quorum: string;
+    state: string;
+}
+export interface GovernanceVotes extends GovernanceVotedEvents {
+    contact: string;
+    message: string;
+}
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Governance: Governance;
+    Aggregator: Aggregator;
+    ReverseRecords: ReverseRecords;
 }
 export declare class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
+    Governance: Governance;
+    Aggregator: Aggregator;
+    ReverseRecords: ReverseRecords;
     batchTransactionService: BatchTransactionService;
     constructor(serviceConstructor: BaseGovernanceServiceConstructor);
     getInstanceName(): string;
@@ -150,6 +172,20 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
     getEventsFromGraph({ fromBlock }: {
         fromBlock: number;
     }): Promise<BaseEvents<AllGovernanceEvents>>;
+    getAllProposals(): Promise<GovernanceProposals[]>;
+    getVotes(proposalId: number): Promise<{
+        votes: GovernanceVotes[];
+        ensNames: {
+            [key: string]: string;
+        };
+    }>;
+    getDelegatedBalance(ethAccount: string): Promise<{
+        delegatedAccs: string[];
+        undelegatedAccs: string[];
+        uniq: string[];
+        balances: bigint[];
+        balance: bigint;
+    }>;
 }
 export declare function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]): Promise<void>;
 /**

@@ -1,4 +1,4 @@
-import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, namehash, formatEther, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
+import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, AbiCoder, namehash, formatEther, dataSlice, dataLength, Interface, Contract, computeAddress, parseUnits, Transaction, ZeroAddress } from 'ethers';
 import crossFetch from 'cross-fetch';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -3137,15 +3137,91 @@ class BaseEncryptedNotesService extends BaseEventsService {
     }).filter((e) => e);
   }
 }
+const abiCoder = AbiCoder.defaultAbiCoder();
+const proposalState = {
+  0: "Pending",
+  1: "Active",
+  2: "Defeated",
+  3: "Timelocked",
+  4: "AwaitingExecution",
+  5: "Executed",
+  6: "Expired"
+};
+function parseDescription(id, text) {
+  switch (id) {
+    case 1:
+      return {
+        title: text,
+        description: "See: https://torn.community/t/proposal-1-enable-torn-transfers/38"
+      };
+    case 10:
+      text = text.replace("\n", "\\n\\n");
+      break;
+    case 11:
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 13:
+      text = text.replace(/\\\\n\\\\n(\s)?(\\n)?/g, "\\n");
+      break;
+    case 15:
+      text = text.replaceAll("'", '"');
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 16:
+      text = text.replace("#16: ", "");
+      break;
+    case 21:
+      return {
+        title: "Proposal #21: Restore Governance",
+        description: ""
+      };
+  }
+  let title, description, rest;
+  try {
+    ({ title, description } = JSON.parse(text));
+  } catch {
+    [title, ...rest] = text.split("\n", 2);
+    description = rest.join("\n");
+  }
+  return {
+    title,
+    description
+  };
+}
+function parseComment(Governance, calldata) {
+  try {
+    const methodLength = 4;
+    const result = abiCoder.decode(["address[]", "uint256", "bool"], dataSlice(calldata, methodLength));
+    const data = Governance.interface.encodeFunctionData("castDelegatedVote", result);
+    const length = dataLength(data);
+    const str = abiCoder.decode(["string"], dataSlice(calldata, length))[0];
+    const [contact, message] = JSON.parse(str);
+    return {
+      contact,
+      message
+    };
+  } catch {
+    return {
+      contact: "",
+      message: ""
+    };
+  }
+}
 class BaseGovernanceService extends BaseEventsService {
+  Governance;
+  Aggregator;
+  ReverseRecords;
   batchTransactionService;
   constructor(serviceConstructor) {
-    const { Governance: contract, provider } = serviceConstructor;
+    const { Governance, Aggregator, ReverseRecords, provider } = serviceConstructor;
     super({
       ...serviceConstructor,
-      contract,
+      contract: Governance,
       type: "*"
     });
+    this.Governance = Governance;
+    this.Aggregator = Aggregator;
+    this.ReverseRecords = ReverseRecords;
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3237,6 +3313,84 @@ class BaseGovernanceService extends BaseEventsService {
       };
     }
     return super.getEventsFromGraph({ fromBlock });
+  }
+  async getAllProposals() {
+    const { events } = await this.updateEvents();
+    const [QUORUM_VOTES, proposalStatus] = await Promise.all([
+      this.Governance.QUORUM_VOTES(),
+      this.Aggregator.getAllProposals(this.Governance.target)
+    ]);
+    return events.filter((e) => e.event === "ProposalCreated").map(
+      (event, index) => {
+        const { id, description: text } = event;
+        const status = proposalStatus[index];
+        const { forVotes, againstVotes, executed, extended, state } = status;
+        const { title, description } = parseDescription(id, text);
+        const quorum = (Number(forVotes + againstVotes) / Number(QUORUM_VOTES) * 100).toFixed(0) + "%";
+        return {
+          ...event,
+          title,
+          description,
+          forVotes,
+          againstVotes,
+          executed,
+          extended,
+          quorum,
+          state: proposalState[String(state)]
+        };
+      }
+    );
+  }
+  async getVotes(proposalId) {
+    const { events } = await this.getSavedEvents();
+    const votedEvents = events.filter(
+      (e) => e.event === "Voted" && e.proposalId === proposalId
+    );
+    const votes = votedEvents.map((event) => {
+      const { contact, message } = parseComment(this.Governance, event.input);
+      return {
+        ...event,
+        contact,
+        message
+      };
+    });
+    const allVoters = [...new Set(votedEvents.map((e) => [e.from, e.voter]).flat())];
+    const names = await this.ReverseRecords.getNames(allVoters);
+    const ensNames = allVoters.reduce(
+      (acc, address, index) => {
+        if (names[index]) {
+          acc[address] = names[index];
+        }
+        return acc;
+      },
+      {}
+    );
+    return {
+      votes,
+      ensNames
+    };
+  }
+  async getDelegatedBalance(ethAccount) {
+    const { events } = await this.getSavedEvents();
+    const delegatedAccs = events.filter((e) => e.event === "Delegated" && e.delegateTo === ethAccount).map((e) => e.account);
+    const undelegatedAccs = events.filter((e) => e.event === "Undelegated" && e.delegateFrom === ethAccount).map((e) => e.account);
+    const undel = [...undelegatedAccs];
+    const uniq = delegatedAccs.filter((acc) => {
+      const indexUndelegated = undel.indexOf(acc);
+      if (indexUndelegated !== -1) {
+        undel.splice(indexUndelegated, 1);
+        return false;
+      }
+      return true;
+    });
+    const balances = await this.Aggregator.getGovernanceBalances(this.Governance.target, uniq);
+    return {
+      delegatedAccs,
+      undelegatedAccs,
+      uniq,
+      balances,
+      balance: balances.reduce((acc, curr) => acc + curr, BigInt(0))
+    };
   }
 }
 async function getTovarishNetworks(registryService, relayers) {
@@ -7257,4 +7411,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobRequestSchema, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENS__factory, ERC20__factory, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isNode, jobRequestSchema, jobsSchema, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, mimc, multicall, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };

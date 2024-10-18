@@ -8,6 +8,9 @@ import {
   ContractEventName,
   namehash,
   formatEther,
+  AbiCoder,
+  dataLength,
+  dataSlice,
 } from 'ethers';
 
 import type {
@@ -35,6 +38,7 @@ import { enabledChains, type NetIdType, type SubdomainMap } from '../networkConf
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 
+import type { ReverseRecords } from '../typechain';
 import type {
   BaseEvents,
   CachedEvents,
@@ -597,21 +601,129 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
   }
 }
 
+const abiCoder = AbiCoder.defaultAbiCoder();
+
+export const proposalState: { [key: string]: string } = {
+  0: 'Pending',
+  1: 'Active',
+  2: 'Defeated',
+  3: 'Timelocked',
+  4: 'AwaitingExecution',
+  5: 'Executed',
+  6: 'Expired',
+};
+
+function parseDescription(id: number, text: string): { title: string; description: string } {
+  switch (id) {
+    case 1:
+      return {
+        title: text,
+        description: 'See: https://torn.community/t/proposal-1-enable-torn-transfers/38',
+      };
+    case 10:
+      text = text.replace('\n', '\\n\\n');
+      break;
+    case 11:
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 13:
+      text = text.replace(/\\\\n\\\\n(\s)?(\\n)?/g, '\\n');
+      break;
+    // Fix invalid JSON in proposal 15: replace single quotes with double and add comma before description
+    case 15:
+      // eslint-disable-next-line prettier/prettier
+      text = text.replaceAll('\'', '"');
+      text = text.replace('"description"', ',"description"');
+      break;
+    case 16:
+      text = text.replace('#16: ', '');
+      break;
+    // Add title to empty (without title and description) hacker proposal 21
+    case 21:
+      return {
+        title: 'Proposal #21: Restore Governance',
+        description: '',
+      };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let title: string, description: string, rest: any;
+  try {
+    ({ title, description } = JSON.parse(text));
+  } catch {
+    [title, ...rest] = text.split('\n', 2);
+    description = rest.join('\n');
+  }
+
+  return {
+    title,
+    description,
+  };
+}
+
+function parseComment(Governance: Governance, calldata: string): { contact: string; message: string } {
+  try {
+    const methodLength = 4;
+    const result = abiCoder.decode(['address[]', 'uint256', 'bool'], dataSlice(calldata, methodLength));
+    // @ts-expect-error encodeFunctionData is broken lol
+    const data = Governance.interface.encodeFunctionData('castDelegatedVote', result);
+    const length = dataLength(data);
+
+    const str: string = abiCoder.decode(['string'], dataSlice(calldata, length))[0];
+    const [contact, message] = JSON.parse(str) as string[];
+
+    return {
+      contact,
+      message,
+    };
+  } catch {
+    return {
+      contact: '',
+      message: '',
+    };
+  }
+}
+
+export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
+  title: string;
+  forVotes: bigint;
+  againstVotes: bigint;
+  executed: boolean;
+  extended: boolean;
+  quorum: string;
+  state: string;
+}
+
+export interface GovernanceVotes extends GovernanceVotedEvents {
+  contact: string;
+  message: string;
+}
+
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
   Governance: Governance;
+  Aggregator: Aggregator;
+  ReverseRecords: ReverseRecords;
 }
 
 export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
+  Governance: Governance;
+  Aggregator: Aggregator;
+  ReverseRecords: ReverseRecords;
+
   batchTransactionService: BatchTransactionService;
 
   constructor(serviceConstructor: BaseGovernanceServiceConstructor) {
-    const { Governance: contract, provider } = serviceConstructor;
+    const { Governance, Aggregator, ReverseRecords, provider } = serviceConstructor;
 
     super({
       ...serviceConstructor,
-      contract,
+      contract: Governance,
       type: '*',
     });
+
+    this.Governance = Governance;
+    this.Aggregator = Aggregator;
+    this.ReverseRecords = ReverseRecords;
 
     this.batchTransactionService = new BatchTransactionService({
       provider,
@@ -728,6 +840,116 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
     }
 
     return super.getEventsFromGraph({ fromBlock });
+  }
+
+  async getAllProposals(): Promise<GovernanceProposals[]> {
+    const { events } = await this.updateEvents();
+
+    const [QUORUM_VOTES, proposalStatus] = await Promise.all([
+      this.Governance.QUORUM_VOTES(),
+      this.Aggregator.getAllProposals(this.Governance.target),
+    ]);
+
+    return (events.filter((e) => e.event === 'ProposalCreated') as GovernanceProposalCreatedEvents[]).map(
+      (event, index) => {
+        const { id, description: text } = event;
+
+        const status = proposalStatus[index];
+
+        const { forVotes, againstVotes, executed, extended, state } = status;
+
+        const { title, description } = parseDescription(id, text);
+
+        const quorum = ((Number(forVotes + againstVotes) / Number(QUORUM_VOTES)) * 100).toFixed(0) + '%';
+
+        return {
+          ...event,
+          title,
+          description,
+          forVotes,
+          againstVotes,
+          executed,
+          extended,
+          quorum,
+          state: proposalState[String(state)],
+        };
+      },
+    );
+  }
+
+  async getVotes(proposalId: number): Promise<{
+    votes: GovernanceVotes[];
+    ensNames: {
+      [key: string]: string;
+    };
+  }> {
+    const { events } = await this.getSavedEvents();
+
+    const votedEvents = events.filter(
+      (e) => e.event === 'Voted' && (e as GovernanceVotedEvents).proposalId === proposalId,
+    ) as GovernanceVotedEvents[];
+
+    const votes = votedEvents.map((event) => {
+      const { contact, message } = parseComment(this.Governance, event.input);
+
+      return {
+        ...event,
+        contact,
+        message,
+      };
+    });
+
+    const allVoters = [...new Set(votedEvents.map((e) => [e.from, e.voter]).flat())];
+
+    const names = await this.ReverseRecords.getNames(allVoters);
+
+    const ensNames = allVoters.reduce(
+      (acc, address, index) => {
+        if (names[index]) {
+          acc[address] = names[index];
+        }
+        return acc;
+      },
+      {} as { [key: string]: string },
+    );
+
+    return {
+      votes,
+      ensNames,
+    };
+  }
+
+  async getDelegatedBalance(ethAccount: string) {
+    const { events } = await this.getSavedEvents();
+
+    const delegatedAccs = events
+      .filter((e) => e.event === 'Delegated' && (e as GovernanceDelegatedEvents).delegateTo === ethAccount)
+      .map((e) => (e as GovernanceDelegatedEvents).account);
+
+    const undelegatedAccs = events
+      .filter((e) => e.event === 'Undelegated' && (e as GovernanceUndelegatedEvents).delegateFrom === ethAccount)
+      .map((e) => (e as GovernanceUndelegatedEvents).account);
+
+    const undel = [...undelegatedAccs];
+
+    const uniq = delegatedAccs.filter((acc) => {
+      const indexUndelegated = undel.indexOf(acc);
+      if (indexUndelegated !== -1) {
+        undel.splice(indexUndelegated, 1);
+        return false;
+      }
+      return true;
+    });
+
+    const balances = await this.Aggregator.getGovernanceBalances(this.Governance.target, uniq);
+
+    return {
+      delegatedAccs,
+      undelegatedAccs,
+      uniq,
+      balances,
+      balance: balances.reduce((acc, curr) => acc + curr, BigInt(0)),
+    };
   }
 }
 
