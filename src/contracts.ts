@@ -8,4 +8,10 @@ export {
   OvmGasPriceOracle__factory,
   ReverseRecords,
   ReverseRecords__factory,
+  ENSNameWrapper,
+  ENSNameWrapper__factory,
+  ENSRegistry,
+  ENSRegistry__factory,
+  ENSResolver,
+  ENSResolver__factory,
 } from './typechain';

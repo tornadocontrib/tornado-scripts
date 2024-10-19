@@ -5,6 +5,7 @@ export * from './typechain';
 export * from './batch';
 export * from './deposits';
 export * from './encryptedNotes';
+export * from './ens';
 export * from './fees';
 export * from './gaszip';
 export * from './idb';

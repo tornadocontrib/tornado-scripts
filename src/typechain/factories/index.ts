@@ -2,6 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export { ENS__factory } from "./ENS__factory";
+export { ENSNameWrapper__factory } from "./ENSNameWrapper__factory";
+export { ENSRegistry__factory } from "./ENSRegistry__factory";
+export { ENSResolver__factory } from "./ENSResolver__factory";
 export { ERC20__factory } from "./ERC20__factory";
 export { Multicall__factory } from "./Multicall__factory";
 export { OffchainOracle__factory } from "./OffchainOracle__factory";

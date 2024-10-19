@@ -196,7 +196,7 @@ export declare function getTovarishNetworks(registryService: BaseRegistryService
  */
 export interface CachedRelayerInfo extends RelayerParams {
     isRegistered?: boolean;
-    owner?: string;
+    registeredAddress?: string;
     stakeBalance?: string;
     hostnames: SubdomainMap;
     tovarishHost?: string;

@@ -24,4 +24,5 @@ export declare function bigIntReplacer(key: any, value: any): any;
 export declare function substring(str: string, length?: number): string;
 export declare function digest(bytes: Uint8Array, algo?: string): Promise<Uint8Array>;
 export declare function numberFormatter(num: string | number | bigint, digits?: number): string;
+export declare function isHex(value: string): boolean;
 export {};

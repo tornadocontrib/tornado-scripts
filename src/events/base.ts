@@ -1009,7 +1009,7 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
  */
 export interface CachedRelayerInfo extends RelayerParams {
   isRegistered?: boolean;
-  owner?: string;
+  registeredAddress?: string;
   stakeBalance?: string;
   hostnames: SubdomainMap;
   tovarishHost?: string;
@@ -1021,7 +1021,7 @@ export interface CachedRelayerInfo extends RelayerParams {
  * This relayer isn't compatible with the current UI (tornadocash.eth) and only works as experimental mode
  * Once DAO approves changes to UI to support new Tovarish Relayer software register relayer and remove static list
  */
-const staticRelayers = [
+const staticRelayers: CachedRelayerInfo[] = [
   {
     ensName: 'tornadowithdraw.eth',
     relayerAddress: '0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64',
@@ -1029,7 +1029,7 @@ const staticRelayers = [
     tovarishHost: 'tornadowithdraw.com',
     tovarishNetworks: enabledChains,
   },
-] as CachedRelayerInfo[];
+];
 
 export interface CachedRelayers {
   lastBlock: number;
@@ -1167,17 +1167,16 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
           return acc;
         }, {} as SubdomainMap);
 
-        const isOwner = !relayerAddress || relayerAddress === owner;
         const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
 
-        const preCondition = Object.keys(hostnames).length && isOwner && isRegistered && hasMinBalance;
+        const preCondition = Object.keys(hostnames).length && isRegistered && hasMinBalance;
 
         if (preCondition) {
           return {
             ensName,
-            relayerAddress,
+            relayerAddress: owner,
+            registeredAddress: owner !== relayerAddress ? relayerAddress : undefined,
             isRegistered,
-            owner,
             stakeBalance: formatEther(stakeBalance),
             hostnames,
             tovarishHost,
