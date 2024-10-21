@@ -1,8 +1,30 @@
 import { downloadZip } from '../zip';
 import { IndexedDB } from '../idb';
 
-import { BaseTornadoService, BaseTornadoServiceConstructor } from './base';
-import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents } from './types';
+import {
+  BaseTornadoService,
+  BaseTornadoServiceConstructor,
+  BaseEchoService,
+  BaseEchoServiceConstructor,
+  BaseEncryptedNotesService,
+  BaseEncryptedNotesServiceConstructor,
+  BaseGovernanceService,
+  BaseGovernanceServiceConstructor,
+  BaseRegistryService,
+  BaseRegistryServiceConstructor,
+} from './base';
+
+import {
+  BaseEvents,
+  MinimalEvents,
+  DepositsEvents,
+  WithdrawalsEvents,
+  CachedEvents,
+  EchoEvents,
+  EncryptedNotesEvents,
+  AllGovernanceEvents,
+  RegistersEvents,
+} from './types';
 
 export async function saveDBEvents<T extends MinimalEvents>({
   idb,
@@ -147,6 +169,182 @@ export class DBTornadoService extends BaseTornadoService {
 
   async saveEvents({ events, lastBlock }: BaseEvents<DepositsEvents | WithdrawalsEvents>) {
     await saveDBEvents<DepositsEvents | WithdrawalsEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock,
+    });
+  }
+}
+
+export interface DBEchoServiceConstructor extends BaseEchoServiceConstructor {
+  staticUrl: string;
+  idb: IndexedDB;
+}
+
+export class DBEchoService extends BaseEchoService {
+  staticUrl: string;
+  idb: IndexedDB;
+
+  zipDigest?: string;
+
+  constructor(params: DBEchoServiceConstructor) {
+    super(params);
+
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+
+  async getEventsFromDB() {
+    return await loadDBEvents<EchoEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+    });
+  }
+
+  async getEventsFromCache() {
+    return await loadRemoteEvents<EchoEvents>({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest,
+    });
+  }
+
+  async saveEvents({ events, lastBlock }: BaseEvents<EchoEvents>) {
+    await saveDBEvents<EchoEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock,
+    });
+  }
+}
+
+export interface DBEncryptedNotesServiceConstructor extends BaseEncryptedNotesServiceConstructor {
+  staticUrl: string;
+  idb: IndexedDB;
+}
+
+export class DBEncryptedNotesService extends BaseEncryptedNotesService {
+  staticUrl: string;
+  idb: IndexedDB;
+
+  zipDigest?: string;
+
+  constructor(params: DBEncryptedNotesServiceConstructor) {
+    super(params);
+
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+
+  async getEventsFromDB() {
+    return await loadDBEvents<EncryptedNotesEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+    });
+  }
+
+  async getEventsFromCache() {
+    return await loadRemoteEvents<EncryptedNotesEvents>({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest,
+    });
+  }
+
+  async saveEvents({ events, lastBlock }: BaseEvents<EncryptedNotesEvents>) {
+    await saveDBEvents<EncryptedNotesEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock,
+    });
+  }
+}
+
+export interface DBGovernanceServiceConstructor extends BaseGovernanceServiceConstructor {
+  staticUrl: string;
+  idb: IndexedDB;
+}
+
+export class DBGovernanceService extends BaseGovernanceService {
+  staticUrl: string;
+  idb: IndexedDB;
+
+  zipDigest?: string;
+
+  constructor(params: DBGovernanceServiceConstructor) {
+    super(params);
+
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+
+  async getEventsFromDB() {
+    return await loadDBEvents<AllGovernanceEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+    });
+  }
+
+  async getEventsFromCache() {
+    return await loadRemoteEvents<AllGovernanceEvents>({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest,
+    });
+  }
+
+  async saveEvents({ events, lastBlock }: BaseEvents<AllGovernanceEvents>) {
+    await saveDBEvents<AllGovernanceEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock,
+    });
+  }
+}
+
+export interface DBRegistryServiceConstructor extends BaseRegistryServiceConstructor {
+  staticUrl: string;
+  idb: IndexedDB;
+}
+
+export class DBRegistryService extends BaseRegistryService {
+  staticUrl: string;
+  idb: IndexedDB;
+
+  zipDigest?: string;
+
+  constructor(params: DBRegistryServiceConstructor) {
+    super(params);
+
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+
+  async getEventsFromDB() {
+    return await loadDBEvents<RegistersEvents>({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+    });
+  }
+
+  async getEventsFromCache() {
+    return await loadRemoteEvents<RegistersEvents>({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest,
+    });
+  }
+
+  async saveEvents({ events, lastBlock }: BaseEvents<RegistersEvents>) {
+    await saveDBEvents<RegistersEvents>({
       idb: this.idb,
       instanceName: this.getInstanceName(),
       events,

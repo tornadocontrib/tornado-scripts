@@ -6,6 +6,7 @@ import { type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { ReverseRecords } from '../typechain';
+import type { MerkleTreeService } from '../merkleTree';
 import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, RegistersEvents, EchoEvents } from './types';
 export declare const DEPOSIT = "deposit";
 export declare const WITHDRAWAL = "withdrawal";
@@ -77,7 +78,7 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     getLatestEvents({ fromBlock }: {
         fromBlock: number;
     }): Promise<BaseEvents<EventType>>;
-    validateEvents({ events, lastBlock }: BaseEvents<EventType>): void;
+    validateEvents<S>({ events, lastBlock }: BaseEvents<EventType>): Promise<S>;
     /**
      * Handle saving events
      */
@@ -85,15 +86,17 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     /**
      * Trigger saving and receiving latest events
      */
-    updateEvents(): Promise<{
+    updateEvents<S>(): Promise<{
         events: EventType[];
         lastBlock: number;
+        validateResult: Awaited<S>;
     }>;
 }
 export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract'> {
     Tornado: Tornado;
     amount: string;
     currency: string;
+    merkleTreeService?: MerkleTreeService;
 }
 export interface DepositsGraphParams extends BaseGraphParams {
     amount: string;
@@ -102,6 +105,7 @@ export interface DepositsGraphParams extends BaseGraphParams {
 export declare class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
     amount: string;
     currency: string;
+    merkleTreeService?: MerkleTreeService;
     batchTransactionService: BatchTransactionService;
     batchBlockService: BatchBlockService;
     constructor(serviceConstructor: BaseTornadoServiceConstructor);
@@ -109,9 +113,9 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     getGraphMethod(): string;
     getGraphParams(): DepositsGraphParams;
     formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]>;
-    validateEvents({ events }: {
+    validateEvents<S>({ events }: {
         events: (DepositsEvents | WithdrawalsEvents)[];
-    }): void;
+    }): Promise<S>;
     getLatestEvents({ fromBlock }: {
         fromBlock: number;
     }): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;

@@ -2948,7 +2948,8 @@ class BaseEventsService {
     };
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  validateEvents({ events, lastBlock }) {
+  async validateEvents({ events, lastBlock }) {
+    return void 0;
   }
   /**
    * Handle saving events
@@ -2979,29 +2980,32 @@ class BaseEventsService {
       return !hasEvent;
     });
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
-    this.validateEvents({ events: allEvents, lastBlock });
+    const validateResult = await this.validateEvents({ events: allEvents, lastBlock });
     if (savedEvents.fromCache || newEvents.events.length) {
       await this.saveEvents({ events: allEvents, lastBlock });
     }
     return {
       events: allEvents,
-      lastBlock
+      lastBlock,
+      validateResult
     };
   }
 }
 class BaseTornadoService extends BaseEventsService {
   amount;
   currency;
+  merkleTreeService;
   batchTransactionService;
   batchBlockService;
   constructor(serviceConstructor) {
-    const { Tornado: contract, amount, currency, provider } = serviceConstructor;
+    const { Tornado: contract, amount, currency, provider, merkleTreeService } = serviceConstructor;
     super({
       ...serviceConstructor,
       contract
     });
     this.amount = amount;
     this.currency = currency;
+    this.merkleTreeService = merkleTreeService;
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3075,14 +3079,19 @@ class BaseTornadoService extends BaseEventsService {
       });
     }
   }
-  validateEvents({ events }) {
+  async validateEvents({ events }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
-      const lastEvent = events[events.length - 1];
-      if (lastEvent.leafIndex !== events.length - 1) {
-        const errMsg = `Deposit events invalid wants ${events.length - 1} leafIndex have ${lastEvent.leafIndex}`;
+      const depositEvents = events;
+      const lastEvent = depositEvents[depositEvents.length - 1];
+      if (lastEvent.leafIndex !== depositEvents.length - 1) {
+        const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
+      if (this.merkleTreeService) {
+        return await this.merkleTreeService.verifyTree(depositEvents);
+      }
     }
+    return void 0;
   }
   async getLatestEvents({ fromBlock }) {
     if (this.tovarishClient?.selectedRelayer) {
@@ -3759,6 +3768,134 @@ async function loadRemoteEvents({
   }
 }
 class DBTornadoService extends BaseTornadoService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBEchoService extends BaseEchoService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBEncryptedNotesService extends BaseEncryptedNotesService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBGovernanceService extends BaseGovernanceService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBRegistryService extends BaseRegistryService {
   staticUrl;
   idb;
   zipDigest;
@@ -10060,15 +10197,18 @@ class MerkleTreeService {
 Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while
 `
     );
-    console.time("Created tree in");
+    const timeStart = Date.now();
     const tree = await this.createTree(events.map(({ commitment }) => commitment));
-    console.timeEnd("Created tree in");
-    console.log("");
     const isKnownRoot = await this.Tornado.isKnownRoot(toFixedHex(BigInt(tree.root)));
     if (!isKnownRoot) {
       const errMsg = `Deposit Event ${this.netId} ${this.amount} ${this.currency} is invalid`;
       throw new Error(errMsg);
     }
+    console.log(
+      `
+Created ${this.netId} ${this.amount} ${this.currency.toUpperCase()} tree in ${Date.now() - timeStart}ms
+`
+    );
     return tree;
   }
 }
@@ -10499,6 +10639,10 @@ exports.BaseTornadoService = BaseTornadoService;
 exports.BatchBlockService = BatchBlockService;
 exports.BatchEventsService = BatchEventsService;
 exports.BatchTransactionService = BatchTransactionService;
+exports.DBEchoService = DBEchoService;
+exports.DBEncryptedNotesService = DBEncryptedNotesService;
+exports.DBGovernanceService = DBGovernanceService;
+exports.DBRegistryService = DBRegistryService;
 exports.DBTornadoService = DBTornadoService;
 exports.DEPOSIT = DEPOSIT;
 exports.Deposit = Deposit;

@@ -182,10 +182,9 @@ export class MerkleTreeService {
       `\nCreating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while\n`,
     );
 
-    console.time('Created tree in');
+    const timeStart = Date.now();
+
     const tree = await this.createTree(events.map(({ commitment }) => commitment));
-    console.timeEnd('Created tree in');
-    console.log('');
 
     const isKnownRoot = await this.Tornado.isKnownRoot(toFixedHex(BigInt(tree.root)));
 
@@ -193,6 +192,10 @@ export class MerkleTreeService {
       const errMsg = `Deposit Event ${this.netId} ${this.amount} ${this.currency} is invalid`;
       throw new Error(errMsg);
     }
+
+    console.log(
+      `\nCreated ${this.netId} ${this.amount} ${this.currency.toUpperCase()} tree in ${Date.now() - timeStart}ms\n`,
+    );
 
     return tree;
   }

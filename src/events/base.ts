@@ -39,6 +39,7 @@ import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 
 import type { ReverseRecords } from '../typechain';
+import type { MerkleTreeService } from '../merkleTree';
 import type {
   BaseEvents,
   CachedEvents,
@@ -295,7 +296,9 @@ export class BaseEventsService<EventType extends MinimalEvents> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  validateEvents({ events, lastBlock }: BaseEvents<EventType>) {}
+  async validateEvents<S>({ events, lastBlock }: BaseEvents<EventType>): Promise<S> {
+    return undefined as S;
+  }
 
   /**
    * Handle saving events
@@ -308,7 +311,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
    * Trigger saving and receiving latest events
    */
 
-  async updateEvents() {
+  async updateEvents<S>() {
     const savedEvents = await this.getSavedEvents();
 
     let fromBlock = this.deployedBlock;
@@ -337,7 +340,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
 
-    this.validateEvents({ events: allEvents, lastBlock });
+    const validateResult = await this.validateEvents<S>({ events: allEvents, lastBlock });
 
     // If the events are loaded from cache or we have found new events, save them
     if ((savedEvents as CachedEvents<EventType>).fromCache || newEvents.events.length) {
@@ -347,6 +350,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     return {
       events: allEvents,
       lastBlock,
+      validateResult,
     };
   }
 }
@@ -355,6 +359,7 @@ export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceCon
   Tornado: Tornado;
   amount: string;
   currency: string;
+  merkleTreeService?: MerkleTreeService;
 }
 
 export interface DepositsGraphParams extends BaseGraphParams {
@@ -365,11 +370,13 @@ export interface DepositsGraphParams extends BaseGraphParams {
 export class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
   amount: string;
   currency: string;
+
+  merkleTreeService?: MerkleTreeService;
   batchTransactionService: BatchTransactionService;
   batchBlockService: BatchBlockService;
 
   constructor(serviceConstructor: BaseTornadoServiceConstructor) {
-    const { Tornado: contract, amount, currency, provider } = serviceConstructor;
+    const { Tornado: contract, amount, currency, provider, merkleTreeService } = serviceConstructor;
 
     super({
       ...serviceConstructor,
@@ -378,6 +385,8 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
 
     this.amount = amount;
     this.currency = currency;
+
+    this.merkleTreeService = merkleTreeService;
 
     this.batchTransactionService = new BatchTransactionService({
       provider,
@@ -466,15 +475,23 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
     }
   }
 
-  validateEvents({ events }: { events: (DepositsEvents | WithdrawalsEvents)[] }) {
+  async validateEvents<S>({ events }: { events: (DepositsEvents | WithdrawalsEvents)[] }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
-      const lastEvent = events[events.length - 1] as DepositsEvents;
+      const depositEvents = events as DepositsEvents[];
 
-      if (lastEvent.leafIndex !== events.length - 1) {
-        const errMsg = `Deposit events invalid wants ${events.length - 1} leafIndex have ${lastEvent.leafIndex}`;
+      const lastEvent = depositEvents[depositEvents.length - 1];
+
+      if (lastEvent.leafIndex !== depositEvents.length - 1) {
+        const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
+
+      if (this.merkleTreeService) {
+        return (await this.merkleTreeService.verifyTree(depositEvents)) as S;
+      }
     }
+
+    return undefined as S;
   }
 
   async getLatestEvents({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>> {

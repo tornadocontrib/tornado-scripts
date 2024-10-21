@@ -2927,7 +2927,8 @@ class BaseEventsService {
     };
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  validateEvents({ events, lastBlock }) {
+  async validateEvents({ events, lastBlock }) {
+    return void 0;
   }
   /**
    * Handle saving events
@@ -2958,29 +2959,32 @@ class BaseEventsService {
       return !hasEvent;
     });
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
-    this.validateEvents({ events: allEvents, lastBlock });
+    const validateResult = await this.validateEvents({ events: allEvents, lastBlock });
     if (savedEvents.fromCache || newEvents.events.length) {
       await this.saveEvents({ events: allEvents, lastBlock });
     }
     return {
       events: allEvents,
-      lastBlock
+      lastBlock,
+      validateResult
     };
   }
 }
 class BaseTornadoService extends BaseEventsService {
   amount;
   currency;
+  merkleTreeService;
   batchTransactionService;
   batchBlockService;
   constructor(serviceConstructor) {
-    const { Tornado: contract, amount, currency, provider } = serviceConstructor;
+    const { Tornado: contract, amount, currency, provider, merkleTreeService } = serviceConstructor;
     super({
       ...serviceConstructor,
       contract
     });
     this.amount = amount;
     this.currency = currency;
+    this.merkleTreeService = merkleTreeService;
     this.batchTransactionService = new BatchTransactionService({
       provider,
       onProgress: this.updateTransactionProgress
@@ -3054,14 +3058,19 @@ class BaseTornadoService extends BaseEventsService {
       });
     }
   }
-  validateEvents({ events }) {
+  async validateEvents({ events }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
-      const lastEvent = events[events.length - 1];
-      if (lastEvent.leafIndex !== events.length - 1) {
-        const errMsg = `Deposit events invalid wants ${events.length - 1} leafIndex have ${lastEvent.leafIndex}`;
+      const depositEvents = events;
+      const lastEvent = depositEvents[depositEvents.length - 1];
+      if (lastEvent.leafIndex !== depositEvents.length - 1) {
+        const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
+      if (this.merkleTreeService) {
+        return await this.merkleTreeService.verifyTree(depositEvents);
+      }
     }
+    return void 0;
   }
   async getLatestEvents({ fromBlock }) {
     if (this.tovarishClient?.selectedRelayer) {
@@ -3738,6 +3747,134 @@ async function loadRemoteEvents({
   }
 }
 class DBTornadoService extends BaseTornadoService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBEchoService extends BaseEchoService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBEncryptedNotesService extends BaseEncryptedNotesService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBGovernanceService extends BaseGovernanceService {
+  staticUrl;
+  idb;
+  zipDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+}
+class DBRegistryService extends BaseRegistryService {
   staticUrl;
   idb;
   zipDigest;
@@ -10039,15 +10176,18 @@ class MerkleTreeService {
 Creating deposit tree for ${this.netId} ${this.amount} ${this.currency.toUpperCase()} would take a while
 `
     );
-    console.time("Created tree in");
+    const timeStart = Date.now();
     const tree = await this.createTree(events.map(({ commitment }) => commitment));
-    console.timeEnd("Created tree in");
-    console.log("");
     const isKnownRoot = await this.Tornado.isKnownRoot(toFixedHex(BigInt(tree.root)));
     if (!isKnownRoot) {
       const errMsg = `Deposit Event ${this.netId} ${this.amount} ${this.currency} is invalid`;
       throw new Error(errMsg);
     }
+    console.log(
+      `
+Created ${this.netId} ${this.amount} ${this.currency.toUpperCase()} tree in ${Date.now() - timeStart}ms
+`
+    );
     return tree;
   }
 }
@@ -10469,4 +10609,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
