@@ -7,10 +7,13 @@ export class TokenPriceOracle {
   multicall: Multicall;
   provider: Provider;
 
+  fallbackPrice: bigint;
+
   constructor(provider: Provider, multicall: Multicall, oracle?: OffchainOracle) {
     this.provider = provider;
     this.multicall = multicall;
     this.oracle = oracle;
+    this.fallbackPrice = parseEther('0.0001');
   }
 
   buildCalls(
@@ -23,6 +26,7 @@ export class TokenPriceOracle {
       contract: this.oracle,
       name: 'getRateToEth',
       params: [tokenAddress, true],
+      allowFailure: true,
     }));
   }
 
@@ -38,6 +42,7 @@ export class TokenPriceOracle {
         contract: this.oracle,
         name: 'getRateToEth',
         params: [stablecoin.target, true],
+        allowFailure: true,
       },
     ];
   }
@@ -45,12 +50,18 @@ export class TokenPriceOracle {
   async fetchPrice(tokenAddress: string, decimals: number): Promise<bigint> {
     // setup mock price for testnets
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(parseEther('0.0001')));
+      return new Promise((resolve) => resolve(this.fallbackPrice));
     }
 
-    const price = await this.oracle.getRateToEth(tokenAddress, true);
+    try {
+      const price = await this.oracle.getRateToEth(tokenAddress, true);
 
-    return (price * BigInt(10 ** decimals)) / BigInt(10 ** 18);
+      return (price * BigInt(10 ** decimals)) / BigInt(10 ** 18);
+    } catch (err) {
+      console.log(`Failed to fetch oracle price for ${tokenAddress}, will use fallback price ${this.fallbackPrice}`);
+      console.log(err);
+      return this.fallbackPrice;
+    }
   }
 
   async fetchPrices(
@@ -61,12 +72,15 @@ export class TokenPriceOracle {
   ): Promise<bigint[]> {
     // setup mock price for testnets
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(tokens.map(() => parseEther('0.0001'))));
+      return new Promise((resolve) => resolve(tokens.map(() => this.fallbackPrice)));
     }
 
-    const prices = (await multicall(this.multicall, this.buildCalls(tokens))) as bigint[];
+    const prices = (await multicall(this.multicall, this.buildCalls(tokens))) as (bigint | null)[];
 
     return prices.map((price, index) => {
+      if (!price) {
+        price = this.fallbackPrice;
+      }
       return (price * BigInt(10 ** tokens[index].decimals)) / BigInt(10 ** 18);
     });
   }
@@ -74,13 +88,13 @@ export class TokenPriceOracle {
   async fetchEthUSD(stablecoinAddress: string): Promise<number> {
     // setup mock price for testnets
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(10000));
+      return new Promise((resolve) => resolve(10 ** 18 / Number(this.fallbackPrice)));
     }
 
     const [decimals, price] = await multicall(this.multicall, this.buildStable(stablecoinAddress));
 
     // eth wei price of usdc token
-    const ethPrice = (price * BigInt(10n ** decimals)) / BigInt(10 ** 18);
+    const ethPrice = ((price || this.fallbackPrice) * BigInt(10n ** decimals)) / BigInt(10 ** 18);
 
     return 1 / Number(formatEther(ethPrice));
   }

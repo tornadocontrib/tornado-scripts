@@ -5,6 +5,7 @@ export declare class TokenPriceOracle {
     oracle?: OffchainOracle;
     multicall: Multicall;
     provider: Provider;
+    fallbackPrice: bigint;
     constructor(provider: Provider, multicall: Multicall, oracle?: OffchainOracle);
     buildCalls(tokens: {
         tokenAddress: string;

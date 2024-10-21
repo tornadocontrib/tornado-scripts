@@ -1643,7 +1643,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b",
     echoContract: "0x9B27DD5Bb15d42DC224FCD0B7caEbBe16161Df42",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornContract: "0x77777FeDdddFfC19Ff86DB637967013e6C6A116C",
     governanceContract: "0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce",
     stakingRewardsContract: "0x5B3f656C80E8ddb9ec01Dd9018815576E9238c29",
@@ -1757,7 +1757,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornadoSubgraph: "tornadocash/bsc-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -1820,7 +1820,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornadoSubgraph: "tornadocash/matic-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -1871,7 +1871,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     ovmGasPriceOracleContract: "0x420000000000000000000000000000000000000F",
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     subgraphs: {},
@@ -1923,7 +1923,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornadoSubgraph: "tornadocash/arbitrum-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -1978,7 +1978,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -2029,7 +2029,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
-    offchainOracleContract: "0x0AdDd25a91563696D8567Df78D5A01C9a991F9B8",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -2079,6 +2079,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x1572AFE6949fdF51Cb3E0856216670ae9Ee160Ee",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
+    offchainOracleContract: "0x1f89EAF03E5b260Bc6D4Ae3c3334b1B750F3e127",
     tornContract: "0x3AE6667167C0f44394106E197904519D808323cA",
     governanceContract: "0xe5324cD7602eeb387418e594B87aCADee08aeCAD",
     stakingRewardsContract: "0x6d0018890751Efd31feb8166711B16732E2b496b",
@@ -10279,16 +10280,19 @@ class TokenPriceOracle {
   oracle;
   multicall;
   provider;
+  fallbackPrice;
   constructor(provider, multicall2, oracle) {
     this.provider = provider;
     this.multicall = multicall2;
     this.oracle = oracle;
+    this.fallbackPrice = parseEther("0.0001");
   }
   buildCalls(tokens) {
     return tokens.map(({ tokenAddress }) => ({
       contract: this.oracle,
       name: "getRateToEth",
-      params: [tokenAddress, true]
+      params: [tokenAddress, true],
+      allowFailure: true
     }));
   }
   buildStable(stablecoinAddress) {
@@ -10301,32 +10305,42 @@ class TokenPriceOracle {
       {
         contract: this.oracle,
         name: "getRateToEth",
-        params: [stablecoin.target, true]
+        params: [stablecoin.target, true],
+        allowFailure: true
       }
     ];
   }
   async fetchPrice(tokenAddress, decimals) {
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(parseEther("0.0001")));
+      return new Promise((resolve) => resolve(this.fallbackPrice));
     }
-    const price = await this.oracle.getRateToEth(tokenAddress, true);
-    return price * BigInt(10 ** decimals) / BigInt(10 ** 18);
+    try {
+      const price = await this.oracle.getRateToEth(tokenAddress, true);
+      return price * BigInt(10 ** decimals) / BigInt(10 ** 18);
+    } catch (err) {
+      console.log(`Failed to fetch oracle price for ${tokenAddress}, will use fallback price ${this.fallbackPrice}`);
+      console.log(err);
+      return this.fallbackPrice;
+    }
   }
   async fetchPrices(tokens) {
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(tokens.map(() => parseEther("0.0001"))));
+      return new Promise((resolve) => resolve(tokens.map(() => this.fallbackPrice)));
     }
     const prices = await multicall(this.multicall, this.buildCalls(tokens));
     return prices.map((price, index) => {
+      if (!price) {
+        price = this.fallbackPrice;
+      }
       return price * BigInt(10 ** tokens[index].decimals) / BigInt(10 ** 18);
     });
   }
   async fetchEthUSD(stablecoinAddress) {
     if (!this.oracle) {
-      return new Promise((resolve) => resolve(1e4));
+      return new Promise((resolve) => resolve(10 ** 18 / Number(this.fallbackPrice)));
     }
     const [decimals, price] = await multicall(this.multicall, this.buildStable(stablecoinAddress));
-    const ethPrice = price * BigInt(10n ** decimals) / BigInt(10 ** 18);
+    const ethPrice = (price || this.fallbackPrice) * BigInt(10n ** decimals) / BigInt(10 ** 18);
     return 1 / Number(formatEther(ethPrice));
   }
 }
