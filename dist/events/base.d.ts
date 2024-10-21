@@ -78,7 +78,9 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     getLatestEvents({ fromBlock }: {
         fromBlock: number;
     }): Promise<BaseEvents<EventType>>;
-    validateEvents<S>({ events, lastBlock }: BaseEvents<EventType>): Promise<S>;
+    validateEvents<S>({ events, lastBlock, hasNewEvents, }: BaseEvents<EventType> & {
+        hasNewEvents?: boolean;
+    }): Promise<S>;
     /**
      * Handle saving events
      */
@@ -96,6 +98,7 @@ export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceCon
     Tornado: Tornado;
     amount: string;
     currency: string;
+    optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
 }
 export interface DepositsGraphParams extends BaseGraphParams {
@@ -105,6 +108,7 @@ export interface DepositsGraphParams extends BaseGraphParams {
 export declare class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
     amount: string;
     currency: string;
+    optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
     batchTransactionService: BatchTransactionService;
     batchBlockService: BatchBlockService;
@@ -113,8 +117,8 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     getGraphMethod(): string;
     getGraphParams(): DepositsGraphParams;
     formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]>;
-    validateEvents<S>({ events }: {
-        events: (DepositsEvents | WithdrawalsEvents)[];
+    validateEvents<S>({ events, hasNewEvents, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
+        hasNewEvents?: boolean;
     }): Promise<S>;
     getLatestEvents({ fromBlock }: {
         fromBlock: number;

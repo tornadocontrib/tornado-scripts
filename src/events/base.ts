@@ -295,10 +295,15 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async validateEvents<S>({ events, lastBlock }: BaseEvents<EventType>): Promise<S> {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  async validateEvents<S>({
+    events,
+    lastBlock,
+    hasNewEvents,
+  }: BaseEvents<EventType> & { hasNewEvents?: boolean }): Promise<S> {
     return undefined as S;
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   /**
    * Handle saving events
@@ -340,7 +345,11 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
 
-    const validateResult = await this.validateEvents<S>({ events: allEvents, lastBlock });
+    const validateResult = await this.validateEvents<S>({
+      events: allEvents,
+      lastBlock,
+      hasNewEvents: Boolean(newEvents.events.length),
+    });
 
     // If the events are loaded from cache or we have found new events, save them
     if ((savedEvents as CachedEvents<EventType>).fromCache || newEvents.events.length) {
@@ -359,6 +368,7 @@ export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceCon
   Tornado: Tornado;
   amount: string;
   currency: string;
+  optionalTree?: boolean;
   merkleTreeService?: MerkleTreeService;
 }
 
@@ -371,12 +381,13 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
   amount: string;
   currency: string;
 
+  optionalTree?: boolean;
   merkleTreeService?: MerkleTreeService;
   batchTransactionService: BatchTransactionService;
   batchBlockService: BatchBlockService;
 
   constructor(serviceConstructor: BaseTornadoServiceConstructor) {
-    const { Tornado: contract, amount, currency, provider, merkleTreeService } = serviceConstructor;
+    const { Tornado: contract, amount, currency, provider, optionalTree, merkleTreeService } = serviceConstructor;
 
     super({
       ...serviceConstructor,
@@ -386,6 +397,7 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
     this.amount = amount;
     this.currency = currency;
 
+    this.optionalTree = optionalTree;
     this.merkleTreeService = merkleTreeService;
 
     this.batchTransactionService = new BatchTransactionService({
@@ -475,7 +487,10 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
     }
   }
 
-  async validateEvents<S>({ events }: { events: (DepositsEvents | WithdrawalsEvents)[] }) {
+  async validateEvents<S>({
+    events,
+    hasNewEvents,
+  }: BaseEvents<DepositsEvents | WithdrawalsEvents> & { hasNewEvents?: boolean }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
       const depositEvents = events as DepositsEvents[];
 
@@ -486,7 +501,7 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
         throw new Error(errMsg);
       }
 
-      if (this.merkleTreeService) {
+      if (this.merkleTreeService && (!this.optionalTree || hasNewEvents)) {
         return (await this.merkleTreeService.verifyTree(depositEvents)) as S;
       }
     }

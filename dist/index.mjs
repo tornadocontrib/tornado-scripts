@@ -2927,10 +2927,15 @@ class BaseEventsService {
       lastBlock: rpcEvents.lastBlock
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async validateEvents({ events, lastBlock }) {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  async validateEvents({
+    events,
+    lastBlock,
+    hasNewEvents
+  }) {
     return void 0;
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   /**
    * Handle saving events
    */
@@ -2960,7 +2965,11 @@ class BaseEventsService {
       return !hasEvent;
     });
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
-    const validateResult = await this.validateEvents({ events: allEvents, lastBlock });
+    const validateResult = await this.validateEvents({
+      events: allEvents,
+      lastBlock,
+      hasNewEvents: Boolean(newEvents.events.length)
+    });
     if (savedEvents.fromCache || newEvents.events.length) {
       await this.saveEvents({ events: allEvents, lastBlock });
     }
@@ -2974,17 +2983,19 @@ class BaseEventsService {
 class BaseTornadoService extends BaseEventsService {
   amount;
   currency;
+  optionalTree;
   merkleTreeService;
   batchTransactionService;
   batchBlockService;
   constructor(serviceConstructor) {
-    const { Tornado: contract, amount, currency, provider, merkleTreeService } = serviceConstructor;
+    const { Tornado: contract, amount, currency, provider, optionalTree, merkleTreeService } = serviceConstructor;
     super({
       ...serviceConstructor,
       contract
     });
     this.amount = amount;
     this.currency = currency;
+    this.optionalTree = optionalTree;
     this.merkleTreeService = merkleTreeService;
     this.batchTransactionService = new BatchTransactionService({
       provider,
@@ -3059,7 +3070,10 @@ class BaseTornadoService extends BaseEventsService {
       });
     }
   }
-  async validateEvents({ events }) {
+  async validateEvents({
+    events,
+    hasNewEvents
+  }) {
     if (events.length && this.getType().toLowerCase() === DEPOSIT) {
       const depositEvents = events;
       const lastEvent = depositEvents[depositEvents.length - 1];
@@ -3067,7 +3081,7 @@ class BaseTornadoService extends BaseEventsService {
         const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
-      if (this.merkleTreeService) {
+      if (this.merkleTreeService && (!this.optionalTree || hasNewEvents)) {
         return await this.merkleTreeService.verifyTree(depositEvents);
       }
     }
