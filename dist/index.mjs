@@ -3670,8 +3670,14 @@ async function saveDBEvents({
   lastBlock
 }) {
   try {
+    const formattedEvents = events.map((e) => {
+      return {
+        eid: `${e.transactionHash}_${e.logIndex}`,
+        ...e
+      };
+    });
     await idb.createMultipleTransactions({
-      data: events,
+      data: formattedEvents,
       storeName: instanceName
     });
     await idb.putItem({
@@ -3701,8 +3707,12 @@ async function loadDBEvents({
         lastBlock: 0
       };
     }
+    const events = (await idb.getAll({ storeName: instanceName })).map((e) => {
+      delete e.eid;
+      return e;
+    });
     return {
-      events: await idb.getAll({ storeName: instanceName }),
+      events,
       lastBlock: lastBlockStore.blockNumber
     };
   } catch (err) {
@@ -9758,7 +9768,7 @@ class IndexedDB {
       }
     };
     this.dbName = dbName;
-    this.dbVersion = 34;
+    this.dbVersion = 35;
   }
   async initDB() {
     try {
@@ -9952,24 +9962,42 @@ async function getIndexedDB(netId) {
     await idb2.initDB();
     return idb2;
   }
-  const DEPOSIT_INDEXES = [
-    { name: "transactionHash", unique: false },
-    { name: "commitment", unique: true }
+  const minimalIndexes = [
+    {
+      name: "blockNumber",
+      unique: false
+    },
+    {
+      name: "transactionHash",
+      unique: false
+    }
   ];
-  const WITHDRAWAL_INDEXES = [
-    { name: "nullifierHash", unique: true }
-    // keys on which the index is created
-  ];
-  const LAST_EVENT_INDEXES = [{ name: "name", unique: false }];
   const defaultState = [
     {
-      name: "encrypted_events",
-      keyPath: "transactionHash"
+      name: `echo_${netId}`,
+      keyPath: "eid",
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: "address",
+          unique: false
+        }
+      ]
+    },
+    {
+      name: `encrypted_notes_${netId}`,
+      keyPath: "eid",
+      indexes: minimalIndexes
     },
     {
       name: "lastEvents",
       keyPath: "name",
-      indexes: LAST_EVENT_INDEXES
+      indexes: [
+        {
+          name: "name",
+          unique: false
+        }
+      ]
     }
   ];
   const config = getConfig(netId);
@@ -9977,33 +10005,68 @@ async function getIndexedDB(netId) {
   const stores = [...defaultState];
   if (netId === NetId.MAINNET) {
     stores.push({
-      name: "register_events",
-      keyPath: "ensName"
+      name: `registered_${netId}`,
+      keyPath: "ensName",
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: "relayerAddress",
+          unique: false
+        }
+      ]
+    });
+    stores.push({
+      name: `governance_${netId}`,
+      keyPath: "eid",
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: "event",
+          unique: false
+        }
+      ]
     });
   }
   Object.entries(tokens).forEach(([token, { instanceAddress }]) => {
     Object.keys(instanceAddress).forEach((amount) => {
       if (nativeCurrency === token) {
-        stores.push({
-          name: `stringify_bloom_${netId}_${token}_${amount}`,
-          keyPath: "hashBloom"
-        });
+        stores.push(
+          {
+            name: `stringify_bloom_${netId}_${token}_${amount}`,
+            keyPath: "hashBloom",
+            indexes: []
+          },
+          {
+            name: `stringify_tree_${netId}_${token}_${amount}`,
+            keyPath: "hashTree",
+            indexes: []
+          }
+        );
       }
       stores.push(
         {
           name: `deposits_${netId}_${token}_${amount}`,
           keyPath: "leafIndex",
           // the key by which it refers to the object must be in all instances of the storage
-          indexes: DEPOSIT_INDEXES
+          indexes: [
+            ...minimalIndexes,
+            {
+              name: "commitment",
+              unique: true
+            }
+          ]
         },
         {
           name: `withdrawals_${netId}_${token}_${amount}`,
-          keyPath: "blockNumber",
-          indexes: WITHDRAWAL_INDEXES
-        },
-        {
-          name: `stringify_tree_${netId}_${token}_${amount}`,
-          keyPath: "hashTree"
+          keyPath: "eid",
+          indexes: [
+            ...minimalIndexes,
+            {
+              name: "nullifierHash",
+              unique: true
+            }
+            // keys on which the index is created
+          ]
         }
       );
     });

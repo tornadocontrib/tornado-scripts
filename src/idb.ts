@@ -55,7 +55,7 @@ export class IndexedDB {
     };
 
     this.dbName = dbName;
-    this.dbVersion = 34;
+    this.dbVersion = 35;
   }
 
   async initDB() {
@@ -322,24 +322,43 @@ export async function getIndexedDB(netId?: NetIdType) {
     return idb;
   }
 
-  const DEPOSIT_INDEXES = [
-    { name: 'transactionHash', unique: false },
-    { name: 'commitment', unique: true },
+  const minimalIndexes = [
+    {
+      name: 'blockNumber',
+      unique: false,
+    },
+    {
+      name: 'transactionHash',
+      unique: false,
+    },
   ];
-  const WITHDRAWAL_INDEXES = [
-    { name: 'nullifierHash', unique: true }, // keys on which the index is created
-  ];
-  const LAST_EVENT_INDEXES = [{ name: 'name', unique: false }];
 
   const defaultState = [
     {
-      name: 'encrypted_events',
-      keyPath: 'transactionHash',
+      name: `echo_${netId}`,
+      keyPath: 'eid',
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: 'address',
+          unique: false,
+        },
+      ],
+    },
+    {
+      name: `encrypted_notes_${netId}`,
+      keyPath: 'eid',
+      indexes: minimalIndexes,
     },
     {
       name: 'lastEvents',
       keyPath: 'name',
-      indexes: LAST_EVENT_INDEXES,
+      indexes: [
+        {
+          name: 'name',
+          unique: false,
+        },
+      ],
     },
   ];
 
@@ -351,34 +370,69 @@ export async function getIndexedDB(netId?: NetIdType) {
 
   if (netId === NetId.MAINNET) {
     stores.push({
-      name: 'register_events',
+      name: `registered_${netId}`,
       keyPath: 'ensName',
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: 'relayerAddress',
+          unique: false,
+        },
+      ],
+    });
+
+    stores.push({
+      name: `governance_${netId}`,
+      keyPath: 'eid',
+      indexes: [
+        ...minimalIndexes,
+        {
+          name: 'event',
+          unique: false,
+        },
+      ],
     });
   }
 
   Object.entries(tokens).forEach(([token, { instanceAddress }]) => {
     Object.keys(instanceAddress).forEach((amount) => {
       if (nativeCurrency === token) {
-        stores.push({
-          name: `stringify_bloom_${netId}_${token}_${amount}`,
-          keyPath: 'hashBloom',
-        });
+        stores.push(
+          {
+            name: `stringify_bloom_${netId}_${token}_${amount}`,
+            keyPath: 'hashBloom',
+            indexes: [],
+          },
+          {
+            name: `stringify_tree_${netId}_${token}_${amount}`,
+            keyPath: 'hashTree',
+            indexes: [],
+          },
+        );
       }
 
       stores.push(
         {
           name: `deposits_${netId}_${token}_${amount}`,
           keyPath: 'leafIndex', // the key by which it refers to the object must be in all instances of the storage
-          indexes: DEPOSIT_INDEXES,
+          indexes: [
+            ...minimalIndexes,
+            {
+              name: 'commitment',
+              unique: true,
+            },
+          ],
         },
         {
           name: `withdrawals_${netId}_${token}_${amount}`,
-          keyPath: 'blockNumber',
-          indexes: WITHDRAWAL_INDEXES,
-        },
-        {
-          name: `stringify_tree_${netId}_${token}_${amount}`,
-          keyPath: 'hashTree',
+          keyPath: 'eid',
+          indexes: [
+            ...minimalIndexes,
+            {
+              name: 'nullifierHash',
+              unique: true,
+            }, // keys on which the index is created
+          ],
         },
       );
     });

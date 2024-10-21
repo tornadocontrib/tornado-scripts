@@ -38,8 +38,15 @@ export async function saveDBEvents<T extends MinimalEvents>({
   lastBlock: number;
 }) {
   try {
+    const formattedEvents = events.map((e) => {
+      return {
+        eid: `${e.transactionHash}_${e.logIndex}`,
+        ...e,
+      };
+    });
+
     await idb.createMultipleTransactions({
-      data: events,
+      data: formattedEvents,
       storeName: instanceName,
     });
 
@@ -76,8 +83,13 @@ export async function loadDBEvents<T extends MinimalEvents>({
       };
     }
 
+    const events = (await idb.getAll<(T & { eid?: string })[]>({ storeName: instanceName })).map((e) => {
+      delete e.eid;
+      return e;
+    });
+
     return {
-      events: await idb.getAll<T[]>({ storeName: instanceName }),
+      events,
       lastBlock: lastBlockStore.blockNumber,
     };
   } catch (err) {
