@@ -1,4 +1,4 @@
-import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, AbiCoder, namehash, formatEther, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, ZeroAddress } from 'ethers';
+import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, AbiCoder, namehash, formatEther, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, TypedDataEncoder, ZeroAddress } from 'ethers';
 import crossFetch from 'cross-fetch';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -10016,9 +10016,9 @@ async function getIndexedDB(netId) {
     }
   ];
   const config = getConfig(netId);
-  const { tokens, nativeCurrency } = config;
+  const { tokens, nativeCurrency, registryContract, governanceContract } = config;
   const stores = [...defaultState];
-  if (netId === NetId.MAINNET) {
+  if (registryContract) {
     stores.push({
       name: `registered_${netId}`,
       keyPath: "ensName",
@@ -10030,6 +10030,8 @@ async function getIndexedDB(netId) {
         }
       ]
     });
+  }
+  if (governanceContract) {
     stores.push({
       name: `governance_${netId}`,
       keyPath: "eid",
@@ -10288,6 +10290,97 @@ async function multicall(Multicall2, calls) {
     return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
   });
   return res;
+}
+
+const permit2Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+async function getPermitSignature(Token, { spender, value, nonce, deadline }) {
+  const signer = Token.runner;
+  const provider = signer.provider;
+  const [name, lastNonce, { chainId }] = await Promise.all([
+    Token.name(),
+    Token.nonces(signer.address),
+    provider.getNetwork()
+  ]);
+  const DOMAIN_SEPARATOR = {
+    name,
+    version: "1",
+    chainId,
+    verifyingContract: Token.target
+  };
+  const PERMIT_TYPE = {
+    Permit: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" }
+    ]
+  };
+  return Signature.from(
+    await signer.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
+      owner: signer.address,
+      spender,
+      value,
+      nonce: nonce || lastNonce,
+      deadline: deadline || MaxUint256
+    })
+  );
+}
+async function getPermit2Signature(Token, { spender, value: amount, nonce, deadline }, witness) {
+  const signer = Token.runner;
+  const provider = signer.provider;
+  const domain = {
+    name: "Permit2",
+    chainId: (await provider.getNetwork()).chainId,
+    verifyingContract: permit2Address
+  };
+  const types = !witness ? {
+    PermitTransferFrom: [
+      { name: "permitted", type: "TokenPermissions" },
+      { name: "spender", type: "address" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" }
+    ],
+    TokenPermissions: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" }
+    ]
+  } : {
+    PermitWitnessTransferFrom: [
+      { name: "permitted", type: "TokenPermissions" },
+      { name: "spender", type: "address" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "witness", type: witness.witnessTypeName }
+    ],
+    TokenPermissions: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    ...witness.witnessType
+  };
+  const values = {
+    permitted: {
+      token: Token.target,
+      amount
+    },
+    spender,
+    // Sorted nonce are not required for Permit2
+    nonce: nonce || rBigInt(16),
+    deadline: deadline || MaxUint256
+  };
+  if (witness) {
+    values.witness = witness.witness;
+  }
+  const hash = new TypedDataEncoder(types).hash(values);
+  const signature = Signature.from(await signer.signTypedData(domain, types, values));
+  return {
+    domain,
+    types,
+    values,
+    hash,
+    signature
+  };
 }
 
 class TokenPriceOracle {
@@ -10700,4 +10793,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, pedersen, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getPermit2Signature, getPermitSignature, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };

@@ -14,6 +14,7 @@ export * from './mimc';
 export * from './multicall';
 export * from './networkConfig';
 export * from './pedersen';
+export * from './permit';
 export * from './prices';
 export * from './providers';
 export * from './relayerClient';

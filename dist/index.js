@@ -10037,9 +10037,9 @@ async function getIndexedDB(netId) {
     }
   ];
   const config = getConfig(netId);
-  const { tokens, nativeCurrency } = config;
+  const { tokens, nativeCurrency, registryContract, governanceContract } = config;
   const stores = [...defaultState];
-  if (netId === NetId.MAINNET) {
+  if (registryContract) {
     stores.push({
       name: `registered_${netId}`,
       keyPath: "ensName",
@@ -10051,6 +10051,8 @@ async function getIndexedDB(netId) {
         }
       ]
     });
+  }
+  if (governanceContract) {
     stores.push({
       name: `governance_${netId}`,
       keyPath: "eid",
@@ -10309,6 +10311,97 @@ async function multicall(Multicall2, calls) {
     return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
   });
   return res;
+}
+
+const permit2Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+async function getPermitSignature(Token, { spender, value, nonce, deadline }) {
+  const signer = Token.runner;
+  const provider = signer.provider;
+  const [name, lastNonce, { chainId }] = await Promise.all([
+    Token.name(),
+    Token.nonces(signer.address),
+    provider.getNetwork()
+  ]);
+  const DOMAIN_SEPARATOR = {
+    name,
+    version: "1",
+    chainId,
+    verifyingContract: Token.target
+  };
+  const PERMIT_TYPE = {
+    Permit: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" }
+    ]
+  };
+  return ethers.Signature.from(
+    await signer.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
+      owner: signer.address,
+      spender,
+      value,
+      nonce: nonce || lastNonce,
+      deadline: deadline || ethers.MaxUint256
+    })
+  );
+}
+async function getPermit2Signature(Token, { spender, value: amount, nonce, deadline }, witness) {
+  const signer = Token.runner;
+  const provider = signer.provider;
+  const domain = {
+    name: "Permit2",
+    chainId: (await provider.getNetwork()).chainId,
+    verifyingContract: permit2Address
+  };
+  const types = !witness ? {
+    PermitTransferFrom: [
+      { name: "permitted", type: "TokenPermissions" },
+      { name: "spender", type: "address" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" }
+    ],
+    TokenPermissions: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" }
+    ]
+  } : {
+    PermitWitnessTransferFrom: [
+      { name: "permitted", type: "TokenPermissions" },
+      { name: "spender", type: "address" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "witness", type: witness.witnessTypeName }
+    ],
+    TokenPermissions: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    ...witness.witnessType
+  };
+  const values = {
+    permitted: {
+      token: Token.target,
+      amount
+    },
+    spender,
+    // Sorted nonce are not required for Permit2
+    nonce: nonce || rBigInt(16),
+    deadline: deadline || ethers.MaxUint256
+  };
+  if (witness) {
+    values.witness = witness.witness;
+  }
+  const hash = new ethers.TypedDataEncoder(types).hash(values);
+  const signature = ethers.Signature.from(await signer.signTypedData(domain, types, values));
+  return {
+    domain,
+    types,
+    values,
+    hash,
+    signature
+  };
 }
 
 class TokenPriceOracle {
@@ -10837,6 +10930,8 @@ exports.getInstanceByAddress = getInstanceByAddress;
 exports.getMeta = getMeta;
 exports.getNetworkConfig = getNetworkConfig;
 exports.getNoteAccounts = getNoteAccounts;
+exports.getPermit2Signature = getPermit2Signature;
+exports.getPermitSignature = getPermitSignature;
 exports.getProvider = getProvider;
 exports.getProviderWithNetId = getProviderWithNetId;
 exports.getRegisters = getRegisters;
@@ -10866,6 +10961,7 @@ exports.multicall = multicall;
 exports.numberFormatter = numberFormatter;
 exports.packEncryptedMessage = packEncryptedMessage;
 exports.pedersen = pedersen;
+exports.permit2Address = permit2Address;
 exports.pickWeightedRandomRelayer = pickWeightedRandomRelayer;
 exports.populateTransaction = populateTransaction;
 exports.proofSchemaType = proofSchemaType;

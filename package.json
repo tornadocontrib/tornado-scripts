@@ -32,7 +32,7 @@
   ],
   "dependencies": {
     "@metamask/eth-sig-util": "^7.0.3",
-    "@tornado/contracts": "git+https://codeberg.org/tornadocash/tornado-contracts.git#ece511f424dc811c3aec149a4bf0e3731c0598a4",
+    "@tornado/contracts": "git+https://codeberg.org/tornadocash/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831",
     "@tornado/fixed-merkle-tree": "git+https://codeberg.org/tornadocash/fixed-merkle-tree.git#5c3fca4cb11255760ad5f4fd95d7c6eb45c1fc99",
     "@tornado/snarkjs": "git+https://codeberg.org/tornadocash/snarkjs.git#d3915a760c437cde7bd317f9ea2c627954900656",
     "@tornado/websnark": "git+https://codeberg.org/tornadocash/websnark.git#b0c9fce5359ceba55167a2ad01a29d1e137843ec",

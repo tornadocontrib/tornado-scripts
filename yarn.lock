@@ -872,9 +872,9 @@
     "@noble/hashes" "~1.4.0"
     "@scure/base" "~1.1.6"
 
-"@tornado/contracts@git+https://codeberg.org/tornadocash/tornado-contracts.git#ece511f424dc811c3aec149a4bf0e3731c0598a4":
+"@tornado/contracts@git+https://codeberg.org/tornadocash/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831":
   version "1.0.2"
-  resolved "git+https://codeberg.org/tornadocash/tornado-contracts.git#ece511f424dc811c3aec149a4bf0e3731c0598a4"
+  resolved "git+https://codeberg.org/tornadocash/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831"
   dependencies:
     "@openzeppelin/contracts" "5.0.2"
     "@openzeppelin/contracts-v3" "npm:@openzeppelin/contracts@3.2.0-rc.0"

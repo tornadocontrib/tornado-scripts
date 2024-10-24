@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { openDB, deleteDB, OpenDBCallbacks, IDBPDatabase } from 'idb';
-import { getConfig, NetId, NetIdType } from './networkConfig';
+import { getConfig, NetIdType } from './networkConfig';
 
 export const INDEX_DB_ERROR = 'A mutation operation was attempted on a database that did not allow mutations.';
 
@@ -364,11 +364,11 @@ export async function getIndexedDB(netId?: NetIdType) {
 
   const config = getConfig(netId);
 
-  const { tokens, nativeCurrency } = config;
+  const { tokens, nativeCurrency, registryContract, governanceContract } = config;
 
   const stores = [...defaultState];
 
-  if (netId === NetId.MAINNET) {
+  if (registryContract) {
     stores.push({
       name: `registered_${netId}`,
       keyPath: 'ensName',
@@ -380,7 +380,9 @@ export async function getIndexedDB(netId?: NetIdType) {
         },
       ],
     });
+  }
 
+  if (governanceContract) {
     stores.push({
       name: `governance_${netId}`,
       keyPath: 'eid',
