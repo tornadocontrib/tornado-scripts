@@ -1,8 +1,14 @@
-import { ERC20Permit, ERC20Mock, TORN } from '@tornado/contracts';
-import { BaseContract, Signature, TypedDataField } from 'ethers';
+import { ERC20Permit, ERC20Mock, TORN, PermitTornado } from '@tornado/contracts';
+import { BaseContract, Signature, Signer, TypedDataField } from 'ethers';
 export interface PermitValue {
     spender: string;
     value: bigint;
+    nonce?: bigint;
+    deadline?: bigint;
+}
+export interface PermitCommitments {
+    denomination: bigint;
+    commitments: string[];
     nonce?: bigint;
     deadline?: bigint;
 }
@@ -17,8 +23,46 @@ export interface Witness {
     };
     witness: any;
 }
-export declare function getPermitSignature(Token: ERC20Permit | ERC20Mock | TORN, { spender, value, nonce, deadline }: PermitValue): Promise<Signature>;
-export declare function getPermit2Signature(Token: BaseContract, { spender, value: amount, nonce, deadline }: PermitValue, witness?: Witness): Promise<{
+export declare function getPermitSignature({ Token, signer, spender, value, nonce, deadline, }: PermitValue & {
+    Token: ERC20Permit | ERC20Mock | TORN;
+    signer?: Signer;
+}): Promise<Signature>;
+export declare function getPermitCommitmentsSignature({ PermitTornado, Token, signer, denomination, commitments, nonce, }: PermitCommitments & {
+    PermitTornado: PermitTornado;
+    Token: ERC20Permit | ERC20Mock | TORN;
+    signer?: Signer;
+}): Promise<Signature>;
+export declare function getPermit2Signature({ Token, signer, spender, value: amount, nonce, deadline, witness, }: PermitValue & {
+    Token: BaseContract;
+    signer?: Signer;
+    witness?: Witness;
+}): Promise<{
+    domain: {
+        name: string;
+        chainId: bigint;
+        verifyingContract: string;
+    };
+    types: {
+        [key: string]: TypedDataField[];
+    };
+    values: {
+        permitted: {
+            token: string;
+            amount: bigint;
+        };
+        spender: string;
+        nonce: bigint;
+        deadline: bigint;
+        witness?: any;
+    };
+    hash: string;
+    signature: Signature;
+}>;
+export declare function getPermit2CommitmentsSignature({ PermitTornado, Token, signer, denomination, commitments, nonce, deadline, }: PermitCommitments & {
+    PermitTornado: PermitTornado;
+    Token: BaseContract;
+    signer?: Signer;
+}): Promise<{
     domain: {
         name: string;
         chainId: bigint;

@@ -9238,6 +9238,36 @@ async function buffPedersenHash(buffer) {
   return pedersen.toStringBuffer(hash);
 }
 
+function parseNote(noteString) {
+  const noteRegex = /tornado-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<noteHex>[0-9a-fA-F]{124})/g;
+  const match = noteRegex.exec(noteString);
+  if (!match) {
+    return;
+  }
+  const { currency, amount, netId, noteHex } = match.groups;
+  return {
+    currency: currency.toLowerCase(),
+    amount,
+    netId: Number(netId),
+    noteHex: "0x" + noteHex,
+    note: noteString
+  };
+}
+function parseInvoice(invoiceString) {
+  const invoiceRegex = /tornadoInvoice-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<commitmentHex>[0-9a-fA-F]{64})/g;
+  const match = invoiceRegex.exec(invoiceString);
+  if (!match) {
+    return;
+  }
+  const { currency, amount, netId, commitmentHex } = match.groups;
+  return {
+    currency: currency.toLowerCase(),
+    amount,
+    netId: Number(netId),
+    commitmentHex: "0x" + commitmentHex,
+    invoice: invoiceString
+  };
+}
 async function createDeposit({ nullifier, secret }) {
   const preimage = new Uint8Array([...leInt2Buff(nullifier), ...leInt2Buff(secret)]);
   const noteHex = toFixedHex(bytesToBN(preimage), 62);
@@ -9332,31 +9362,27 @@ class Deposit {
     return newDeposit;
   }
   static async parseNote(noteString) {
-    const noteRegex = /tornado-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<note>[0-9a-fA-F]{124})/g;
-    const match = noteRegex.exec(noteString);
-    if (!match) {
+    const parsedNote = parseNote(noteString);
+    if (!parsedNote) {
       throw new Error("The note has invalid format");
     }
-    const matchGroup = match?.groups;
-    const currency = matchGroup.currency.toLowerCase();
-    const amount = matchGroup.amount;
-    const netId = Number(matchGroup.netId);
-    const bytes = bnToBytes("0x" + matchGroup.note);
+    const { currency, amount, netId, note, noteHex: parsedNoteHex } = parsedNote;
+    const bytes = bnToBytes(parsedNoteHex);
     const nullifier = BigInt(leBuff2Int(bytes.slice(0, 31)).toString());
     const secret = BigInt(leBuff2Int(bytes.slice(31, 62)).toString());
-    const depositObject = await createDeposit({ nullifier, secret });
-    const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${depositObject.commitmentHex}`;
+    const { noteHex, commitmentHex, nullifierHex } = await createDeposit({ nullifier, secret });
+    const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${commitmentHex}`;
     const newDeposit = new Deposit({
       currency,
       amount,
       netId,
-      note: noteString,
-      noteHex: depositObject.noteHex,
+      note,
+      noteHex,
       invoice,
       nullifier,
       secret,
-      commitmentHex: depositObject.commitmentHex,
-      nullifierHex: depositObject.nullifierHex
+      commitmentHex,
+      nullifierHex
     });
     return newDeposit;
   }
@@ -9365,23 +9391,19 @@ class Invoice {
   currency;
   amount;
   netId;
-  commitment;
+  commitmentHex;
   invoice;
   constructor(invoiceString) {
-    const invoiceRegex = /tornadoInvoice-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<commitment>[0-9a-fA-F]{64})/g;
-    const match = invoiceRegex.exec(invoiceString);
-    if (!match) {
-      throw new Error("The note has invalid format");
+    const parsedInvoice = parseInvoice(invoiceString);
+    if (!parsedInvoice) {
+      throw new Error("The invoice has invalid format");
     }
-    const matchGroup = match?.groups;
-    const currency = matchGroup.currency.toLowerCase();
-    const amount = matchGroup.amount;
-    const netId = Number(matchGroup.netId);
+    const { currency, amount, netId, invoice, commitmentHex } = parsedInvoice;
     this.currency = currency;
     this.amount = amount;
     this.netId = netId;
-    this.commitment = "0x" + matchGroup.commitment;
-    this.invoice = invoiceString;
+    this.commitmentHex = commitmentHex;
+    this.invoice = invoice;
   }
   toString() {
     return JSON.stringify(
@@ -9389,7 +9411,7 @@ class Invoice {
         currency: this.currency,
         amount: this.amount,
         netId: this.netId,
-        commitment: this.commitment,
+        commitmentHex: this.commitmentHex,
         invoice: this.invoice
       },
       null,
@@ -10314,12 +10336,19 @@ async function multicall(Multicall2, calls) {
 }
 
 const permit2Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
-async function getPermitSignature(Token, { spender, value, nonce, deadline }) {
-  const signer = Token.runner;
-  const provider = signer.provider;
+async function getPermitSignature({
+  Token,
+  signer,
+  spender,
+  value,
+  nonce,
+  deadline
+}) {
+  const sigSigner = signer || Token.runner;
+  const provider = sigSigner.provider;
   const [name, lastNonce, { chainId }] = await Promise.all([
     Token.name(),
-    Token.nonces(signer.address),
+    Token.nonces(sigSigner.address),
     provider.getNetwork()
   ]);
   const DOMAIN_SEPARATOR = {
@@ -10338,8 +10367,8 @@ async function getPermitSignature(Token, { spender, value, nonce, deadline }) {
     ]
   };
   return ethers.Signature.from(
-    await signer.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
-      owner: signer.address,
+    await sigSigner.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
+      owner: sigSigner.address,
       spender,
       value,
       nonce: nonce || lastNonce,
@@ -10347,9 +10376,36 @@ async function getPermitSignature(Token, { spender, value, nonce, deadline }) {
     })
   );
 }
-async function getPermit2Signature(Token, { spender, value: amount, nonce, deadline }, witness) {
-  const signer = Token.runner;
-  const provider = signer.provider;
+async function getPermitCommitmentsSignature({
+  PermitTornado: PermitTornado2,
+  Token,
+  signer,
+  denomination,
+  commitments,
+  nonce
+}) {
+  const value = BigInt(commitments.length) * denomination;
+  const commitmentsHash = ethers.solidityPackedKeccak256(["bytes32[]"], [commitments]);
+  return await getPermitSignature({
+    Token,
+    signer,
+    spender: PermitTornado2.target,
+    value,
+    nonce,
+    deadline: BigInt(commitmentsHash)
+  });
+}
+async function getPermit2Signature({
+  Token,
+  signer,
+  spender,
+  value: amount,
+  nonce,
+  deadline,
+  witness
+}) {
+  const sigSigner = signer || Token.runner;
+  const provider = sigSigner.provider;
   const domain = {
     name: "Permit2",
     chainId: (await provider.getNetwork()).chainId,
@@ -10394,7 +10450,7 @@ async function getPermit2Signature(Token, { spender, value: amount, nonce, deadl
     values.witness = witness.witness;
   }
   const hash = new ethers.TypedDataEncoder(types).hash(values);
-  const signature = ethers.Signature.from(await signer.signTypedData(domain, types, values));
+  const signature = ethers.Signature.from(await sigSigner.signTypedData(domain, types, values));
   return {
     domain,
     types,
@@ -10402,6 +10458,39 @@ async function getPermit2Signature(Token, { spender, value: amount, nonce, deadl
     hash,
     signature
   };
+}
+async function getPermit2CommitmentsSignature({
+  PermitTornado: PermitTornado2,
+  Token,
+  signer,
+  denomination,
+  commitments,
+  nonce,
+  deadline
+}) {
+  const value = BigInt(commitments.length) * denomination;
+  const commitmentsHash = ethers.solidityPackedKeccak256(["bytes32[]"], [commitments]);
+  return await getPermit2Signature({
+    Token,
+    signer,
+    spender: PermitTornado2.target,
+    value,
+    nonce,
+    deadline,
+    witness: {
+      witnessTypeName: "PermitCommitments",
+      witnessType: {
+        PermitCommitments: [
+          { name: "instance", type: "address" },
+          { name: "commitmentsHash", type: "bytes32" }
+        ]
+      },
+      witness: {
+        instance: PermitTornado2.target,
+        commitmentsHash
+      }
+    }
+  });
 }
 
 class TokenPriceOracle {
@@ -10930,7 +11019,9 @@ exports.getInstanceByAddress = getInstanceByAddress;
 exports.getMeta = getMeta;
 exports.getNetworkConfig = getNetworkConfig;
 exports.getNoteAccounts = getNoteAccounts;
+exports.getPermit2CommitmentsSignature = getPermit2CommitmentsSignature;
 exports.getPermit2Signature = getPermit2Signature;
+exports.getPermitCommitmentsSignature = getPermitCommitmentsSignature;
 exports.getPermitSignature = getPermitSignature;
 exports.getProvider = getProvider;
 exports.getProviderWithNetId = getProviderWithNetId;
@@ -10960,6 +11051,8 @@ exports.mimc = mimc;
 exports.multicall = multicall;
 exports.numberFormatter = numberFormatter;
 exports.packEncryptedMessage = packEncryptedMessage;
+exports.parseInvoice = parseInvoice;
+exports.parseNote = parseNote;
 exports.pedersen = pedersen;
 exports.permit2Address = permit2Address;
 exports.pickWeightedRandomRelayer = pickWeightedRandomRelayer;

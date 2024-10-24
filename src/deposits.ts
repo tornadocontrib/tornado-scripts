@@ -29,6 +29,49 @@ export interface createNoteParams extends DepositType {
 
 export interface parsedNoteExec extends DepositType {
   note: string;
+  noteHex: string;
+}
+
+export interface parsedInvoiceExec extends DepositType {
+  invoice: string;
+  commitmentHex: string;
+}
+
+export function parseNote(noteString: string): parsedNoteExec | undefined {
+  const noteRegex = /tornado-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<noteHex>[0-9a-fA-F]{124})/g;
+  const match = noteRegex.exec(noteString);
+  if (!match) {
+    return;
+  }
+
+  const { currency, amount, netId, noteHex } = match.groups as unknown as parsedNoteExec;
+
+  return {
+    currency: currency.toLowerCase(),
+    amount,
+    netId: Number(netId),
+    noteHex: '0x' + noteHex,
+    note: noteString,
+  };
+}
+
+export function parseInvoice(invoiceString: string): parsedInvoiceExec | undefined {
+  const invoiceRegex =
+    /tornadoInvoice-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<commitmentHex>[0-9a-fA-F]{64})/g;
+  const match = invoiceRegex.exec(invoiceString);
+  if (!match) {
+    return;
+  }
+
+  const { currency, amount, netId, commitmentHex } = match.groups as unknown as parsedInvoiceExec;
+
+  return {
+    currency: currency.toLowerCase(),
+    amount,
+    netId: Number(netId),
+    commitmentHex: '0x' + commitmentHex,
+    invoice: invoiceString,
+  };
 }
 
 export async function createDeposit({ nullifier, secret }: createDepositParams): Promise<createDepositObject> {
@@ -153,72 +196,61 @@ export class Deposit {
   }
 
   static async parseNote(noteString: string): Promise<Deposit> {
-    const noteRegex = /tornado-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<note>[0-9a-fA-F]{124})/g;
-    const match = noteRegex.exec(noteString);
-    if (!match) {
+    const parsedNote = parseNote(noteString);
+
+    if (!parsedNote) {
       throw new Error('The note has invalid format');
     }
-    const matchGroup = match?.groups as unknown as parsedNoteExec;
 
-    const currency = matchGroup.currency.toLowerCase();
-    const amount = matchGroup.amount;
-    const netId = Number(matchGroup.netId);
+    const { currency, amount, netId, note, noteHex: parsedNoteHex } = parsedNote;
 
-    const bytes = bnToBytes('0x' + matchGroup.note);
+    const bytes = bnToBytes(parsedNoteHex);
     const nullifier = BigInt(leBuff2Int(bytes.slice(0, 31)).toString());
     const secret = BigInt(leBuff2Int(bytes.slice(31, 62)).toString());
 
-    const depositObject = await createDeposit({ nullifier, secret });
+    const { noteHex, commitmentHex, nullifierHex } = await createDeposit({ nullifier, secret });
 
-    const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${depositObject.commitmentHex}`;
+    const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${commitmentHex}`;
 
     const newDeposit = new Deposit({
       currency,
       amount,
       netId,
-      note: noteString,
-      noteHex: depositObject.noteHex,
+      note,
+      noteHex,
       invoice,
       nullifier,
       secret,
-      commitmentHex: depositObject.commitmentHex,
-      nullifierHex: depositObject.nullifierHex,
+      commitmentHex,
+      nullifierHex,
     });
 
     return newDeposit;
   }
 }
 
-export interface parsedInvoiceExec extends DepositType {
-  commitment: string;
-}
-
 export class Invoice {
   currency: string;
   amount: string;
   netId: NetIdType;
-  commitment: string;
+  commitmentHex: string;
   invoice: string;
 
   constructor(invoiceString: string) {
-    const invoiceRegex =
-      /tornadoInvoice-(?<currency>\w+)-(?<amount>[\d.]+)-(?<netId>\d+)-0x(?<commitment>[0-9a-fA-F]{64})/g;
-    const match = invoiceRegex.exec(invoiceString);
-    if (!match) {
-      throw new Error('The note has invalid format');
-    }
-    const matchGroup = match?.groups as unknown as parsedInvoiceExec;
+    const parsedInvoice = parseInvoice(invoiceString);
 
-    const currency = matchGroup.currency.toLowerCase();
-    const amount = matchGroup.amount;
-    const netId = Number(matchGroup.netId);
+    if (!parsedInvoice) {
+      throw new Error('The invoice has invalid format');
+    }
+
+    const { currency, amount, netId, invoice, commitmentHex } = parsedInvoice;
 
     this.currency = currency;
     this.amount = amount;
     this.netId = netId;
 
-    this.commitment = '0x' + matchGroup.commitment;
-    this.invoice = invoiceString;
+    this.commitmentHex = commitmentHex;
+    this.invoice = invoice;
   }
 
   toString() {
@@ -227,7 +259,7 @@ export class Invoice {
         currency: this.currency,
         amount: this.amount,
         netId: this.netId,
-        commitment: this.commitment,
+        commitmentHex: this.commitmentHex,
         invoice: this.invoice,
       },
       null,

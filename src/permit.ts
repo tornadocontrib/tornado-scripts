@@ -1,10 +1,26 @@
-import { ERC20Permit, ERC20Mock, TORN } from '@tornado/contracts';
-import { BaseContract, MaxUint256, Provider, Signature, Signer, TypedDataEncoder, TypedDataField } from 'ethers';
+import { ERC20Permit, ERC20Mock, TORN, PermitTornado } from '@tornado/contracts';
+import {
+  BaseContract,
+  MaxUint256,
+  Provider,
+  Signature,
+  Signer,
+  solidityPackedKeccak256,
+  TypedDataEncoder,
+  TypedDataField,
+} from 'ethers';
 import { rBigInt } from './utils';
 
 export interface PermitValue {
   spender: string;
   value: bigint;
+  nonce?: bigint;
+  deadline?: bigint;
+}
+
+export interface PermitCommitments {
+  denomination: bigint;
+  commitments: string[];
   nonce?: bigint;
   deadline?: bigint;
 }
@@ -23,16 +39,23 @@ export interface Witness {
   witness: any;
 }
 
-export async function getPermitSignature(
-  Token: ERC20Permit | ERC20Mock | TORN,
-  { spender, value, nonce, deadline }: PermitValue,
-) {
-  const signer = Token.runner as Signer & { address: string };
-  const provider = signer.provider as Provider;
+export async function getPermitSignature({
+  Token,
+  signer,
+  spender,
+  value,
+  nonce,
+  deadline,
+}: PermitValue & {
+  Token: ERC20Permit | ERC20Mock | TORN;
+  signer?: Signer;
+}) {
+  const sigSigner = (signer || Token.runner) as Signer & { address: string };
+  const provider = sigSigner.provider as Provider;
 
   const [name, lastNonce, { chainId }] = await Promise.all([
     Token.name(),
-    Token.nonces(signer.address),
+    Token.nonces(sigSigner.address),
     provider.getNetwork(),
   ]);
 
@@ -54,8 +77,8 @@ export async function getPermitSignature(
   };
 
   return Signature.from(
-    await signer.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
-      owner: signer.address,
+    await sigSigner.signTypedData(DOMAIN_SEPARATOR, PERMIT_TYPE, {
+      owner: sigSigner.address,
       spender,
       value,
       nonce: nonce || lastNonce,
@@ -64,13 +87,46 @@ export async function getPermitSignature(
   );
 }
 
-export async function getPermit2Signature(
-  Token: BaseContract,
-  { spender, value: amount, nonce, deadline }: PermitValue,
-  witness?: Witness,
-) {
-  const signer = Token.runner as Signer & { address: string };
-  const provider = signer.provider as Provider;
+export async function getPermitCommitmentsSignature({
+  PermitTornado,
+  Token,
+  signer,
+  denomination,
+  commitments,
+  nonce,
+}: PermitCommitments & {
+  PermitTornado: PermitTornado;
+  Token: ERC20Permit | ERC20Mock | TORN;
+  signer?: Signer;
+}) {
+  const value = BigInt(commitments.length) * denomination;
+  const commitmentsHash = solidityPackedKeccak256(['bytes32[]'], [commitments]);
+
+  return await getPermitSignature({
+    Token,
+    signer,
+    spender: PermitTornado.target as string,
+    value,
+    nonce,
+    deadline: BigInt(commitmentsHash),
+  });
+}
+
+export async function getPermit2Signature({
+  Token,
+  signer,
+  spender,
+  value: amount,
+  nonce,
+  deadline,
+  witness,
+}: PermitValue & {
+  Token: BaseContract;
+  signer?: Signer;
+  witness?: Witness;
+}) {
+  const sigSigner = (signer || Token.runner) as Signer & { address: string };
+  const provider = sigSigner.provider as Provider;
 
   const domain = {
     name: 'Permit2',
@@ -135,7 +191,7 @@ export async function getPermit2Signature(
 
   const hash = new TypedDataEncoder(types).hash(values);
 
-  const signature = Signature.from(await signer.signTypedData(domain, types, values));
+  const signature = Signature.from(await sigSigner.signTypedData(domain, types, values));
 
   return {
     domain,
@@ -144,4 +200,43 @@ export async function getPermit2Signature(
     hash,
     signature,
   };
+}
+
+export async function getPermit2CommitmentsSignature({
+  PermitTornado,
+  Token,
+  signer,
+  denomination,
+  commitments,
+  nonce,
+  deadline,
+}: PermitCommitments & {
+  PermitTornado: PermitTornado;
+  Token: BaseContract;
+  signer?: Signer;
+}) {
+  const value = BigInt(commitments.length) * denomination;
+  const commitmentsHash = solidityPackedKeccak256(['bytes32[]'], [commitments]);
+
+  return await getPermit2Signature({
+    Token,
+    signer,
+    spender: PermitTornado.target as string,
+    value,
+    nonce,
+    deadline,
+    witness: {
+      witnessTypeName: 'PermitCommitments',
+      witnessType: {
+        PermitCommitments: [
+          { name: 'instance', type: 'address' },
+          { name: 'commitmentsHash', type: 'bytes32' },
+        ],
+      },
+      witness: {
+        instance: PermitTornado.target,
+        commitmentsHash,
+      },
+    },
+  });
 }

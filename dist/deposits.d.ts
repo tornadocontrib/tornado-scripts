@@ -22,7 +22,14 @@ export interface createNoteParams extends DepositType {
 }
 export interface parsedNoteExec extends DepositType {
     note: string;
+    noteHex: string;
 }
+export interface parsedInvoiceExec extends DepositType {
+    invoice: string;
+    commitmentHex: string;
+}
+export declare function parseNote(noteString: string): parsedNoteExec | undefined;
+export declare function parseInvoice(invoiceString: string): parsedInvoiceExec | undefined;
 export declare function createDeposit({ nullifier, secret }: createDepositParams): Promise<createDepositObject>;
 export interface DepositConstructor {
     currency: string;
@@ -52,14 +59,11 @@ export declare class Deposit {
     static createNote({ currency, amount, netId, nullifier, secret }: createNoteParams): Promise<Deposit>;
     static parseNote(noteString: string): Promise<Deposit>;
 }
-export interface parsedInvoiceExec extends DepositType {
-    commitment: string;
-}
 export declare class Invoice {
     currency: string;
     amount: string;
     netId: NetIdType;
-    commitment: string;
+    commitmentHex: string;
     invoice: string;
     constructor(invoiceString: string);
     toString(): string;
