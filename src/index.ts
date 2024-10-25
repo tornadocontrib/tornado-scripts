@@ -9,6 +9,7 @@ export * from './ens';
 export * from './fees';
 export * from './gaszip';
 export * from './idb';
+export * from './ip';
 export * from './merkleTree';
 export * from './mimc';
 export * from './multicall';

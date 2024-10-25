@@ -10139,6 +10139,13 @@ async function getIndexedDB(netId) {
   return idb;
 }
 
+async function fetchIp(ipEcho) {
+  return await fetchData(ipEcho, {
+    method: "GET",
+    timeout: 3e4
+  });
+}
+
 class Mimc {
   sponge;
   hash;
@@ -10995,6 +11002,7 @@ exports.factories = index;
 exports.fetch = fetch;
 exports.fetchData = fetchData;
 exports.fetchGetUrlFunc = fetchGetUrlFunc;
+exports.fetchIp = fetchIp;
 exports.gasZipID = gasZipID;
 exports.gasZipInbounds = gasZipInbounds;
 exports.gasZipInput = gasZipInput;
