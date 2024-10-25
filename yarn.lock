@@ -872,21 +872,23 @@
     "@noble/hashes" "~1.4.0"
     "@scure/base" "~1.1.6"
 
-"@tornado/contracts@git+https://codeberg.org/tornadocash/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831":
+"@tornado/contracts@git+https://git.tornado.ws/tornadocontrib/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831":
   version "1.0.2"
-  resolved "git+https://codeberg.org/tornadocash/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831"
+  resolved "git+https://git.tornado.ws/tornadocontrib/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831"
   dependencies:
     "@openzeppelin/contracts" "5.0.2"
     "@openzeppelin/contracts-v3" "npm:@openzeppelin/contracts@3.2.0-rc.0"
     ethers "^6.13.4"
 
-"@tornado/fixed-merkle-tree@git+https://codeberg.org/tornadocash/fixed-merkle-tree.git#5c3fca4cb11255760ad5f4fd95d7c6eb45c1fc99":
+"@tornado/fixed-merkle-tree@^0.7.3":
   version "0.7.3"
-  resolved "git+https://codeberg.org/tornadocash/fixed-merkle-tree.git#5c3fca4cb11255760ad5f4fd95d7c6eb45c1fc99"
+  resolved "https://git.tornado.ws/api/packages/tornado-packages/npm/%40tornado%2Ffixed-merkle-tree/-/0.7.3/fixed-merkle-tree-0.7.3.tgz#6636ce9d334553c5f17e5a564fd22f2e9ec04472"
+  integrity sha512-8UWvIzz0/rMGBkzXACwmCv/5I1VJmnshAKc4C+nkTfOdmnX8Pf1bBa0GlxUIZ25ZFGiU/h2IKEHYckmHovwzEA==
 
-"@tornado/snarkjs@git+https://codeberg.org/tornadocash/snarkjs.git#d3915a760c437cde7bd317f9ea2c627954900656":
+"@tornado/snarkjs@^0.1.20":
   version "0.1.20"
-  resolved "git+https://codeberg.org/tornadocash/snarkjs.git#d3915a760c437cde7bd317f9ea2c627954900656"
+  resolved "https://git.tornado.ws/api/packages/tornado-packages/npm/%40tornado%2Fsnarkjs/-/0.1.20/snarkjs-0.1.20.tgz#d7610cd3c8dc10598da7dc3e40e5d7470c3aa8c7"
+  integrity sha512-mn+ePoQjqOHyDyK8AMy8SXYqNSxJWVswWVmMYvuc75/9bBtJ7SNtwrTByxmfWjrf4S3BM3IrGfHqBHEXY6gR4Q==
   dependencies:
     big-integer "^1.6.43"
     chai "^4.2.0"
@@ -895,11 +897,12 @@
     keccak "^2.0.0"
     yargs "^12.0.5"
 
-"@tornado/websnark@git+https://codeberg.org/tornadocash/websnark.git#b0c9fce5359ceba55167a2ad01a29d1e137843ec":
+"@tornado/websnark@^0.0.4":
   version "0.0.4"
-  resolved "git+https://codeberg.org/tornadocash/websnark.git#b0c9fce5359ceba55167a2ad01a29d1e137843ec"
+  resolved "https://git.tornado.ws/api/packages/tornado-packages/npm/%40tornado%2Fwebsnark/-/0.0.4/websnark-0.0.4.tgz#4c603259b71172225a70e3d454344fa172710970"
+  integrity sha512-dHbaS41ILPq5NyVBDW8AmUPoSKvamtkTeIhyuKKmoyOrZMAUhJ9y1B2zRcejUKfhCZkIjAgCt9bvdzdOGGswwQ==
   dependencies:
-    "@tornado/snarkjs" "git+https://codeberg.org/tornadocash/snarkjs.git#d3915a760c437cde7bd317f9ea2c627954900656"
+    "@tornado/snarkjs" "^0.1.20"
     big-integer "1.6.42"
 
 "@typechain/ethers-v6@^0.5.1":
