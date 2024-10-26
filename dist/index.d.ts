@@ -8,6 +8,7 @@ export * from './encryptedNotes';
 export * from './ens';
 export * from './fees';
 export * from './gaszip';
+export * from './hasher';
 export * from './idb';
 export * from './ip';
 export * from './merkleTree';

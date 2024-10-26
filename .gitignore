@@ -1,7 +1,7 @@
 node_modules
 .env
-/events
-/trees
-backup-tornado-*
-backup-tornadoInvoice-*
-backup-note-account-*
+
+# coverage files
+/coverage
+/coverage.json
+.nyc_output

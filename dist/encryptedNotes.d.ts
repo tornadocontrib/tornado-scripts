@@ -1,6 +1,5 @@
 import { EthEncryptedData } from '@metamask/eth-sig-util';
-import { Echoer } from '@tornado/contracts';
-import { Wallet } from 'ethers';
+import { Signer, Wallet } from 'ethers';
 import { EchoEvents, EncryptedNotesEvents } from './events';
 import type { NetIdType } from './networkConfig';
 export interface NoteToEncrypt {
@@ -20,7 +19,6 @@ export interface NoteAccountConstructor {
     netId: NetIdType;
     blockNumber?: number;
     recoveryKey?: string;
-    Echoer: Echoer;
 }
 export declare class NoteAccount {
     netId: NetIdType;
@@ -28,13 +26,12 @@ export declare class NoteAccount {
     recoveryKey: string;
     recoveryAddress: string;
     recoveryPublicKey: string;
-    Echoer: Echoer;
-    constructor({ netId, blockNumber, recoveryKey, Echoer }: NoteAccountConstructor);
+    constructor({ netId, blockNumber, recoveryKey }: NoteAccountConstructor);
     /**
      * Intends to mock eth_getEncryptionPublicKey behavior from MetaMask
      * In order to make the recoveryKey retrival from Echoer possible from the bare private key
      */
-    static getWalletPublicKey(wallet: Wallet): string;
+    static getSignerPublicKey(signer: Signer | Wallet): Promise<string>;
     getEncryptedAccount(walletPublicKey: string): {
         encryptedData: EthEncryptedData;
         data: string;
@@ -42,7 +39,7 @@ export declare class NoteAccount {
     /**
      * Decrypt Echoer backuped note encryption account with private keys
      */
-    decryptAccountsWithWallet(wallet: Wallet, events: EchoEvents[]): NoteAccount[];
+    decryptSignerNoteAccounts(signer: Signer | Wallet, events: EchoEvents[]): Promise<NoteAccount[]>;
     decryptNotes(events: EncryptedNotesEvents[]): DecryptedNotes[];
     encryptNote({ address, noteHex }: NoteToEncrypt): string;
 }

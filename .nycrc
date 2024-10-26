@@ -1,0 +1,13 @@
+{
+  "all": true,
+  "extension": [".ts"],
+  "report-dir": "coverage",
+  "reporter": [
+    "html",
+    "lcov",
+    "text",
+    "text-summary"
+  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/typechain/**/*"]
+}

@@ -1,7 +1,6 @@
 import { getEncryptionPublicKey, encrypt, decrypt, EthEncryptedData } from '@metamask/eth-sig-util';
-import { Echoer } from '@tornado/contracts';
-import { Wallet, computeAddress, getAddress } from 'ethers';
-import { crypto, base64ToBytes, bytesToBase64, bytesToHex, hexToBytes, toFixedHex, concatBytes } from './utils';
+import { JsonRpcApiProvider, Signer, Wallet, computeAddress, getAddress } from 'ethers';
+import { base64ToBytes, bytesToBase64, bytesToHex, hexToBytes, toFixedHex, concatBytes, rHex } from './utils';
 import { EchoEvents, EncryptedNotesEvents } from './events';
 import type { NetIdType } from './networkConfig';
 
@@ -48,7 +47,6 @@ export interface NoteAccountConstructor {
   blockNumber?: number;
   // hex
   recoveryKey?: string;
-  Echoer: Echoer;
 }
 
 export class NoteAccount {
@@ -61,11 +59,10 @@ export class NoteAccount {
   recoveryAddress: string;
   // Note encryption public key derived from recoveryKey
   recoveryPublicKey: string;
-  Echoer: Echoer;
 
-  constructor({ netId, blockNumber, recoveryKey, Echoer }: NoteAccountConstructor) {
+  constructor({ netId, blockNumber, recoveryKey }: NoteAccountConstructor) {
     if (!recoveryKey) {
-      recoveryKey = bytesToHex(crypto.getRandomValues(new Uint8Array(32))).slice(2);
+      recoveryKey = rHex(32).slice(2);
     }
 
     this.netId = Math.floor(Number(netId));
@@ -73,22 +70,26 @@ export class NoteAccount {
     this.recoveryKey = recoveryKey;
     this.recoveryAddress = computeAddress('0x' + recoveryKey);
     this.recoveryPublicKey = getEncryptionPublicKey(recoveryKey);
-    this.Echoer = Echoer;
   }
 
   /**
    * Intends to mock eth_getEncryptionPublicKey behavior from MetaMask
    * In order to make the recoveryKey retrival from Echoer possible from the bare private key
    */
-  static getWalletPublicKey(wallet: Wallet) {
-    let { privateKey } = wallet;
+  static async getSignerPublicKey(signer: Signer | Wallet) {
+    if ((signer as Wallet).privateKey) {
+      const wallet = signer as Wallet;
+      const privateKey = wallet.privateKey.slice(0, 2) === '0x' ? wallet.privateKey.slice(2) : wallet.privateKey;
 
-    if (privateKey.startsWith('0x')) {
-      privateKey = privateKey.replace('0x', '');
+      // Should return base64 encoded public key
+      return getEncryptionPublicKey(privateKey);
     }
 
-    // Should return base64 encoded public key
-    return getEncryptionPublicKey(privateKey);
+    const provider = signer.provider as JsonRpcApiProvider;
+
+    return (await provider.send('eth_getEncryptionPublicKey', [
+      (signer as Signer & { address: string }).address,
+    ])) as string;
   }
 
   // This function intends to provide an encrypted value of recoveryKey for an on-chain Echoer backup purpose
@@ -116,30 +117,53 @@ export class NoteAccount {
   /**
    * Decrypt Echoer backuped note encryption account with private keys
    */
-  decryptAccountsWithWallet(wallet: Wallet, events: EchoEvents[]): NoteAccount[] {
-    let { privateKey } = wallet;
-
-    if (privateKey.startsWith('0x')) {
-      privateKey = privateKey.replace('0x', '');
-    }
+  async decryptSignerNoteAccounts(signer: Signer | Wallet, events: EchoEvents[]): Promise<NoteAccount[]> {
+    const signerAddress = (signer as (Signer & { address: string }) | Wallet).address;
 
     const decryptedEvents = [];
 
     for (const event of events) {
+      if (event.address !== signerAddress) {
+        continue;
+      }
+
       try {
         const unpackedMessage = unpackEncryptedMessage(event.encryptedAccount);
 
-        const recoveryKey = decrypt({
-          encryptedData: unpackedMessage,
-          privateKey,
-        });
+        let recoveryKey;
+
+        if ((signer as Wallet).privateKey) {
+          const wallet = signer as Wallet;
+          const privateKey = wallet.privateKey.slice(0, 2) === '0x' ? wallet.privateKey.slice(2) : wallet.privateKey;
+
+          recoveryKey = decrypt({
+            encryptedData: unpackedMessage,
+            privateKey,
+          });
+        } else {
+          const { version, nonce, ephemPublicKey, ciphertext } = unpackedMessage;
+
+          const unpackedBuffer = bytesToHex(
+            new TextEncoder().encode(
+              JSON.stringify({
+                version,
+                nonce,
+                ephemPublicKey,
+                ciphertext,
+              }),
+            ),
+          );
+
+          const provider = signer.provider as JsonRpcApiProvider;
+
+          recoveryKey = await provider.send('eth_decrypt', [unpackedBuffer, signerAddress]);
+        }
 
         decryptedEvents.push(
           new NoteAccount({
             netId: this.netId,
             blockNumber: event.blockNumber,
             recoveryKey,
-            Echoer: this.Echoer,
           }),
         );
       } catch {

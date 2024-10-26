@@ -586,7 +586,7 @@ export const defaultConfig: networkConfig = {
     stablecoin: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
     multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
     routerContract: '0x1572AFE6949fdF51Cb3E0856216670ae9Ee160Ee',
-    echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
+    echoContract: '0xcDD1fc3F5ac2782D83449d3AbE80D6b7B273B0e5',
     offchainOracleContract: '0x1f89EAF03E5b260Bc6D4Ae3c3334b1B750F3e127',
     tornContract: '0x3AE6667167C0f44394106E197904519D808323cA',
     governanceContract: '0xe5324cD7602eeb387418e594B87aCADee08aeCAD',

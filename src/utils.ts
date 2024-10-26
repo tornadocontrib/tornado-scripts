@@ -72,7 +72,7 @@ export function bytesToHex(bytes: Uint8Array) {
 
 export function hexToBytes(hexString: string) {
   if (hexString.slice(0, 2) === '0x') {
-    hexString = hexString.replace('0x', '');
+    hexString = hexString.slice(2);
   }
   if (hexString.length % 2 !== 0) {
     hexString = '0' + hexString;
@@ -90,8 +90,8 @@ export function bnToBytes(bigint: bigint | string) {
   // Parse bigint to hex string
   let hexString: string = typeof bigint === 'bigint' ? bigint.toString(16) : bigint;
   // Remove hex string prefix if exists
-  if (hexString.startsWith('0x')) {
-    hexString = hexString.replace('0x', '');
+  if (hexString.slice(0, 2) === '0x') {
+    hexString = hexString.slice(2);
   }
   // Hex string length should be a multiplier of two (To make correct bytes)
   if (hexString.length % 2 !== 0) {
@@ -128,6 +128,10 @@ export function toFixedLength(string: string, length: number = 32) {
 // Random BigInt in a range of bytes
 export function rBigInt(nbytes: number = 31) {
   return bytesToBN(crypto.getRandomValues(new Uint8Array(nbytes)));
+}
+
+export function rHex(nbytes: number = 32) {
+  return bytesToHex(crypto.getRandomValues(new Uint8Array(nbytes)));
 }
 
 // Used for JSON.stringify(value, bigIntReplacer, space)

@@ -20,6 +20,7 @@ export declare function leInt2Buff(bigint: bnInput | bigint): Uint8Array;
 export declare function toFixedHex(numberish: BigNumberish, length?: number): string;
 export declare function toFixedLength(string: string, length?: number): string;
 export declare function rBigInt(nbytes?: number): bigint;
+export declare function rHex(nbytes?: number): string;
 export declare function bigIntReplacer(key: any, value: any): any;
 export declare function substring(str: string, length?: number): string;
 export declare function digest(bytes: Uint8Array, algo?: string): Promise<Uint8Array>;
