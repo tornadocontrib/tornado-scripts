@@ -15,20 +15,20 @@ var websnarkUtils = require('@tornado/websnark/src/utils');
 var websnarkGroth = require('@tornado/websnark/src/groth16');
 
 function _interopNamespaceDefault(e) {
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () { return e[k]; }
+    var n = Object.create(null);
+    if (e) {
+        Object.keys(e).forEach(function (k) {
+            if (k !== 'default') {
+                var d = Object.getOwnPropertyDescriptor(e, k);
+                Object.defineProperty(n, k, d.get ? d : {
+                    enumerable: true,
+                    get: function () { return e[k]; }
+                });
+            }
         });
-      }
-    });
-  }
-  n.default = e;
-  return Object.freeze(n);
+    }
+    n.default = e;
+    return Object.freeze(n);
 }
 
 var websnarkUtils__namespace = /*#__PURE__*/_interopNamespaceDefault(websnarkUtils);
@@ -778,7 +778,12 @@ async function getAllRegisters({
           // eslint-disable-next-line prefer-const
           block: { number: currentBlock }
         }
-      } = await getRegisters({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getRegisters({
+        graphApi,
+        subgraphName,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       if (isEmptyArray(result2)) {
         break;
@@ -867,7 +872,14 @@ async function getAllDeposits({
           // eslint-disable-next-line prefer-const
           block: { number: currentBlock }
         }
-      } = await getDeposits({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getDeposits({
+        graphApi,
+        subgraphName,
+        currency,
+        amount,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       if (isEmptyArray(result2)) {
         break;
@@ -962,7 +974,14 @@ async function getAllWithdrawals({
           // eslint-disable-next-line prefer-const
           block: { number: currentBlock }
         }
-      } = await getWithdrawals({ graphApi, subgraphName, currency, amount, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getWithdrawals({
+        graphApi,
+        subgraphName,
+        currency,
+        amount,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       if (isEmptyArray(result2)) {
         break;
@@ -1085,7 +1104,12 @@ async function getAllGraphEchoEvents({
           // eslint-disable-next-line prefer-const
           block: { number: currentBlock }
         }
-      } = await getGraphEchoEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getGraphEchoEvents({
+        graphApi,
+        subgraphName,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       if (isEmptyArray(result2)) {
         break;
@@ -1172,7 +1196,12 @@ async function getAllEncryptedNotes({
           // eslint-disable-next-line prefer-const
           block: { number: currentBlock }
         }
-      } = await getEncryptedNotes({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getEncryptedNotes({
+        graphApi,
+        subgraphName,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       if (isEmptyArray(result2)) {
         break;
@@ -1257,14 +1286,29 @@ async function getAllGovernanceEvents({
         _meta: {
           block: { number: currentBlock }
         }
-      } = await getGovernanceEvents({ graphApi, subgraphName, fromBlock, fetchDataOptions: fetchDataOptions2 });
+      } = await getGovernanceEvents({
+        graphApi,
+        subgraphName,
+        fromBlock,
+        fetchDataOptions: fetchDataOptions2
+      });
       lastSyncBlock = currentBlock;
       const eventsLength = proposals.length + votes.length + delegates.length + undelegates.length;
       if (eventsLength === 0) {
         break;
       }
       const formattedProposals = proposals.map(
-        ({ blockNumber, logIndex, transactionHash, proposalId, proposer, target, startTime, endTime, description }) => {
+        ({
+          blockNumber,
+          logIndex,
+          transactionHash,
+          proposalId,
+          proposer,
+          target,
+          startTime,
+          endTime,
+          description
+        }) => {
           return {
             blockNumber: Number(blockNumber),
             logIndex: Number(logIndex),
@@ -1367,33 +1411,33 @@ async function getAllGovernanceEvents({
 }
 
 var graph = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  GET_DEPOSITS: GET_DEPOSITS,
-  GET_ECHO_EVENTS: GET_ECHO_EVENTS,
-  GET_ENCRYPTED_NOTES: GET_ENCRYPTED_NOTES,
-  GET_GOVERNANCE_APY: GET_GOVERNANCE_APY,
-  GET_GOVERNANCE_EVENTS: GET_GOVERNANCE_EVENTS,
-  GET_NOTE_ACCOUNTS: GET_NOTE_ACCOUNTS,
-  GET_REGISTERED: GET_REGISTERED,
-  GET_STATISTIC: GET_STATISTIC,
-  GET_WITHDRAWALS: GET_WITHDRAWALS,
-  _META: _META,
-  getAllDeposits: getAllDeposits,
-  getAllEncryptedNotes: getAllEncryptedNotes,
-  getAllGovernanceEvents: getAllGovernanceEvents,
-  getAllGraphEchoEvents: getAllGraphEchoEvents,
-  getAllRegisters: getAllRegisters,
-  getAllWithdrawals: getAllWithdrawals,
-  getDeposits: getDeposits,
-  getEncryptedNotes: getEncryptedNotes,
-  getGovernanceEvents: getGovernanceEvents,
-  getGraphEchoEvents: getGraphEchoEvents,
-  getMeta: getMeta,
-  getNoteAccounts: getNoteAccounts,
-  getRegisters: getRegisters,
-  getStatistic: getStatistic,
-  getWithdrawals: getWithdrawals,
-  queryGraph: queryGraph
+    __proto__: null,
+    GET_DEPOSITS: GET_DEPOSITS,
+    GET_ECHO_EVENTS: GET_ECHO_EVENTS,
+    GET_ENCRYPTED_NOTES: GET_ENCRYPTED_NOTES,
+    GET_GOVERNANCE_APY: GET_GOVERNANCE_APY,
+    GET_GOVERNANCE_EVENTS: GET_GOVERNANCE_EVENTS,
+    GET_NOTE_ACCOUNTS: GET_NOTE_ACCOUNTS,
+    GET_REGISTERED: GET_REGISTERED,
+    GET_STATISTIC: GET_STATISTIC,
+    GET_WITHDRAWALS: GET_WITHDRAWALS,
+    _META: _META,
+    getAllDeposits: getAllDeposits,
+    getAllEncryptedNotes: getAllEncryptedNotes,
+    getAllGovernanceEvents: getAllGovernanceEvents,
+    getAllGraphEchoEvents: getAllGraphEchoEvents,
+    getAllRegisters: getAllRegisters,
+    getAllWithdrawals: getAllWithdrawals,
+    getDeposits: getDeposits,
+    getEncryptedNotes: getEncryptedNotes,
+    getGovernanceEvents: getGovernanceEvents,
+    getGraphEchoEvents: getGraphEchoEvents,
+    getMeta: getMeta,
+    getNoteAccounts: getNoteAccounts,
+    getRegisters: getRegisters,
+    getStatistic: getStatistic,
+    getWithdrawals: getWithdrawals,
+    queryGraph: queryGraph
 });
 
 class BatchBlockService {
@@ -1526,7 +1570,11 @@ class BatchTransactionService {
       results.push(...chunksResult);
       txCount += chunks.length;
       if (typeof this.onProgress === "function") {
-        this.onProgress({ percentage: txCount / txs.length, currentIndex: txCount, totalIndex: txs.length });
+        this.onProgress({
+          percentage: txCount / txs.length,
+          currentIndex: txCount,
+          totalIndex: txs.length
+        });
       }
     }
     return results;
@@ -2265,8 +2313,14 @@ const addressSchemaType = {
   isAddress: true
 };
 const bnSchemaType = { type: "string", BN: true };
-const proofSchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{512}$" };
-const bytes32SchemaType = { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" };
+const proofSchemaType = {
+  type: "string",
+  pattern: "^0x[a-fA-F0-9]{512}$"
+};
+const bytes32SchemaType = {
+  type: "string",
+  pattern: "^0x[a-fA-F0-9]{64}$"
+};
 const bytes32BNSchemaType = { ...bytes32SchemaType, BN: true };
 
 const baseEventsSchemaProperty = {
@@ -2319,7 +2373,16 @@ const governanceEventsSchema = {
           from: addressSchemaType,
           input: { type: "string" }
         },
-        required: [...baseEventsSchemaRequired, "event", "proposalId", "voter", "support", "votes", "from", "input"],
+        required: [
+          ...baseEventsSchemaRequired,
+          "event",
+          "proposalId",
+          "voter",
+          "support",
+          "votes",
+          "from",
+          "input"
+        ],
         additionalProperties: false
       },
       {
@@ -2488,10 +2551,13 @@ function getStatusSchema(netId, config, tovarish) {
         properties: {
           instanceAddress: {
             type: "object",
-            properties: amounts.reduce((acc2, cur) => {
-              acc2[cur] = addressSchemaType;
-              return acc2;
-            }, {}),
+            properties: amounts.reduce(
+              (acc2, cur) => {
+                acc2[cur] = addressSchemaType;
+                return acc2;
+              },
+              {}
+            ),
             required: amounts.filter((amount) => !optionalInstances.includes(amount))
           },
           decimals: { enum: [decimals] }
@@ -2664,7 +2730,10 @@ class RelayerClient {
       return;
     }
     try {
-      const status = await this.askRelayerStatus({ hostname, relayerAddress });
+      const status = await this.askRelayerStatus({
+        hostname,
+        relayerAddress
+      });
       return {
         netId: status.netId,
         url: status.url,
@@ -2690,16 +2759,18 @@ class RelayerClient {
   }
   async getValidRelayers(relayers) {
     const invalidRelayers = [];
-    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
-      if (!r) {
-        return false;
+    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter(
+      (r) => {
+        if (!r) {
+          return false;
+        }
+        if (r.hasError) {
+          invalidRelayers.push(r);
+          return false;
+        }
+        return true;
       }
-      if (r.hasError) {
-        invalidRelayers.push(r);
-        return false;
-      }
-      return true;
-    });
+    );
     return {
       validRelayers,
       invalidRelayers
@@ -2918,7 +2989,11 @@ class BaseEventsService {
       }
       this.updateEventProgress({ percentage: 0, type: this.getType() });
       const events = await this.formatEvents(
-        await this.batchEventsService.getBatchEvents({ fromBlock, toBlock, type: this.getType() })
+        await this.batchEventsService.getBatchEvents({
+          fromBlock,
+          toBlock,
+          type: this.getType()
+        })
       );
       return {
         events,
@@ -2945,7 +3020,9 @@ class BaseEventsService {
     }
     const graphEvents = await this.getEventsFromGraph({ fromBlock });
     const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
-    const rpcEvents = await this.getEventsFromRpc({ fromBlock: lastSyncBlock });
+    const rpcEvents = await this.getEventsFromRpc({
+      fromBlock: lastSyncBlock
+    });
     return {
       events: [...graphEvents.events, ...rpcEvents.events],
       lastBlock: rpcEvents.lastBlock
@@ -3111,7 +3188,9 @@ class BaseTornadoService extends BaseEventsService {
     }
     return void 0;
   }
-  async getLatestEvents({ fromBlock }) {
+  async getLatestEvents({
+    fromBlock
+  }) {
     if (this.tovarishClient?.selectedRelayer) {
       const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
         type: this.getTovarishType(),
@@ -3257,7 +3336,11 @@ function parseComment(Governance, calldata) {
   try {
     const methodLength = 4;
     const result = abiCoder.decode(["address[]", "uint256", "bool"], ethers.dataSlice(calldata, methodLength));
-    const data = Governance.interface.encodeFunctionData("castDelegatedVote", result);
+    const data = Governance.interface.encodeFunctionData(
+      // @ts-expect-error encodeFunctionData is broken lol
+      "castDelegatedVote",
+      result
+    );
     const length = ethers.dataLength(data);
     const str = abiCoder.decode(["string"], ethers.dataSlice(calldata, length))[0];
     const [contact, message] = JSON.parse(str);
@@ -3746,7 +3829,9 @@ async function loadDBEvents({
         lastBlock: 0
       };
     }
-    const events = (await idb.getAll({ storeName: instanceName })).map((e) => {
+    const events = (await idb.getAll({
+      storeName: instanceName
+    })).map((e) => {
       delete e.eid;
       return e;
     });
@@ -9204,16 +9289,16 @@ class ReverseRecords__factory {
 }
 
 var index = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  ENSNameWrapper__factory: ENSNameWrapper__factory,
-  ENSRegistry__factory: ENSRegistry__factory,
-  ENSResolver__factory: ENSResolver__factory,
-  ENS__factory: ENS__factory,
-  ERC20__factory: ERC20__factory,
-  Multicall__factory: Multicall__factory,
-  OffchainOracle__factory: OffchainOracle__factory,
-  OvmGasPriceOracle__factory: OvmGasPriceOracle__factory,
-  ReverseRecords__factory: ReverseRecords__factory
+    __proto__: null,
+    ENSNameWrapper__factory: ENSNameWrapper__factory,
+    ENSRegistry__factory: ENSRegistry__factory,
+    ENSResolver__factory: ENSResolver__factory,
+    ENS__factory: ENS__factory,
+    ERC20__factory: ERC20__factory,
+    Multicall__factory: Multicall__factory,
+    OffchainOracle__factory: OffchainOracle__factory,
+    OvmGasPriceOracle__factory: OvmGasPriceOracle__factory,
+    ReverseRecords__factory: ReverseRecords__factory
 });
 
 class Pedersen {
@@ -9373,7 +9458,10 @@ class Deposit {
     const bytes = bnToBytes(parsedNoteHex);
     const nullifier = BigInt(leBuff2Int(bytes.slice(0, 31)).toString());
     const secret = BigInt(leBuff2Int(bytes.slice(31, 62)).toString());
-    const { noteHex, commitmentHex, nullifierHex } = await createDeposit({ nullifier, secret });
+    const { noteHex, commitmentHex, nullifierHex } = await createDeposit({
+      nullifier,
+      secret
+    });
     const invoice = `tornadoInvoice-${currency}-${amount}-${netId}-${commitmentHex}`;
     const newDeposit = new Deposit({
       currency,
@@ -9444,7 +9532,6 @@ function unpackEncryptedMessage(encryptedMessage) {
   };
 }
 class NoteAccount {
-  netId;
   blockNumber;
   // Dedicated 32 bytes private key only used for note encryption, backed up to an Echoer and local for future derivation
   // Note that unlike the private key it shouldn't have the 0x prefix
@@ -9453,11 +9540,10 @@ class NoteAccount {
   recoveryAddress;
   // Note encryption public key derived from recoveryKey
   recoveryPublicKey;
-  constructor({ netId, blockNumber, recoveryKey }) {
+  constructor({ blockNumber, recoveryKey }) {
     if (!recoveryKey) {
       recoveryKey = rHex(32).slice(2);
     }
-    this.netId = Math.floor(Number(netId));
     this.blockNumber = blockNumber;
     this.recoveryKey = recoveryKey;
     this.recoveryAddress = ethers.computeAddress("0x" + recoveryKey);
@@ -9500,7 +9586,7 @@ class NoteAccount {
   /**
    * Decrypt Echoer backuped note encryption account with private keys
    */
-  async decryptSignerNoteAccounts(signer, events) {
+  static async decryptSignerNoteAccounts(signer, events) {
     const signerAddress = signer.address;
     const decryptedEvents = [];
     for (const event of events) {
@@ -9534,7 +9620,6 @@ class NoteAccount {
         }
         decryptedEvents.push(
           new NoteAccount({
-            netId: this.netId,
             blockNumber: event.blockNumber,
             recoveryKey
           })
@@ -10570,7 +10655,9 @@ class TokenPriceOracle {
       const price = await this.oracle.getRateToEth(tokenAddress, true);
       return price * BigInt(10 ** decimals) / BigInt(10 ** 18);
     } catch (err) {
-      console.log(`Failed to fetch oracle price for ${tokenAddress}, will use fallback price ${this.fallbackPrice}`);
+      console.log(
+        `Failed to fetch oracle price for ${tokenAddress}, will use fallback price ${this.fallbackPrice}`
+      );
       console.log(err);
       return this.fallbackPrice;
     }
@@ -10670,7 +10757,11 @@ class TovarishClient extends RelayerClient {
     url,
     relayerAddress
   }) {
-    const status = await super.askRelayerStatus({ hostname, url, relayerAddress });
+    const status = await super.askRelayerStatus({
+      hostname,
+      url,
+      relayerAddress
+    });
     if (!status.version.includes("tovarish")) {
       throw new Error("Not a tovarish relayer!");
     }
@@ -10706,7 +10797,14 @@ class TovarishClient extends RelayerClient {
     for (const rawStatus of statusArray) {
       const netId = rawStatus.netId;
       const config = getConfig(netId);
-      const statusValidator = ajv.compile(getStatusSchema(rawStatus.netId, config, this.tovarish));
+      const statusValidator = ajv.compile(
+        getStatusSchema(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          rawStatus.netId,
+          config,
+          this.tovarish
+        )
+      );
       if (!statusValidator) {
         continue;
       }
@@ -10737,7 +10835,10 @@ class TovarishClient extends RelayerClient {
     }
     const hostname = `${tovarishHost}/${this.netId}`;
     try {
-      const status = await this.askRelayerStatus({ hostname, relayerAddress });
+      const status = await this.askRelayerStatus({
+        hostname,
+        relayerAddress
+      });
       return {
         netId: status.netId,
         url: status.url,
@@ -10769,16 +10870,18 @@ class TovarishClient extends RelayerClient {
   }
   async getValidRelayers(relayers) {
     const invalidRelayers = [];
-    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter((r) => {
-      if (!r) {
-        return false;
+    const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter(
+      (r) => {
+        if (!r) {
+          return false;
+        }
+        if (r.hasError) {
+          invalidRelayers.push(r);
+          return false;
+        }
+        return true;
       }
-      if (r.hasError) {
-        invalidRelayers.push(r);
-        return false;
-      }
-      return true;
-    });
+    );
     return {
       validRelayers,
       invalidRelayers
@@ -10791,7 +10894,10 @@ class TovarishClient extends RelayerClient {
       relayers.filter((r) => r.tovarishHost && r.tovarishNetworks?.length).map(async (relayer) => {
         const { ensName, relayerAddress, tovarishHost } = relayer;
         try {
-          const statusArray = await this.askAllStatus({ hostname: tovarishHost, relayerAddress });
+          const statusArray = await this.askAllStatus({
+            hostname: tovarishHost,
+            relayerAddress
+          });
           for (const status of statusArray) {
             validRelayers.push({
               netId: status.netId,

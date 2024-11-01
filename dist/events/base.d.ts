@@ -120,7 +120,7 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     validateEvents<S>({ events, hasNewEvents, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
         hasNewEvents?: boolean;
     }): Promise<S>;
-    getLatestEvents({ fromBlock }: {
+    getLatestEvents({ fromBlock, }: {
         fromBlock: number;
     }): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;
 }

@@ -5,66 +5,66 @@ import { mimc } from './mimc';
 import { isNode } from './utils';
 
 interface WorkData {
-  merkleTreeHeight: number;
-  edge?: TreeEdge;
-  elements: Element[];
-  zeroElement: string;
+    merkleTreeHeight: number;
+    edge?: TreeEdge;
+    elements: Element[];
+    zeroElement: string;
 }
 
 async function nodePostWork() {
-  const { hash: hashFunction } = await mimc.getHash();
-  const { merkleTreeHeight, edge, elements, zeroElement } = workerThreads.workerData as WorkData;
-
-  if (edge) {
-    const merkleTree = new PartialMerkleTree(merkleTreeHeight, edge, elements, {
-      zeroElement,
-      hashFunction,
-    });
-
-    (workerThreads.parentPort as workerThreads.MessagePort).postMessage(merkleTree.toString());
-    return;
-  }
-
-  const merkleTree = new MerkleTree(merkleTreeHeight, elements, {
-    zeroElement,
-    hashFunction,
-  });
-
-  (workerThreads.parentPort as workerThreads.MessagePort).postMessage(merkleTree.toString());
-}
-
-if (isNode && workerThreads) {
-  nodePostWork();
-} else if (!isNode && typeof addEventListener === 'function' && typeof postMessage === 'function') {
-  addEventListener('message', async (e: any) => {
-    let data;
-
-    if (e.data) {
-      data = e.data;
-    } else {
-      data = e;
-    }
-
     const { hash: hashFunction } = await mimc.getHash();
-    const { merkleTreeHeight, edge, elements, zeroElement } = data as WorkData;
+    const { merkleTreeHeight, edge, elements, zeroElement } = workerThreads.workerData as WorkData;
 
     if (edge) {
-      const merkleTree = new PartialMerkleTree(merkleTreeHeight, edge, elements, {
-        zeroElement,
-        hashFunction,
-      });
+        const merkleTree = new PartialMerkleTree(merkleTreeHeight, edge, elements, {
+            zeroElement,
+            hashFunction,
+        });
 
-      postMessage(merkleTree.toString());
-      return;
+        (workerThreads.parentPort as workerThreads.MessagePort).postMessage(merkleTree.toString());
+        return;
     }
 
     const merkleTree = new MerkleTree(merkleTreeHeight, elements, {
-      zeroElement,
-      hashFunction,
+        zeroElement,
+        hashFunction,
     });
 
-    postMessage(merkleTree.toString());
-  });
+    (workerThreads.parentPort as workerThreads.MessagePort).postMessage(merkleTree.toString());
+}
+
+if (isNode && workerThreads) {
+    nodePostWork();
+} else if (!isNode && typeof addEventListener === 'function' && typeof postMessage === 'function') {
+    addEventListener('message', async (e: any) => {
+        let data;
+
+        if (e.data) {
+            data = e.data;
+        } else {
+            data = e;
+        }
+
+        const { hash: hashFunction } = await mimc.getHash();
+        const { merkleTreeHeight, edge, elements, zeroElement } = data as WorkData;
+
+        if (edge) {
+            const merkleTree = new PartialMerkleTree(merkleTreeHeight, edge, elements, {
+                zeroElement,
+                hashFunction,
+            });
+
+            postMessage(merkleTree.toString());
+            return;
+        }
+
+        const merkleTree = new MerkleTree(merkleTreeHeight, elements, {
+            zeroElement,
+            hashFunction,
+        });
+
+        postMessage(merkleTree.toString());
+    });
 } else {
-  throw new Error('This browser / environment does not support workers!');
+    throw new Error('This browser / environment does not support workers!');
 }

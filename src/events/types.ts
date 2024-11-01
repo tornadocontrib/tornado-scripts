@@ -1,84 +1,84 @@
 import { RelayerParams } from '../relayerClient';
 
 export interface BaseEvents<T> {
-  events: T[];
-  lastBlock: number;
+    events: T[];
+    lastBlock: number;
 }
 
 export interface CachedEvents<T> extends BaseEvents<T> {
-  fromCache: boolean;
+    fromCache: boolean;
 }
 
 export interface BaseGraphEvents<T> {
-  events: T[];
-  lastSyncBlock: number;
+    events: T[];
+    lastSyncBlock: number;
 }
 
 export interface MinimalEvents {
-  blockNumber: number;
-  logIndex: number;
-  transactionHash: string;
+    blockNumber: number;
+    logIndex: number;
+    transactionHash: string;
 }
 
 export interface GovernanceEvents extends MinimalEvents {
-  event: string;
+    event: string;
 }
 
 export interface GovernanceProposalCreatedEvents extends GovernanceEvents {
-  id: number;
-  proposer: string;
-  target: string;
-  startTime: number;
-  endTime: number;
-  description: string;
+    id: number;
+    proposer: string;
+    target: string;
+    startTime: number;
+    endTime: number;
+    description: string;
 }
 
 export interface GovernanceVotedEvents extends GovernanceEvents {
-  proposalId: number;
-  voter: string;
-  support: boolean;
-  votes: string;
-  from: string;
-  input: string;
+    proposalId: number;
+    voter: string;
+    support: boolean;
+    votes: string;
+    from: string;
+    input: string;
 }
 
 export interface GovernanceDelegatedEvents extends GovernanceEvents {
-  account: string;
-  delegateTo: string;
+    account: string;
+    delegateTo: string;
 }
 
 export interface GovernanceUndelegatedEvents extends GovernanceEvents {
-  account: string;
-  delegateFrom: string;
+    account: string;
+    delegateFrom: string;
 }
 
 export type AllGovernanceEvents =
-  | GovernanceProposalCreatedEvents
-  | GovernanceVotedEvents
-  | GovernanceDelegatedEvents
-  | GovernanceUndelegatedEvents;
+    | GovernanceProposalCreatedEvents
+    | GovernanceVotedEvents
+    | GovernanceDelegatedEvents
+    | GovernanceUndelegatedEvents;
 
 export type RegistersEvents = MinimalEvents & RelayerParams;
 
 export interface DepositsEvents extends MinimalEvents {
-  commitment: string;
-  leafIndex: number;
-  timestamp: number;
-  from: string;
+    commitment: string;
+    leafIndex: number;
+    timestamp: number;
+    from: string;
 }
 
 export interface WithdrawalsEvents extends MinimalEvents {
-  nullifierHash: string;
-  to: string;
-  fee: string;
-  timestamp: number;
+    nullifierHash: string;
+    to: string;
+    fee: string;
+    timestamp: number;
 }
 
 export interface EchoEvents extends MinimalEvents {
-  address: string;
-  encryptedAccount: string;
+    address: string;
+    encryptedAccount: string;
 }
 
 export interface EncryptedNotesEvents extends MinimalEvents {
-  encryptedNote: string;
+    encryptedNote: string;
 }

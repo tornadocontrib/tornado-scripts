@@ -2,212 +2,220 @@ import { Config, NetId, NetIdType } from '../networkConfig';
 import { addressSchemaType, bnSchemaType } from '.';
 
 export interface statusInstanceType {
-  type: string;
-  properties: {
-    instanceAddress: {
-      type: string;
-      properties: {
-        [key in string]: typeof addressSchemaType;
-      };
-      required: string[];
+    type: string;
+    properties: {
+        instanceAddress: {
+            type: string;
+            properties: {
+                [key in string]: typeof addressSchemaType;
+            };
+            required: string[];
+        };
+        tokenAddress?: typeof addressSchemaType;
+        symbol?: { enum: string[] };
+        decimals: { enum: number[] };
     };
-    tokenAddress?: typeof addressSchemaType;
-    symbol?: { enum: string[] };
-    decimals: { enum: number[] };
-  };
-  required: string[];
+    required: string[];
 }
 
 export interface statusInstancesType {
-  type: string;
-  properties: {
-    [key in string]: statusInstanceType;
-  };
-  required: string[];
+    type: string;
+    properties: {
+        [key in string]: statusInstanceType;
+    };
+    required: string[];
 }
 
 export interface statusEthPricesType {
-  type: string;
-  properties: {
-    [key in string]: typeof bnSchemaType;
-  };
-  required?: string[];
+    type: string;
+    properties: {
+        [key in string]: typeof bnSchemaType;
+    };
+    required?: string[];
 }
 
 export interface statusSchema {
-  type: string;
-  properties: {
-    rewardAccount: typeof addressSchemaType;
-    instances?: statusInstancesType;
-    gasPrices: {
-      type: string;
-      properties: {
-        [key in string]: {
-          type: string;
+    type: string;
+    properties: {
+        rewardAccount: typeof addressSchemaType;
+        instances?: statusInstancesType;
+        gasPrices: {
+            type: string;
+            properties: {
+                [key in string]: {
+                    type: string;
+                };
+            };
+            required: string[];
         };
-      };
-      required: string[];
+        netId: {
+            type: string;
+        };
+        ethPrices?: statusEthPricesType;
+        tornadoServiceFee?: {
+            type: string;
+            maximum: number;
+            minimum: number;
+        };
+        latestBlock: {
+            type: string;
+        };
+        latestBalance: {
+            type: string;
+            BN: boolean;
+        };
+        version: {
+            type: string;
+        };
+        health: {
+            type: string;
+            properties: {
+                status: { const: string };
+                error: { type: string };
+            };
+            required: string[];
+        };
+        syncStatus: {
+            type: string;
+            properties: {
+                events: { type: string };
+                tokenPrice: { type: string };
+                gasPrice: { type: string };
+            };
+            required: string[];
+        };
+        onSyncEvents: { type: string };
+        currentQueue: {
+            type: string;
+        };
     };
-    netId: {
-      type: string;
-    };
-    ethPrices?: statusEthPricesType;
-    tornadoServiceFee?: {
-      type: string;
-      maximum: number;
-      minimum: number;
-    };
-    latestBlock: {
-      type: string;
-    };
-    latestBalance: {
-      type: string;
-      BN: boolean;
-    };
-    version: {
-      type: string;
-    };
-    health: {
-      type: string;
-      properties: {
-        status: { const: string };
-        error: { type: string };
-      };
-      required: string[];
-    };
-    syncStatus: {
-      type: string;
-      properties: {
-        events: { type: string };
-        tokenPrice: { type: string };
-        gasPrice: { type: string };
-      };
-      required: string[];
-    };
-    onSyncEvents: { type: string };
-    currentQueue: {
-      type: string;
-    };
-  };
-  required: string[];
+    required: string[];
 }
 
 const statusSchema: statusSchema = {
-  type: 'object',
-  properties: {
-    rewardAccount: addressSchemaType,
-    gasPrices: {
-      type: 'object',
-      properties: {
-        fast: { type: 'number' },
-        additionalProperties: { type: 'number' },
-      },
-      required: ['fast'],
+    type: 'object',
+    properties: {
+        rewardAccount: addressSchemaType,
+        gasPrices: {
+            type: 'object',
+            properties: {
+                fast: { type: 'number' },
+                additionalProperties: { type: 'number' },
+            },
+            required: ['fast'],
+        },
+        netId: { type: 'integer' },
+        tornadoServiceFee: { type: 'number', maximum: 20, minimum: 0 },
+        latestBlock: { type: 'number' },
+        latestBalance: bnSchemaType,
+        version: { type: 'string' },
+        health: {
+            type: 'object',
+            properties: {
+                status: { const: 'true' },
+                error: { type: 'string' },
+            },
+            required: ['status'],
+        },
+        syncStatus: {
+            type: 'object',
+            properties: {
+                events: { type: 'boolean' },
+                tokenPrice: { type: 'boolean' },
+                gasPrice: { type: 'boolean' },
+            },
+            required: ['events', 'tokenPrice', 'gasPrice'],
+        },
+        onSyncEvents: { type: 'boolean' },
+        currentQueue: { type: 'number' },
     },
-    netId: { type: 'integer' },
-    tornadoServiceFee: { type: 'number', maximum: 20, minimum: 0 },
-    latestBlock: { type: 'number' },
-    latestBalance: bnSchemaType,
-    version: { type: 'string' },
-    health: {
-      type: 'object',
-      properties: {
-        status: { const: 'true' },
-        error: { type: 'string' },
-      },
-      required: ['status'],
-    },
-    syncStatus: {
-      type: 'object',
-      properties: {
-        events: { type: 'boolean' },
-        tokenPrice: { type: 'boolean' },
-        gasPrice: { type: 'boolean' },
-      },
-      required: ['events', 'tokenPrice', 'gasPrice'],
-    },
-    onSyncEvents: { type: 'boolean' },
-    currentQueue: { type: 'number' },
-  },
-  required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health', 'currentQueue'],
+    required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health', 'currentQueue'],
 };
 
 export function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean) {
-  const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
+    const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
 
-  // deep copy schema
-  const schema = JSON.parse(JSON.stringify(statusSchema)) as statusSchema;
+    // deep copy schema
+    const schema = JSON.parse(JSON.stringify(statusSchema)) as statusSchema;
 
-  const instances = Object.keys(tokens).reduce(
-    (acc: statusInstancesType, token) => {
-      const { instanceAddress, tokenAddress, symbol, decimals, optionalInstances = [] } = tokens[token];
-      const amounts = Object.keys(instanceAddress);
+    const instances = Object.keys(tokens).reduce(
+        (acc: statusInstancesType, token) => {
+            const { instanceAddress, tokenAddress, symbol, decimals, optionalInstances = [] } = tokens[token];
+            const amounts = Object.keys(instanceAddress);
 
-      const instanceProperties: statusInstanceType = {
-        type: 'object',
-        properties: {
-          instanceAddress: {
-            type: 'object',
-            properties: amounts.reduce((acc: { [key in string]: typeof addressSchemaType }, cur) => {
-              acc[cur] = addressSchemaType;
-              return acc;
-            }, {}),
-            required: amounts.filter((amount) => !optionalInstances.includes(amount)),
-          },
-          decimals: { enum: [decimals] },
+            const instanceProperties: statusInstanceType = {
+                type: 'object',
+                properties: {
+                    instanceAddress: {
+                        type: 'object',
+                        properties: amounts.reduce(
+                            (
+                                acc: {
+                                    [key in string]: typeof addressSchemaType;
+                                },
+                                cur,
+                            ) => {
+                                acc[cur] = addressSchemaType;
+                                return acc;
+                            },
+                            {},
+                        ),
+                        required: amounts.filter((amount) => !optionalInstances.includes(amount)),
+                    },
+                    decimals: { enum: [decimals] },
+                },
+                required: ['instanceAddress', 'decimals'].concat(
+                    tokenAddress ? ['tokenAddress'] : [],
+                    symbol ? ['symbol'] : [],
+                ),
+            };
+
+            if (tokenAddress) {
+                instanceProperties.properties.tokenAddress = addressSchemaType;
+            }
+            if (symbol) {
+                instanceProperties.properties.symbol = { enum: [symbol] };
+            }
+
+            acc.properties[token] = instanceProperties;
+            if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
+                acc.required.push(token);
+            }
+            return acc;
         },
-        required: ['instanceAddress', 'decimals'].concat(
-          tokenAddress ? ['tokenAddress'] : [],
-          symbol ? ['symbol'] : [],
-        ),
-      };
+        {
+            type: 'object',
+            properties: {},
+            required: [],
+        },
+    );
 
-      if (tokenAddress) {
-        instanceProperties.properties.tokenAddress = addressSchemaType;
-      }
-      if (symbol) {
-        instanceProperties.properties.symbol = { enum: [symbol] };
-      }
+    schema.properties.instances = instances;
 
-      acc.properties[token] = instanceProperties;
-      if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
-        acc.required.push(token);
-      }
-      return acc;
-    },
-    {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-  );
+    const _tokens = Object.keys(tokens).filter(
+        (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t),
+    );
 
-  schema.properties.instances = instances;
+    if (netId === NetId.MAINNET) {
+        _tokens.push('torn');
+    }
 
-  const _tokens = Object.keys(tokens).filter(
-    (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t),
-  );
+    if (_tokens.length) {
+        const ethPrices: statusEthPricesType = {
+            type: 'object',
+            properties: _tokens.reduce((acc: { [key in string]: typeof bnSchemaType }, token: string) => {
+                acc[token] = bnSchemaType;
+                return acc;
+            }, {}),
+            required: _tokens,
+        };
+        schema.properties.ethPrices = ethPrices;
+        schema.required.push('ethPrices');
+    }
 
-  if (netId === NetId.MAINNET) {
-    _tokens.push('torn');
-  }
+    if (tovarish) {
+        schema.required.push('gasPrices', 'latestBlock', 'latestBalance', 'syncStatus', 'onSyncEvents');
+    }
 
-  if (_tokens.length) {
-    const ethPrices: statusEthPricesType = {
-      type: 'object',
-      properties: _tokens.reduce((acc: { [key in string]: typeof bnSchemaType }, token: string) => {
-        acc[token] = bnSchemaType;
-        return acc;
-      }, {}),
-      required: _tokens,
-    };
-    schema.properties.ethPrices = ethPrices;
-    schema.required.push('ethPrices');
-  }
-
-  if (tovarish) {
-    schema.required.push('gasPrices', 'latestBlock', 'latestBalance', 'syncStatus', 'onSyncEvents');
-  }
-
-  return schema;
+    return schema;
 }
