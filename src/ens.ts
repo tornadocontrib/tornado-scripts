@@ -121,13 +121,6 @@ export class ENSUtils {
         return registry.setSubnodeRecord(parentNode, labelhash, owner, resolver.target, BigInt(0));
     }
 
-    // https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/wallet/setTextRecord.ts
-    async setText(signer: Signer, name: string, key: string, value: string) {
-        const resolver = ENSResolver__factory.connect((await this.getResolver(name))?.address as string, signer);
-
-        return resolver.setText(namehash(name), key, value);
-    }
-
     getResolver(name: string) {
         return EnsResolver.fromName(this.provider, name);
     }
@@ -141,5 +134,12 @@ export class ENSUtils {
         }
 
         return (await resolver.getText(key)) || '';
+    }
+
+    // https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/wallet/setTextRecord.ts
+    async setText(signer: Signer, name: string, key: string, value: string) {
+        const resolver = ENSResolver__factory.connect((await this.getResolver(name))?.address as string, signer);
+
+        return resolver.setText(namehash(name), key, value);
     }
 }

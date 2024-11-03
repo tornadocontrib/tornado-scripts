@@ -1,7 +1,8 @@
-import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, getAddress, isAddress, parseEther, AbiCoder, namehash, formatEther, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, solidityPackedKeccak256, TypedDataEncoder, ZeroAddress } from 'ethers';
-import crossFetch from 'cross-fetch';
+import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, solidityPackedKeccak256, TypedDataEncoder, ZeroAddress } from 'ethers';
+import { Tornado__factory } from '@tornado/contracts';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
+import crossFetch from 'cross-fetch';
 import Ajv from 'ajv';
 import { zip, unzip } from 'fflate';
 import { buildPedersenHash, buildMimcSponge } from 'circomlibjs';
@@ -124,7 +125,258 @@ function isHex(value) {
   return /^0x[0-9a-fA-F]*$/.test(value);
 }
 
-const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0";
+class BatchBlockService {
+  provider;
+  onProgress;
+  concurrencySize;
+  batchSize;
+  shouldRetry;
+  retryMax;
+  retryOn;
+  constructor({
+    provider,
+    onProgress,
+    concurrencySize = 10,
+    batchSize = 10,
+    shouldRetry = true,
+    retryMax = 5,
+    retryOn = 500
+  }) {
+    this.provider = provider;
+    this.onProgress = onProgress;
+    this.concurrencySize = concurrencySize;
+    this.batchSize = batchSize;
+    this.shouldRetry = shouldRetry;
+    this.retryMax = retryMax;
+    this.retryOn = retryOn;
+  }
+  async getBlock(blockTag) {
+    const blockObject = await this.provider.getBlock(blockTag);
+    if (!blockObject) {
+      const errMsg = `No block for ${blockTag}`;
+      throw new Error(errMsg);
+    }
+    return blockObject;
+  }
+  createBatchRequest(batchArray) {
+    return batchArray.map(async (blocks, index) => {
+      await sleep(40 * index);
+      return (async () => {
+        let retries = 0;
+        let err;
+        while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
+          try {
+            return await Promise.all(blocks.map((b) => this.getBlock(b)));
+          } catch (e) {
+            retries++;
+            err = e;
+            await sleep(this.retryOn);
+          }
+        }
+        throw err;
+      })();
+    });
+  }
+  async getBatchBlocks(blocks) {
+    let blockCount = 0;
+    const results = [];
+    for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
+      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
+      results.push(...chunksResult);
+      blockCount += chunks.length;
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: blockCount / blocks.length,
+          currentIndex: blockCount,
+          totalIndex: blocks.length
+        });
+      }
+    }
+    return results;
+  }
+}
+class BatchTransactionService {
+  provider;
+  onProgress;
+  concurrencySize;
+  batchSize;
+  shouldRetry;
+  retryMax;
+  retryOn;
+  constructor({
+    provider,
+    onProgress,
+    concurrencySize = 10,
+    batchSize = 10,
+    shouldRetry = true,
+    retryMax = 5,
+    retryOn = 500
+  }) {
+    this.provider = provider;
+    this.onProgress = onProgress;
+    this.concurrencySize = concurrencySize;
+    this.batchSize = batchSize;
+    this.shouldRetry = shouldRetry;
+    this.retryMax = retryMax;
+    this.retryOn = retryOn;
+  }
+  async getTransaction(txHash) {
+    const txObject = await this.provider.getTransaction(txHash);
+    if (!txObject) {
+      const errMsg = `No transaction for ${txHash}`;
+      throw new Error(errMsg);
+    }
+    return txObject;
+  }
+  async getTransactionReceipt(txHash) {
+    const txObject = await this.provider.getTransactionReceipt(txHash);
+    if (!txObject) {
+      const errMsg = `No transaction receipt for ${txHash}`;
+      throw new Error(errMsg);
+    }
+    return txObject;
+  }
+  createBatchRequest(batchArray, receipt) {
+    return batchArray.map(async (txs, index) => {
+      await sleep(40 * index);
+      return (async () => {
+        let retries = 0;
+        let err;
+        while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
+          try {
+            if (!receipt) {
+              return await Promise.all(txs.map((tx) => this.getTransaction(tx)));
+            } else {
+              return await Promise.all(txs.map((tx) => this.getTransactionReceipt(tx)));
+            }
+          } catch (e) {
+            retries++;
+            err = e;
+            await sleep(this.retryOn);
+          }
+        }
+        throw err;
+      })();
+    });
+  }
+  async getBatchTransactions(txs) {
+    let txCount = 0;
+    const results = [];
+    for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
+      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
+      results.push(...chunksResult);
+      txCount += chunks.length;
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: txCount / txs.length,
+          currentIndex: txCount,
+          totalIndex: txs.length
+        });
+      }
+    }
+    return results;
+  }
+  async getBatchReceipt(txs) {
+    let txCount = 0;
+    const results = [];
+    for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
+      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize), true))).flat();
+      results.push(...chunksResult);
+      txCount += chunks.length;
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: txCount / txs.length,
+          currentIndex: txCount,
+          totalIndex: txs.length
+        });
+      }
+    }
+    return results;
+  }
+}
+class BatchEventsService {
+  provider;
+  contract;
+  onProgress;
+  concurrencySize;
+  blocksPerRequest;
+  shouldRetry;
+  retryMax;
+  retryOn;
+  constructor({
+    provider,
+    contract,
+    onProgress,
+    concurrencySize = 10,
+    blocksPerRequest = 5e3,
+    shouldRetry = true,
+    retryMax = 5,
+    retryOn = 500
+  }) {
+    this.provider = provider;
+    this.contract = contract;
+    this.onProgress = onProgress;
+    this.concurrencySize = concurrencySize;
+    this.blocksPerRequest = blocksPerRequest;
+    this.shouldRetry = shouldRetry;
+    this.retryMax = retryMax;
+    this.retryOn = retryOn;
+  }
+  async getPastEvents({ fromBlock, toBlock, type }) {
+    let err;
+    let retries = 0;
+    while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
+      try {
+        return await this.contract.queryFilter(type, fromBlock, toBlock);
+      } catch (e) {
+        err = e;
+        retries++;
+        if (e.message.includes("after last accepted block")) {
+          const acceptedBlock = parseInt(e.message.split("after last accepted block ")[1]);
+          toBlock = acceptedBlock;
+        }
+        await sleep(this.retryOn);
+      }
+    }
+    throw err;
+  }
+  createBatchRequest(batchArray) {
+    return batchArray.map(async (event, index) => {
+      await sleep(10 * index);
+      return this.getPastEvents(event);
+    });
+  }
+  async getBatchEvents({ fromBlock, toBlock, type = "*" }) {
+    if (!toBlock) {
+      toBlock = await this.provider.getBlockNumber();
+    }
+    const eventsToSync = [];
+    for (let i = fromBlock; i < toBlock; i += this.blocksPerRequest) {
+      const j = i + this.blocksPerRequest - 1 > toBlock ? toBlock : i + this.blocksPerRequest - 1;
+      eventsToSync.push({ fromBlock: i, toBlock: j, type });
+    }
+    const events = [];
+    const eventChunk = chunk(eventsToSync, this.concurrencySize);
+    let chunkCount = 0;
+    for (const chunk2 of eventChunk) {
+      chunkCount++;
+      const fetchedEvents = (await Promise.all(this.createBatchRequest(chunk2))).flat();
+      events.push(...fetchedEvents);
+      if (typeof this.onProgress === "function") {
+        this.onProgress({
+          percentage: chunkCount / eventChunk.length,
+          type,
+          fromBlock: chunk2[0].fromBlock,
+          toBlock: chunk2[chunk2.length - 1].toBlock,
+          count: fetchedEvents.length
+        });
+      }
+    }
+    return events;
+  }
+}
+
+const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
 const fetch = crossFetch;
 function getHttpAgent({
   fetchUrl,
@@ -434,1213 +686,6 @@ class TornadoBrowserProvider extends BrowserProvider {
   }
 }
 
-const GET_STATISTIC = `
-  query getStatistic($currency: String!, $amount: String!, $first: Int, $orderBy: BigInt, $orderDirection: String) {
-    deposits(first: $first, orderBy: $orderBy, orderDirection: $orderDirection, where: { currency: $currency, amount: $amount }) {
-      index
-      timestamp
-      blockNumber
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const _META = `
-  query getMeta {
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_REGISTERED = `
-  query getRegistered($first: Int, $fromBlock: Int) {
-      relayers(first: $first, orderBy: blockRegistration, orderDirection: asc, where: {
-        blockRegistration_gte: $fromBlock
-      }) {
-        id
-        address
-        ensName
-        blockRegistration
-      }
-      _meta {
-        block {
-          number
-        }
-        hasIndexingErrors
-      }
-  }
-`;
-const GET_DEPOSITS = `
-  query getDeposits($currency: String!, $amount: String!, $first: Int, $fromBlock: Int) {
-    deposits(first: $first, orderBy: index, orderDirection: asc, where: { 
-      amount: $amount,
-      currency: $currency,
-      blockNumber_gte: $fromBlock
-    }) {
-      id
-      blockNumber
-      commitment
-      index
-      timestamp
-      from
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_WITHDRAWALS = `
-  query getWithdrawals($currency: String!, $amount: String!, $first: Int, $fromBlock: Int!) {
-    withdrawals(first: $first, orderBy: blockNumber, orderDirection: asc, where: { 
-      currency: $currency,
-      amount: $amount,
-      blockNumber_gte: $fromBlock
-    }) {
-      id
-      blockNumber
-      nullifier
-      to
-      fee
-      timestamp
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_NOTE_ACCOUNTS = `
-  query getNoteAccount($address: String!) {
-    noteAccounts(where: { address: $address }) {
-      id
-      index
-      address
-      encryptedAccount
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_ECHO_EVENTS = `
-  query getNoteAccounts($first: Int, $fromBlock: Int) {
-    noteAccounts(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      id
-      blockNumber
-      address
-      encryptedAccount
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_ENCRYPTED_NOTES = `
-  query getEncryptedNotes($first: Int, $fromBlock: Int) {
-    encryptedNotes(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      blockNumber
-      index
-      transactionHash
-      encryptedNote
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_GOVERNANCE_EVENTS = `
-  query getGovernanceEvents($first: Int, $fromBlock: Int) {
-    proposals(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      blockNumber
-      logIndex
-      transactionHash
-      proposalId
-      proposer
-      target
-      startTime
-      endTime
-      description
-    }
-    votes(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      blockNumber
-      logIndex
-      transactionHash
-      proposalId
-      voter
-      support
-      votes
-      from
-      input
-    }
-    delegates(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      blockNumber
-      logIndex
-      transactionHash
-      account
-      delegateTo
-    }
-    undelegates(first: $first, orderBy: blockNumber, orderDirection: asc, where: { blockNumber_gte: $fromBlock }) {
-      blockNumber
-      logIndex
-      transactionHash
-      account
-      delegateFrom
-    }
-    _meta {
-      block {
-        number
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-const GET_GOVERNANCE_APY = `
-  stakeDailyBurns(first: 30, orderBy: date, orderDirection: desc) {
-    id
-    date
-    dailyAmountBurned
-  }
-`;
-
-const isEmptyArray = (arr) => !Array.isArray(arr) || !arr.length;
-const GRAPHQL_LIMIT = 1e3;
-async function queryGraph({
-  graphApi,
-  subgraphName,
-  query,
-  variables,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
-  const { data, errors } = await fetchData(graphUrl, {
-    ...fetchDataOptions2,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      query,
-      variables
-    })
-  });
-  if (errors) {
-    throw new Error(JSON.stringify(errors));
-  }
-  if (data?._meta?.hasIndexingErrors) {
-    throw new Error("Subgraph has indexing errors");
-  }
-  return data;
-}
-async function getStatistic({
-  graphApi,
-  subgraphName,
-  currency,
-  amount,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  try {
-    const {
-      deposits,
-      _meta: {
-        block: { number: lastSyncBlock }
-      }
-    } = await queryGraph({
-      graphApi,
-      subgraphName,
-      query: GET_STATISTIC,
-      variables: {
-        currency,
-        first: 10,
-        orderBy: "index",
-        orderDirection: "desc",
-        amount
-      },
-      fetchDataOptions: fetchDataOptions2
-    });
-    const events = deposits.map((e) => ({
-      timestamp: Number(e.timestamp),
-      leafIndex: Number(e.index),
-      blockNumber: Number(e.blockNumber)
-    })).reverse();
-    const [lastEvent] = events.slice(-1);
-    return {
-      events,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getStatistic query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: null
-    };
-  }
-}
-async function getMeta({ graphApi, subgraphName, fetchDataOptions: fetchDataOptions2 }) {
-  try {
-    const {
-      _meta: {
-        block: { number: lastSyncBlock },
-        hasIndexingErrors
-      }
-    } = await queryGraph({
-      graphApi,
-      subgraphName,
-      query: _META,
-      fetchDataOptions: fetchDataOptions2
-    });
-    return {
-      lastSyncBlock,
-      hasIndexingErrors
-    };
-  } catch (err) {
-    console.log("Error from getMeta query");
-    console.log(err);
-    return {
-      lastSyncBlock: null,
-      hasIndexingErrors: null
-    };
-  }
-}
-function getRegisters({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_REGISTERED,
-    variables: {
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllRegisters({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const events = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      let {
-        relayers: result2,
-        _meta: {
-          // eslint-disable-next-line prefer-const
-          block: { number: currentBlock }
-        }
-      } = await getRegisters({
-        graphApi,
-        subgraphName,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      if (isEmptyArray(result2)) {
-        break;
-      }
-      const [firstEvent] = result2;
-      const [lastEvent] = result2.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "Registers",
-          fromBlock: Number(firstEvent.blockRegistration),
-          toBlock: Number(lastEvent.blockRegistration),
-          count: result2.length
-        });
-      }
-      if (result2.length < 900) {
-        events.push(...result2);
-        break;
-      }
-      result2 = result2.filter(({ blockRegistration }) => blockRegistration !== lastEvent.blockRegistration);
-      fromBlock = Number(lastEvent.blockRegistration);
-      events.push(...result2);
-    }
-    if (!events.length) {
-      return {
-        events: [],
-        lastSyncBlock
-      };
-    }
-    const result = events.map(({ id, address, ensName, blockRegistration }) => {
-      const [transactionHash, logIndex] = id.split("-");
-      return {
-        blockNumber: Number(blockRegistration),
-        logIndex: Number(logIndex),
-        transactionHash,
-        ensName,
-        relayerAddress: getAddress(address)
-      };
-    });
-    return {
-      events: result,
-      lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllRegisters query");
-    console.log(err);
-    return { events: [], lastSyncBlock: fromBlock };
-  }
-}
-function getDeposits({
-  graphApi,
-  subgraphName,
-  currency,
-  amount,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_DEPOSITS,
-    variables: {
-      currency,
-      amount,
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllDeposits({
-  graphApi,
-  subgraphName,
-  currency,
-  amount,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const events = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      let {
-        deposits: result2,
-        _meta: {
-          // eslint-disable-next-line prefer-const
-          block: { number: currentBlock }
-        }
-      } = await getDeposits({
-        graphApi,
-        subgraphName,
-        currency,
-        amount,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      if (isEmptyArray(result2)) {
-        break;
-      }
-      const [firstEvent] = result2;
-      const [lastEvent2] = result2.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "Deposits",
-          fromBlock: Number(firstEvent.blockNumber),
-          toBlock: Number(lastEvent2.blockNumber),
-          count: result2.length
-        });
-      }
-      if (result2.length < 900) {
-        events.push(...result2);
-        break;
-      }
-      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-      fromBlock = Number(lastEvent2.blockNumber);
-      events.push(...result2);
-    }
-    if (!events.length) {
-      return {
-        events: [],
-        lastSyncBlock
-      };
-    }
-    const result = events.map(({ id, blockNumber, commitment, index, timestamp, from }) => {
-      const [transactionHash, logIndex] = id.split("-");
-      return {
-        blockNumber: Number(blockNumber),
-        logIndex: Number(logIndex),
-        transactionHash,
-        commitment,
-        leafIndex: Number(index),
-        timestamp: Number(timestamp),
-        from: getAddress(from)
-      };
-    });
-    const [lastEvent] = result.slice(-1);
-    return {
-      events: result,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllDeposits query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: fromBlock
-    };
-  }
-}
-function getWithdrawals({
-  graphApi,
-  subgraphName,
-  currency,
-  amount,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_WITHDRAWALS,
-    variables: {
-      currency,
-      amount,
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllWithdrawals({
-  graphApi,
-  subgraphName,
-  currency,
-  amount,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const events = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      let {
-        withdrawals: result2,
-        _meta: {
-          // eslint-disable-next-line prefer-const
-          block: { number: currentBlock }
-        }
-      } = await getWithdrawals({
-        graphApi,
-        subgraphName,
-        currency,
-        amount,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      if (isEmptyArray(result2)) {
-        break;
-      }
-      const [firstEvent] = result2;
-      const [lastEvent2] = result2.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "Withdrawals",
-          fromBlock: Number(firstEvent.blockNumber),
-          toBlock: Number(lastEvent2.blockNumber),
-          count: result2.length
-        });
-      }
-      if (result2.length < 900) {
-        events.push(...result2);
-        break;
-      }
-      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-      fromBlock = Number(lastEvent2.blockNumber);
-      events.push(...result2);
-    }
-    if (!events.length) {
-      return {
-        events: [],
-        lastSyncBlock
-      };
-    }
-    const result = events.map(({ id, blockNumber, nullifier, to, fee, timestamp }) => {
-      const [transactionHash, logIndex] = id.split("-");
-      return {
-        blockNumber: Number(blockNumber),
-        logIndex: Number(logIndex),
-        transactionHash,
-        nullifierHash: nullifier,
-        to: getAddress(to),
-        fee,
-        timestamp: Number(timestamp)
-      };
-    });
-    const [lastEvent] = result.slice(-1);
-    return {
-      events: result,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllWithdrawals query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: fromBlock
-    };
-  }
-}
-async function getNoteAccounts({
-  graphApi,
-  subgraphName,
-  address,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  try {
-    const {
-      noteAccounts: events,
-      _meta: {
-        block: { number: lastSyncBlock }
-      }
-    } = await queryGraph({
-      graphApi,
-      subgraphName,
-      query: GET_NOTE_ACCOUNTS,
-      variables: {
-        address: address.toLowerCase()
-      },
-      fetchDataOptions: fetchDataOptions2
-    });
-    return {
-      events,
-      lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getNoteAccounts query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: null
-    };
-  }
-}
-function getGraphEchoEvents({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_ECHO_EVENTS,
-    variables: {
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllGraphEchoEvents({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const events = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      let {
-        noteAccounts: result2,
-        _meta: {
-          // eslint-disable-next-line prefer-const
-          block: { number: currentBlock }
-        }
-      } = await getGraphEchoEvents({
-        graphApi,
-        subgraphName,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      if (isEmptyArray(result2)) {
-        break;
-      }
-      const [firstEvent] = result2;
-      const [lastEvent2] = result2.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "EchoEvents",
-          fromBlock: Number(firstEvent.blockNumber),
-          toBlock: Number(lastEvent2.blockNumber),
-          count: result2.length
-        });
-      }
-      if (result2.length < 900) {
-        events.push(...result2);
-        break;
-      }
-      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-      fromBlock = Number(lastEvent2.blockNumber);
-      events.push(...result2);
-    }
-    if (!events.length) {
-      return {
-        events: [],
-        lastSyncBlock
-      };
-    }
-    const result = events.map((e) => {
-      const [transactionHash, logIndex] = e.id.split("-");
-      return {
-        blockNumber: Number(e.blockNumber),
-        logIndex: Number(logIndex),
-        transactionHash,
-        address: getAddress(e.address),
-        encryptedAccount: e.encryptedAccount
-      };
-    });
-    const [lastEvent] = result.slice(-1);
-    return {
-      events: result,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllGraphEchoEvents query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: fromBlock
-    };
-  }
-}
-function getEncryptedNotes({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_ENCRYPTED_NOTES,
-    variables: {
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllEncryptedNotes({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const events = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      let {
-        encryptedNotes: result2,
-        _meta: {
-          // eslint-disable-next-line prefer-const
-          block: { number: currentBlock }
-        }
-      } = await getEncryptedNotes({
-        graphApi,
-        subgraphName,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      if (isEmptyArray(result2)) {
-        break;
-      }
-      const [firstEvent] = result2;
-      const [lastEvent2] = result2.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "EncryptedNotes",
-          fromBlock: Number(firstEvent.blockNumber),
-          toBlock: Number(lastEvent2.blockNumber),
-          count: result2.length
-        });
-      }
-      if (result2.length < 900) {
-        events.push(...result2);
-        break;
-      }
-      result2 = result2.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-      fromBlock = Number(lastEvent2.blockNumber);
-      events.push(...result2);
-    }
-    if (!events.length) {
-      return {
-        events: [],
-        lastSyncBlock
-      };
-    }
-    const result = events.map((e) => ({
-      blockNumber: Number(e.blockNumber),
-      logIndex: Number(e.index),
-      transactionHash: e.transactionHash,
-      encryptedNote: e.encryptedNote
-    }));
-    const [lastEvent] = result.slice(-1);
-    return {
-      events: result,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllEncryptedNotes query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: fromBlock
-    };
-  }
-}
-function getGovernanceEvents({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2
-}) {
-  return queryGraph({
-    graphApi,
-    subgraphName,
-    query: GET_GOVERNANCE_EVENTS,
-    variables: {
-      first: GRAPHQL_LIMIT,
-      fromBlock
-    },
-    fetchDataOptions: fetchDataOptions2
-  });
-}
-async function getAllGovernanceEvents({
-  graphApi,
-  subgraphName,
-  fromBlock,
-  fetchDataOptions: fetchDataOptions2,
-  onProgress
-}) {
-  try {
-    const result = [];
-    let lastSyncBlock = fromBlock;
-    while (true) {
-      const {
-        proposals,
-        votes,
-        delegates,
-        undelegates,
-        _meta: {
-          block: { number: currentBlock }
-        }
-      } = await getGovernanceEvents({
-        graphApi,
-        subgraphName,
-        fromBlock,
-        fetchDataOptions: fetchDataOptions2
-      });
-      lastSyncBlock = currentBlock;
-      const eventsLength = proposals.length + votes.length + delegates.length + undelegates.length;
-      if (eventsLength === 0) {
-        break;
-      }
-      const formattedProposals = proposals.map(
-        ({
-          blockNumber,
-          logIndex,
-          transactionHash,
-          proposalId,
-          proposer,
-          target,
-          startTime,
-          endTime,
-          description
-        }) => {
-          return {
-            blockNumber: Number(blockNumber),
-            logIndex: Number(logIndex),
-            transactionHash,
-            event: "ProposalCreated",
-            id: Number(proposalId),
-            proposer: getAddress(proposer),
-            target: getAddress(target),
-            startTime: Number(startTime),
-            endTime: Number(endTime),
-            description
-          };
-        }
-      );
-      const formattedVotes = votes.map(
-        ({ blockNumber, logIndex, transactionHash, proposalId, voter, support, votes: votes2, from, input }) => {
-          if (!input || input.length > 2048) {
-            input = "";
-          }
-          return {
-            blockNumber: Number(blockNumber),
-            logIndex: Number(logIndex),
-            transactionHash,
-            event: "Voted",
-            proposalId: Number(proposalId),
-            voter: getAddress(voter),
-            support,
-            votes: votes2,
-            from: getAddress(from),
-            input
-          };
-        }
-      );
-      const formattedDelegates = delegates.map(
-        ({ blockNumber, logIndex, transactionHash, account, delegateTo }) => {
-          return {
-            blockNumber: Number(blockNumber),
-            logIndex: Number(logIndex),
-            transactionHash,
-            event: "Delegated",
-            account: getAddress(account),
-            delegateTo: getAddress(delegateTo)
-          };
-        }
-      );
-      const formattedUndelegates = undelegates.map(
-        ({ blockNumber, logIndex, transactionHash, account, delegateFrom }) => {
-          return {
-            blockNumber: Number(blockNumber),
-            logIndex: Number(logIndex),
-            transactionHash,
-            event: "Undelegated",
-            account: getAddress(account),
-            delegateFrom: getAddress(delegateFrom)
-          };
-        }
-      );
-      let formattedEvents = [
-        ...formattedProposals,
-        ...formattedVotes,
-        ...formattedDelegates,
-        ...formattedUndelegates
-      ].sort((a, b) => {
-        if (a.blockNumber === b.blockNumber) {
-          return a.logIndex - b.logIndex;
-        }
-        return a.blockNumber - b.blockNumber;
-      });
-      if (eventsLength < 900) {
-        result.push(...formattedEvents);
-        break;
-      }
-      const [firstEvent] = formattedEvents;
-      const [lastEvent2] = formattedEvents.slice(-1);
-      if (typeof onProgress === "function") {
-        onProgress({
-          type: "Governance Events",
-          fromBlock: Number(firstEvent.blockNumber),
-          toBlock: Number(lastEvent2.blockNumber),
-          count: eventsLength
-        });
-      }
-      formattedEvents = formattedEvents.filter(({ blockNumber }) => blockNumber !== lastEvent2.blockNumber);
-      fromBlock = Number(lastEvent2.blockNumber);
-      result.push(...formattedEvents);
-    }
-    const [lastEvent] = result.slice(-1);
-    return {
-      events: result,
-      lastSyncBlock: lastEvent && lastEvent.blockNumber >= lastSyncBlock ? lastEvent.blockNumber + 1 : lastSyncBlock
-    };
-  } catch (err) {
-    console.log("Error from getAllGovernance query");
-    console.log(err);
-    return {
-      events: [],
-      lastSyncBlock: fromBlock
-    };
-  }
-}
-
-var graph = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    GET_DEPOSITS: GET_DEPOSITS,
-    GET_ECHO_EVENTS: GET_ECHO_EVENTS,
-    GET_ENCRYPTED_NOTES: GET_ENCRYPTED_NOTES,
-    GET_GOVERNANCE_APY: GET_GOVERNANCE_APY,
-    GET_GOVERNANCE_EVENTS: GET_GOVERNANCE_EVENTS,
-    GET_NOTE_ACCOUNTS: GET_NOTE_ACCOUNTS,
-    GET_REGISTERED: GET_REGISTERED,
-    GET_STATISTIC: GET_STATISTIC,
-    GET_WITHDRAWALS: GET_WITHDRAWALS,
-    _META: _META,
-    getAllDeposits: getAllDeposits,
-    getAllEncryptedNotes: getAllEncryptedNotes,
-    getAllGovernanceEvents: getAllGovernanceEvents,
-    getAllGraphEchoEvents: getAllGraphEchoEvents,
-    getAllRegisters: getAllRegisters,
-    getAllWithdrawals: getAllWithdrawals,
-    getDeposits: getDeposits,
-    getEncryptedNotes: getEncryptedNotes,
-    getGovernanceEvents: getGovernanceEvents,
-    getGraphEchoEvents: getGraphEchoEvents,
-    getMeta: getMeta,
-    getNoteAccounts: getNoteAccounts,
-    getRegisters: getRegisters,
-    getStatistic: getStatistic,
-    getWithdrawals: getWithdrawals,
-    queryGraph: queryGraph
-});
-
-class BatchBlockService {
-  provider;
-  onProgress;
-  concurrencySize;
-  batchSize;
-  shouldRetry;
-  retryMax;
-  retryOn;
-  constructor({
-    provider,
-    onProgress,
-    concurrencySize = 10,
-    batchSize = 10,
-    shouldRetry = true,
-    retryMax = 5,
-    retryOn = 500
-  }) {
-    this.provider = provider;
-    this.onProgress = onProgress;
-    this.concurrencySize = concurrencySize;
-    this.batchSize = batchSize;
-    this.shouldRetry = shouldRetry;
-    this.retryMax = retryMax;
-    this.retryOn = retryOn;
-  }
-  async getBlock(blockTag) {
-    const blockObject = await this.provider.getBlock(blockTag);
-    if (!blockObject) {
-      const errMsg = `No block for ${blockTag}`;
-      throw new Error(errMsg);
-    }
-    return blockObject;
-  }
-  createBatchRequest(batchArray) {
-    return batchArray.map(async (blocks, index) => {
-      await sleep(20 * index);
-      return (async () => {
-        let retries = 0;
-        let err;
-        while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
-          try {
-            return await Promise.all(blocks.map((b) => this.getBlock(b)));
-          } catch (e) {
-            retries++;
-            err = e;
-            await sleep(this.retryOn);
-          }
-        }
-        throw err;
-      })();
-    });
-  }
-  async getBatchBlocks(blocks) {
-    let blockCount = 0;
-    const results = [];
-    for (const chunks of chunk(blocks, this.concurrencySize * this.batchSize)) {
-      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
-      results.push(...chunksResult);
-      blockCount += chunks.length;
-      if (typeof this.onProgress === "function") {
-        this.onProgress({
-          percentage: blockCount / blocks.length,
-          currentIndex: blockCount,
-          totalIndex: blocks.length
-        });
-      }
-    }
-    return results;
-  }
-}
-class BatchTransactionService {
-  provider;
-  onProgress;
-  concurrencySize;
-  batchSize;
-  shouldRetry;
-  retryMax;
-  retryOn;
-  constructor({
-    provider,
-    onProgress,
-    concurrencySize = 10,
-    batchSize = 10,
-    shouldRetry = true,
-    retryMax = 5,
-    retryOn = 500
-  }) {
-    this.provider = provider;
-    this.onProgress = onProgress;
-    this.concurrencySize = concurrencySize;
-    this.batchSize = batchSize;
-    this.shouldRetry = shouldRetry;
-    this.retryMax = retryMax;
-    this.retryOn = retryOn;
-  }
-  async getTransaction(txHash) {
-    const txObject = await this.provider.getTransaction(txHash);
-    if (!txObject) {
-      const errMsg = `No transaction for ${txHash}`;
-      throw new Error(errMsg);
-    }
-    return txObject;
-  }
-  createBatchRequest(batchArray) {
-    return batchArray.map(async (txs, index) => {
-      await sleep(20 * index);
-      return (async () => {
-        let retries = 0;
-        let err;
-        while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
-          try {
-            return await Promise.all(txs.map((tx) => this.getTransaction(tx)));
-          } catch (e) {
-            retries++;
-            err = e;
-            await sleep(this.retryOn);
-          }
-        }
-        throw err;
-      })();
-    });
-  }
-  async getBatchTransactions(txs) {
-    let txCount = 0;
-    const results = [];
-    for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
-      const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
-      results.push(...chunksResult);
-      txCount += chunks.length;
-      if (typeof this.onProgress === "function") {
-        this.onProgress({
-          percentage: txCount / txs.length,
-          currentIndex: txCount,
-          totalIndex: txs.length
-        });
-      }
-    }
-    return results;
-  }
-}
-class BatchEventsService {
-  provider;
-  contract;
-  onProgress;
-  concurrencySize;
-  blocksPerRequest;
-  shouldRetry;
-  retryMax;
-  retryOn;
-  constructor({
-    provider,
-    contract,
-    onProgress,
-    concurrencySize = 10,
-    blocksPerRequest = 2e3,
-    shouldRetry = true,
-    retryMax = 5,
-    retryOn = 500
-  }) {
-    this.provider = provider;
-    this.contract = contract;
-    this.onProgress = onProgress;
-    this.concurrencySize = concurrencySize;
-    this.blocksPerRequest = blocksPerRequest;
-    this.shouldRetry = shouldRetry;
-    this.retryMax = retryMax;
-    this.retryOn = retryOn;
-  }
-  async getPastEvents({ fromBlock, toBlock, type }) {
-    let err;
-    let retries = 0;
-    while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
-      try {
-        return await this.contract.queryFilter(type, fromBlock, toBlock);
-      } catch (e) {
-        err = e;
-        retries++;
-        if (e.message.includes("after last accepted block")) {
-          const acceptedBlock = parseInt(e.message.split("after last accepted block ")[1]);
-          toBlock = acceptedBlock;
-        }
-        await sleep(this.retryOn);
-      }
-    }
-    throw err;
-  }
-  createBatchRequest(batchArray) {
-    return batchArray.map(async (event, index) => {
-      await sleep(20 * index);
-      return this.getPastEvents(event);
-    });
-  }
-  async getBatchEvents({ fromBlock, toBlock, type = "*" }) {
-    if (!toBlock) {
-      toBlock = await this.provider.getBlockNumber();
-    }
-    const eventsToSync = [];
-    for (let i = fromBlock; i < toBlock; i += this.blocksPerRequest) {
-      const j = i + this.blocksPerRequest - 1 > toBlock ? toBlock : i + this.blocksPerRequest - 1;
-      eventsToSync.push({ fromBlock: i, toBlock: j, type });
-    }
-    const events = [];
-    const eventChunk = chunk(eventsToSync, this.concurrencySize);
-    let chunkCount = 0;
-    for (const chunk2 of eventChunk) {
-      chunkCount++;
-      const fetchedEvents = (await Promise.all(this.createBatchRequest(chunk2))).flat();
-      events.push(...fetchedEvents);
-      if (typeof this.onProgress === "function") {
-        this.onProgress({
-          percentage: chunkCount / eventChunk.length,
-          type,
-          fromBlock: chunk2[0].fromBlock,
-          toBlock: chunk2[chunk2.length - 1].toBlock,
-          count: fetchedEvents.length
-        });
-      }
-    }
-    return events;
-  }
-}
-
 var NetId = /* @__PURE__ */ ((NetId2) => {
   NetId2[NetId2["MAINNET"] = 1] = "MAINNET";
   NetId2[NetId2["BSC"] = 56] = "BSC";
@@ -1669,6 +714,14 @@ const defaultConfig = {
     networkName: "Ethereum Mainnet",
     deployedBlock: 9116966,
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "tornadowithdraw.eth",
+        url: "https://tornadowithdraw.com/mainnet"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com"
+      },
       mevblockerRPC: {
         name: "MevblockerRPC",
         url: "https://rpc.mevblocker.io"
@@ -1812,6 +865,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/bsc-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "tornadowithdraw.eth",
+        url: "https://tornadowithdraw.com/bsc"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/bsc"
+      },
       bnbchain: {
         name: "BNB Chain",
         url: "https://bsc-dataseed.bnbchain.org"
@@ -2033,6 +1094,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "tornadowithdraw.eth",
+        url: "https://tornadowithdraw.com/gnosis"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/gnosis"
+      },
       gnosis: {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
@@ -2140,6 +1209,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "tornadowithdraw.eth",
+        url: "https://tornadowithdraw.com/sepolia"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/sepolia"
+      },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
@@ -2188,6 +1265,7 @@ const defaultConfig = {
       GOVERNANCE_BLOCK: 5594395,
       NOTE_ACCOUNT_BLOCK: 5594395,
       ENCRYPTED_NOTES_BLOCK: 5594395,
+      REGISTRY_BLOCK: 5594395,
       MINING_BLOCK_TIME: 15
     }
   }
@@ -2389,16 +1467,79 @@ const governanceEventsSchema = {
     ]
   }
 };
-const registeredEventsSchema = {
+const relayerRegistryEventsSchema = {
+  type: "array",
+  items: {
+    anyOf: [
+      // RelayerRegisteredEvents
+      {
+        type: "object",
+        properties: {
+          ...baseEventsSchemaProperty,
+          event: { type: "string" },
+          ensName: { type: "string" },
+          relayerAddress: addressSchemaType,
+          ensHash: { type: "string" },
+          stakedAmount: { type: "string" }
+        },
+        required: [
+          ...baseEventsSchemaRequired,
+          "event",
+          "ensName",
+          "relayerAddress",
+          "ensHash",
+          "stakedAmount"
+        ],
+        additionalProperties: false
+      },
+      // RelayerUnregisteredEvents
+      {
+        type: "object",
+        properties: {
+          ...baseEventsSchemaProperty,
+          event: { type: "string" },
+          relayerAddress: addressSchemaType
+        },
+        required: [...baseEventsSchemaRequired, "event", "relayerAddress"],
+        additionalProperties: false
+      },
+      // WorkerRegisteredEvents & WorkerUnregisteredEvents
+      {
+        type: "object",
+        properties: {
+          ...baseEventsSchemaProperty,
+          event: { type: "string" },
+          relayerAddress: addressSchemaType,
+          workerAddress: addressSchemaType
+        },
+        required: [...baseEventsSchemaRequired, "event", "relayerAddress", "workerAddress"],
+        additionalProperties: false
+      }
+    ]
+  }
+};
+const stakeBurnedEventsSchema = {
   type: "array",
   items: {
     type: "object",
     properties: {
       ...baseEventsSchemaProperty,
-      ensName: { type: "string" },
-      relayerAddress: addressSchemaType
+      relayerAddress: addressSchemaType,
+      amountBurned: bnSchemaType,
+      instanceAddress: addressSchemaType,
+      gasFee: bnSchemaType,
+      relayerFee: bnSchemaType,
+      timestamp: { type: "number" }
     },
-    required: [...baseEventsSchemaRequired, "ensName", "relayerAddress"],
+    required: [
+      ...baseEventsSchemaRequired,
+      "relayerAddress",
+      "amountBurned",
+      "instanceAddress",
+      "gasFee",
+      "relayerFee",
+      "timestamp"
+    ],
     additionalProperties: false
   }
 };
@@ -2467,8 +1608,11 @@ function getEventsSchemaValidator(type) {
   if (type === "governance") {
     return ajv.compile(governanceEventsSchema);
   }
-  if (type === "registered") {
-    return ajv.compile(registeredEventsSchema);
+  if (type === "registry") {
+    return ajv.compile(relayerRegistryEventsSchema);
+  }
+  if (type === "revenue") {
+    return ajv.compile(stakeBurnedEventsSchema);
   }
   if (type === "echo") {
     return ajv.compile(echoEventsSchema);
@@ -2837,8 +1981,6 @@ const WITHDRAWAL = "withdrawal";
 class BaseEventsService {
   netId;
   provider;
-  graphApi;
-  subgraphName;
   contract;
   type;
   deployedBlock;
@@ -2848,8 +1990,6 @@ class BaseEventsService {
   constructor({
     netId,
     provider,
-    graphApi,
-    subgraphName,
     contract,
     type = "",
     deployedBlock = 0,
@@ -2858,8 +1998,6 @@ class BaseEventsService {
   }) {
     this.netId = netId;
     this.provider = provider;
-    this.graphApi = graphApi;
-    this.subgraphName = subgraphName;
     this.fetchDataOptions = fetchDataOptions2;
     this.contract = contract;
     this.type = type;
@@ -2880,25 +2018,12 @@ class BaseEventsService {
   getTovarishType() {
     return String(this.getType() || "").toLowerCase();
   }
-  getGraphMethod() {
-    return "";
-  }
-  getGraphParams() {
-    return {
-      graphApi: this.graphApi || "",
-      subgraphName: this.subgraphName || "",
-      fetchDataOptions: this.fetchDataOptions,
-      onProgress: this.updateGraphProgress
-    };
-  }
   /* eslint-disable @typescript-eslint/no-unused-vars */
   updateEventProgress({ percentage, type, fromBlock, toBlock, count }) {
   }
   updateBlockProgress({ percentage, currentIndex, totalIndex }) {
   }
   updateTransactionProgress({ percentage, currentIndex, totalIndex }) {
-  }
-  updateGraphProgress({ type, fromBlock, toBlock, count }) {
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   async formatEvents(events) {
@@ -2929,28 +2054,6 @@ class BaseEventsService {
       dbEvents = await this.getEventsFromCache();
     }
     return dbEvents;
-  }
-  /**
-   * Get latest events
-   */
-  async getEventsFromGraph({
-    fromBlock,
-    methodName = ""
-  }) {
-    if (!this.graphApi || !this.subgraphName) {
-      return {
-        events: [],
-        lastBlock: fromBlock
-      };
-    }
-    const { events, lastSyncBlock } = await graph[methodName || this.getGraphMethod()]({
-      fromBlock,
-      ...this.getGraphParams()
-    });
-    return {
-      events,
-      lastBlock: lastSyncBlock
-    };
   }
   async getEventsFromRpc({
     fromBlock,
@@ -2997,15 +2100,9 @@ class BaseEventsService {
         lastBlock
       };
     }
-    const graphEvents = await this.getEventsFromGraph({ fromBlock });
-    const lastSyncBlock = graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
-    const rpcEvents = await this.getEventsFromRpc({
-      fromBlock: lastSyncBlock
+    return await this.getEventsFromRpc({
+      fromBlock
     });
-    return {
-      events: [...graphEvents.events, ...rpcEvents.events],
-      lastBlock: rpcEvents.lastBlock
-    };
   }
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async validateEvents({
@@ -3089,23 +2186,13 @@ class BaseTornadoService extends BaseEventsService {
   getInstanceName() {
     return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
   }
-  getGraphMethod() {
-    return `getAll${this.getType()}s`;
-  }
-  getGraphParams() {
-    return {
-      graphApi: this.graphApi || "",
-      subgraphName: this.subgraphName || "",
-      amount: this.amount,
-      currency: this.currency,
-      fetchDataOptions: this.fetchDataOptions,
-      onProgress: this.updateGraphProgress
-    };
-  }
   async formatEvents(events) {
     const type = this.getType().toLowerCase();
     if (type === DEPOSIT) {
-      const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const txs = await this.batchTransactionService.getBatchTransactions([
+        ...new Set(events.map(({ transactionHash }) => transactionHash))
+      ]);
+      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { commitment, leafIndex, timestamp } = args;
         return {
           blockNumber,
@@ -3113,21 +2200,15 @@ class BaseTornadoService extends BaseEventsService {
           transactionHash,
           commitment,
           leafIndex: Number(leafIndex),
-          timestamp: Number(timestamp)
-        };
-      });
-      const txs = await this.batchTransactionService.getBatchTransactions([
-        ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash))
-      ]);
-      return formattedEvents.map((event) => {
-        const { from } = txs.find(({ hash }) => hash === event.transactionHash);
-        return {
-          ...event,
-          from
+          timestamp: Number(timestamp),
+          from: txs.find(({ hash }) => hash === transactionHash)?.from || ""
         };
       });
     } else {
-      const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const blocks = await this.batchBlockService.getBatchBlocks([
+        ...new Set(events.map(({ blockNumber }) => blockNumber))
+      ]);
+      return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
         const { nullifierHash, to, fee } = args;
         return {
           blockNumber,
@@ -3135,17 +2216,8 @@ class BaseTornadoService extends BaseEventsService {
           transactionHash,
           nullifierHash: String(nullifierHash),
           to: getAddress(to),
-          fee: String(fee)
-        };
-      });
-      const blocks = await this.batchBlockService.getBatchBlocks([
-        ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber))
-      ]);
-      return formattedEvents.map((event) => {
-        const { timestamp } = blocks.find(({ number }) => number === event.blockNumber);
-        return {
-          ...event,
-          timestamp
+          fee: String(fee),
+          timestamp: blocks.find(({ number }) => number === blockNumber)?.timestamp || 0
         };
       });
     }
@@ -3196,9 +2268,6 @@ class BaseEchoService extends BaseEventsService {
   getInstanceName() {
     return `echo_${this.netId}`;
   }
-  getGraphMethod() {
-    return "getAllGraphEchoEvents";
-  }
   async formatEvents(events) {
     return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
       const { who, data } = args;
@@ -3216,15 +2285,6 @@ class BaseEchoService extends BaseEventsService {
       }
     }).filter((e) => e);
   }
-  async getEventsFromGraph({ fromBlock }) {
-    if (!this.graphApi || this.graphApi.includes("api.thegraph.com")) {
-      return {
-        events: [],
-        lastBlock: fromBlock
-      };
-    }
-    return super.getEventsFromGraph({ fromBlock });
-  }
 }
 class BaseEncryptedNotesService extends BaseEventsService {
   constructor(serviceConstructor) {
@@ -3239,9 +2299,6 @@ class BaseEncryptedNotesService extends BaseEventsService {
   }
   getTovarishType() {
     return "encrypted_notes";
-  }
-  getGraphMethod() {
-    return "getAllEncryptedNotes";
   }
   async formatEvents(events) {
     return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
@@ -3311,11 +2368,11 @@ function parseDescription(id, text) {
     description
   };
 }
-function parseComment(Governance, calldata) {
+function parseComment(Governance2, calldata) {
   try {
     const methodLength = 4;
     const result = abiCoder.decode(["address[]", "uint256", "bool"], dataSlice(calldata, methodLength));
-    const data = Governance.interface.encodeFunctionData(
+    const data = Governance2.interface.encodeFunctionData(
       // @ts-expect-error encodeFunctionData is broken lol
       "castDelegatedVote",
       result
@@ -3340,14 +2397,14 @@ class BaseGovernanceService extends BaseEventsService {
   ReverseRecords;
   batchTransactionService;
   constructor(serviceConstructor) {
-    const { Governance, Aggregator, ReverseRecords, provider } = serviceConstructor;
+    const { Governance: Governance2, Aggregator: Aggregator2, ReverseRecords, provider } = serviceConstructor;
     super({
       ...serviceConstructor,
-      contract: Governance,
+      contract: Governance2,
       type: "*"
     });
-    this.Governance = Governance;
-    this.Aggregator = Aggregator;
+    this.Governance = Governance2;
+    this.Aggregator = Aggregator2;
     this.ReverseRecords = ReverseRecords;
     this.batchTransactionService = new BatchTransactionService({
       provider,
@@ -3359,9 +2416,6 @@ class BaseGovernanceService extends BaseEventsService {
   }
   getTovarishType() {
     return "governance";
-  }
-  getGraphMethod() {
-    return "getAllGovernanceEvents";
   }
   async formatEvents(events) {
     const proposalEvents = [];
@@ -3431,15 +2485,6 @@ class BaseGovernanceService extends BaseEventsService {
       });
     }
     return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
-  }
-  async getEventsFromGraph({ fromBlock }) {
-    if (!this.graphApi || !this.subgraphName || this.graphApi.includes("api.thegraph.com")) {
-      return {
-        events: [],
-        lastBlock: fromBlock
-      };
-    }
-    return super.getEventsFromGraph({ fromBlock });
   }
   async getAllProposals() {
     const { events } = await this.updateEvents();
@@ -3576,39 +2621,74 @@ class BaseRegistryService extends BaseEventsService {
   relayerEnsSubdomains;
   updateInterval;
   constructor(serviceConstructor) {
-    const { RelayerRegistry: contract, Aggregator, relayerEnsSubdomains } = serviceConstructor;
+    const { RelayerRegistry: contract, Aggregator: Aggregator2, relayerEnsSubdomains } = serviceConstructor;
     super({
       ...serviceConstructor,
       contract,
-      type: "RelayerRegistered"
+      type: "*"
     });
-    this.Aggregator = Aggregator;
+    this.Aggregator = Aggregator2;
     this.relayerEnsSubdomains = relayerEnsSubdomains;
     this.updateInterval = 86400;
   }
   getInstanceName() {
-    return `registered_${this.netId}`;
+    return `registry_${this.netId}`;
   }
   getTovarishType() {
-    return "registered";
-  }
-  // Name of method used for graph
-  getGraphMethod() {
-    return "getAllRegisters";
+    return "registry";
   }
   async formatEvents(events) {
-    return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+    const relayerRegisteredEvents = [];
+    const relayerUnregisteredEvents = [];
+    const workerRegisteredEvents = [];
+    const workerUnregisteredEvents = [];
+    events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
       const eventObjects = {
         blockNumber,
         logIndex,
-        transactionHash
+        transactionHash,
+        event
       };
-      return {
-        ...eventObjects,
-        ensName: args.ensName,
-        relayerAddress: args.relayerAddress
-      };
+      if (event === "RelayerRegistered") {
+        const { relayer: ensHash, ensName, relayerAddress, stakedAmount } = args;
+        relayerRegisteredEvents.push({
+          ...eventObjects,
+          ensName,
+          relayerAddress,
+          ensHash,
+          stakedAmount: formatEther(stakedAmount)
+        });
+      }
+      if (event === "RelayerUnregistered") {
+        const { relayer: relayerAddress } = args;
+        relayerUnregisteredEvents.push({
+          ...eventObjects,
+          relayerAddress
+        });
+      }
+      if (event === "WorkerRegistered") {
+        const { relayer: relayerAddress, worker: workerAddress } = args;
+        workerRegisteredEvents.push({
+          ...eventObjects,
+          relayerAddress,
+          workerAddress
+        });
+      }
+      if (event === "WorkerUnregistered") {
+        const { relayer: relayerAddress, worker: workerAddress } = args;
+        workerUnregisteredEvents.push({
+          ...eventObjects,
+          relayerAddress,
+          workerAddress
+        });
+      }
     });
+    return [
+      ...relayerRegisteredEvents,
+      ...relayerUnregisteredEvents,
+      ...workerRegisteredEvents,
+      ...workerUnregisteredEvents
+    ];
   }
   /**
    * Get saved or cached relayers
@@ -3639,7 +2719,8 @@ class BaseRegistryService extends BaseEventsService {
     return cachedRelayers;
   }
   async getLatestRelayers() {
-    const { events, lastBlock } = await this.updateEvents();
+    const { events: allEvents, lastBlock } = await this.updateEvents();
+    const events = allEvents.filter((e) => e.event === "RelayerRegistered");
     const subdomains = Object.values(this.relayerEnsSubdomains);
     const registerSet = /* @__PURE__ */ new Set();
     const uniqueRegisters = events.filter(({ ensName }) => {
@@ -3712,6 +2793,84 @@ class BaseRegistryService extends BaseEventsService {
       await this.saveRelayers({ lastBlock, timestamp, relayers });
     }
     return { lastBlock, timestamp, relayers };
+  }
+}
+class BaseRevenueService extends BaseEventsService {
+  batchTransactionService;
+  batchBlockService;
+  constructor(serviceConstructor) {
+    const { RelayerRegistry: contract, provider } = serviceConstructor;
+    super({
+      ...serviceConstructor,
+      contract,
+      type: "StakeBurned"
+    });
+    this.batchTransactionService = new BatchTransactionService({
+      provider,
+      onProgress: this.updateTransactionProgress
+    });
+    this.batchBlockService = new BatchBlockService({
+      provider,
+      onProgress: this.updateBlockProgress
+    });
+  }
+  getInstanceName() {
+    return `revenue_${this.netId}`;
+  }
+  getTovarishType() {
+    return "revenue";
+  }
+  async formatEvents(events) {
+    const blocks = await this.batchBlockService.getBatchBlocks([
+      ...new Set(events.map(({ blockNumber }) => blockNumber))
+    ]);
+    const receipts = await this.batchTransactionService.getBatchReceipt([
+      ...new Set(events.map(({ transactionHash }) => transactionHash))
+    ]);
+    const registeredRelayers = new Set(events.map(({ args }) => args.relayer));
+    const tornadoInterface = Tornado__factory.createInterface();
+    const withdrawHash = tornadoInterface.getEvent("Withdrawal").topicHash;
+    const withdrawalLogs = receipts.map(
+      (receipt) => receipt.logs.map((log) => {
+        if (log.topics[0] === withdrawHash) {
+          const block = blocks.find((b) => b.number === log.blockNumber);
+          const parsedLog = tornadoInterface.parseLog(log);
+          if (parsedLog && registeredRelayers.has(parsedLog.args.relayer)) {
+            return {
+              instanceAddress: log.address,
+              gasFee: (receipt.cumulativeGasUsed * receipt.gasPrice).toString(),
+              relayerFee: parsedLog.args.fee.toString(),
+              timestamp: block?.timestamp || 0
+            };
+          }
+        }
+      }).filter((l) => l)
+    ).flat();
+    if (withdrawalLogs.length !== events.length) {
+      console.log(
+        `
+RevenueService: Mismatch on withdrawal logs (${withdrawalLogs.length} ) and events logs (${events.length})
+`
+      );
+    }
+    return events.map(({ blockNumber, index: logIndex, transactionHash, args }, index) => {
+      const eventObjects = {
+        blockNumber,
+        logIndex,
+        transactionHash
+      };
+      const { relayer: relayerAddress, amountBurned } = args;
+      const { instanceAddress, gasFee, relayerFee, timestamp } = withdrawalLogs[index];
+      return {
+        ...eventObjects,
+        relayerAddress,
+        amountBurned: amountBurned.toString(),
+        instanceAddress,
+        gasFee,
+        relayerFee,
+        timestamp
+      };
+    });
   }
 }
 
@@ -3991,6 +3150,103 @@ class DBRegistryService extends BaseRegistryService {
   staticUrl;
   idb;
   zipDigest;
+  relayerJsonDigest;
+  constructor(params) {
+    super(params);
+    this.staticUrl = params.staticUrl;
+    this.idb = params.idb;
+  }
+  async getEventsFromDB() {
+    return await loadDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName()
+    });
+  }
+  async getEventsFromCache() {
+    return await loadRemoteEvents({
+      staticUrl: this.staticUrl,
+      instanceName: this.getInstanceName(),
+      deployedBlock: this.deployedBlock,
+      zipDigest: this.zipDigest
+    });
+  }
+  async saveEvents({ events, lastBlock }) {
+    await saveDBEvents({
+      idb: this.idb,
+      instanceName: this.getInstanceName(),
+      events,
+      lastBlock
+    });
+  }
+  async getRelayersFromDB() {
+    try {
+      const allCachedRelayers = await this.idb.getAll({
+        storeName: `relayers_${this.netId}`
+      });
+      if (!allCachedRelayers?.length) {
+        return {
+          lastBlock: 0,
+          timestamp: 0,
+          relayers: []
+        };
+      }
+      return allCachedRelayers.slice(-1)[0];
+    } catch (err) {
+      console.log("Method getRelayersFromDB has error");
+      console.log(err);
+      return {
+        lastBlock: 0,
+        timestamp: 0,
+        relayers: []
+      };
+    }
+  }
+  async getRelayersFromCache() {
+    const url = `${this.staticUrl}/relayers.json`;
+    try {
+      const resp = await fetchData(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        returnResponse: true
+      });
+      const data = new Uint8Array(await resp.arrayBuffer());
+      if (this.relayerJsonDigest) {
+        const hash = "sha384-" + bytesToBase64(await digest(data));
+        if (hash !== this.relayerJsonDigest) {
+          const errMsg = `Invalid digest hash for ${url}, wants ${this.relayerJsonDigest} has ${hash}`;
+          throw new Error(errMsg);
+        }
+      }
+      return JSON.parse(new TextDecoder().decode(data));
+    } catch (err) {
+      console.log("Method getRelayersFromCache has error");
+      console.log(err);
+      return {
+        lastBlock: 0,
+        timestamp: 0,
+        relayers: []
+      };
+    }
+  }
+  async saveRelayers(cachedRelayers) {
+    try {
+      await this.idb.putItem({
+        data: cachedRelayers,
+        storeName: `relayers_${this.netId}`
+      });
+    } catch (err) {
+      console.log("Method saveRelayers has error");
+      console.log(err);
+    }
+  }
+}
+class DBRevenueService extends BaseRevenueService {
+  staticUrl;
+  idb;
+  zipDigest;
+  relayerJsonDigest;
   constructor(params) {
     super(params);
     this.staticUrl = params.staticUrl;
@@ -9717,11 +8973,6 @@ class ENSUtils {
     const { labelhash: labelhash2, parentNode } = makeLabelNodeAndParent(name);
     return registry.setSubnodeRecord(parentNode, labelhash2, owner, resolver.target, BigInt(0));
   }
-  // https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/wallet/setTextRecord.ts
-  async setText(signer, name, key, value) {
-    const resolver = ENSResolver__factory.connect((await this.getResolver(name))?.address, signer);
-    return resolver.setText(namehash(name), key, value);
-  }
   getResolver(name) {
     return EnsResolver.fromName(this.provider, name);
   }
@@ -9731,6 +8982,11 @@ class ENSUtils {
       return resolver;
     }
     return await resolver.getText(key) || "";
+  }
+  // https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/wallet/setTextRecord.ts
+  async setText(signer, name, key, value) {
+    const resolver = ENSResolver__factory.connect((await this.getResolver(name))?.address, signer);
+    return resolver.setText(namehash(name), key, value);
   }
 }
 
@@ -10155,13 +9411,33 @@ async function getIndexedDB(netId) {
   const stores = [...defaultState];
   if (registryContract) {
     stores.push({
-      name: `registered_${netId}`,
+      name: `registry_${netId}`,
       keyPath: "ensName",
       indexes: [
         ...minimalIndexes,
         {
-          name: "relayerAddress",
+          name: "event",
           unique: false
+        }
+      ]
+    });
+    stores.push({
+      name: `relayers_${netId}`,
+      keyPath: "timestamp",
+      indexes: [
+        {
+          name: "timestamp",
+          unique: true
+        }
+      ]
+    });
+    stores.push({
+      name: `revenue_${netId}`,
+      keyPath: "timestamp",
+      indexes: [
+        {
+          name: "timestamp",
+          unique: true
         }
       ]
     });
@@ -11023,4 +10299,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, GET_DEPOSITS, GET_ECHO_EVENTS, GET_ENCRYPTED_NOTES, GET_GOVERNANCE_APY, GET_GOVERNANCE_EVENTS, GET_NOTE_ACCOUNTS, GET_REGISTERED, GET_STATISTIC, GET_WITHDRAWALS, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, _META, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, fetchIp, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getAllDeposits, getAllEncryptedNotes, getAllGovernanceEvents, getAllGraphEchoEvents, getAllRegisters, getAllWithdrawals, getConfig, getDeposits, getEncryptedNotes, getEventsSchemaValidator, getGovernanceEvents, getGraphEchoEvents, getHttpAgent, getIndexedDB, getInstanceByAddress, getMeta, getNetworkConfig, getNoteAccounts, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRegisters, getRelayerEnsSubdomains, getStatistic, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, getWithdrawals, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, queryGraph, rBigInt, rHex, registeredEventsSchema, saveDBEvents, sleep, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBRevenueService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetch, fetchData, fetchGetUrlFunc, fetchIp, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getNetworkConfig, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };

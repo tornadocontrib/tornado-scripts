@@ -4,8 +4,6 @@ import {
     EventLog,
     TransactionResponse,
     getAddress,
-    Block,
-    ContractEventName,
     namehash,
     formatEther,
     AbiCoder,
@@ -13,7 +11,7 @@ import {
     dataSlice,
 } from 'ethers';
 
-import type {
+import {
     Tornado,
     TornadoRouter,
     TornadoProxyLight,
@@ -21,9 +19,8 @@ import type {
     RelayerRegistry,
     Echoer,
     Aggregator,
+    Tornado__factory,
 } from '@tornado/contracts';
-
-import * as graph from '../graphql';
 
 import {
     BatchEventsService,
@@ -52,9 +49,13 @@ import type {
     GovernanceVotedEvents,
     GovernanceDelegatedEvents,
     GovernanceUndelegatedEvents,
-    RegistersEvents,
-    BaseGraphEvents,
     EchoEvents,
+    RelayerRegisteredEvents,
+    RelayerUnregisteredEvents,
+    WorkerRegisteredEvents,
+    WorkerUnregisteredEvents,
+    AllRelayerRegistryEvents,
+    StakeBurnedEvents,
 } from './types';
 
 export const DEPOSIT = 'deposit';
@@ -63,8 +64,6 @@ export const WITHDRAWAL = 'withdrawal';
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;
-    graphApi?: string;
-    subgraphName?: string;
     contract: BaseContract;
     type: string;
     deployedBlock?: number;
@@ -72,30 +71,9 @@ export interface BaseEventsServiceConstructor {
     tovarishClient?: TovarishClient;
 }
 
-export type BatchGraphOnProgress = ({
-    type,
-    fromBlock,
-    toBlock,
-    count,
-}: {
-    type?: ContractEventName;
-    fromBlock?: number;
-    toBlock?: number;
-    count?: number;
-}) => void;
-
-export interface BaseGraphParams {
-    graphApi: string;
-    subgraphName: string;
-    fetchDataOptions?: fetchDataOptions;
-    onProgress?: BatchGraphOnProgress;
-}
-
 export class BaseEventsService<EventType extends MinimalEvents> {
     netId: NetIdType;
     provider: Provider;
-    graphApi?: string;
-    subgraphName?: string;
     contract: BaseContract;
     type: string;
     deployedBlock: number;
@@ -106,8 +84,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     constructor({
         netId,
         provider,
-        graphApi,
-        subgraphName,
         contract,
         type = '',
         deployedBlock = 0,
@@ -116,8 +92,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     }: BaseEventsServiceConstructor) {
         this.netId = netId;
         this.provider = provider;
-        this.graphApi = graphApi;
-        this.subgraphName = subgraphName;
         this.fetchDataOptions = fetchDataOptions;
 
         this.contract = contract;
@@ -145,19 +119,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
         return String(this.getType() || '').toLowerCase();
     }
 
-    getGraphMethod(): string {
-        return '';
-    }
-
-    getGraphParams(): BaseGraphParams {
-        return {
-            graphApi: this.graphApi || '',
-            subgraphName: this.subgraphName || '',
-            fetchDataOptions: this.fetchDataOptions,
-            onProgress: this.updateGraphProgress,
-        };
-    }
-
     /* eslint-disable @typescript-eslint/no-unused-vars */
     updateEventProgress({ percentage, type, fromBlock, toBlock, count }: Parameters<BatchEventOnProgress>[0]) {}
 
@@ -165,7 +126,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
     updateTransactionProgress({ percentage, currentIndex, totalIndex }: Parameters<BatchBlockOnProgress>[0]) {}
 
-    updateGraphProgress({ type, fromBlock, toBlock, count }: Parameters<BatchGraphOnProgress>[0]) {}
     /* eslint-enable @typescript-eslint/no-unused-vars */
 
     async formatEvents(events: EventLog[]): Promise<EventType[]> {
@@ -203,35 +163,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
         }
 
         return dbEvents;
-    }
-
-    /**
-     * Get latest events
-     */
-
-    async getEventsFromGraph({
-        fromBlock,
-        methodName = '',
-    }: {
-        fromBlock: number;
-        methodName?: string;
-    }): Promise<BaseEvents<EventType>> {
-        if (!this.graphApi || !this.subgraphName) {
-            return {
-                events: [],
-                lastBlock: fromBlock,
-            };
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { events, lastSyncBlock } = (await (graph as any)[methodName || this.getGraphMethod()]({
-            fromBlock,
-            ...this.getGraphParams(),
-        })) as BaseGraphEvents<EventType>;
-        return {
-            events,
-            lastBlock: lastSyncBlock,
-        };
     }
 
     async getEventsFromRpc({
@@ -289,16 +220,9 @@ export class BaseEventsService<EventType extends MinimalEvents> {
             };
         }
 
-        const graphEvents = await this.getEventsFromGraph({ fromBlock });
-        const lastSyncBlock =
-            graphEvents.lastBlock && graphEvents.lastBlock >= fromBlock ? graphEvents.lastBlock : fromBlock;
-        const rpcEvents = await this.getEventsFromRpc({
-            fromBlock: lastSyncBlock,
+        return await this.getEventsFromRpc({
+            fromBlock,
         });
-        return {
-            events: [...graphEvents.events, ...rpcEvents.events],
-            lastBlock: rpcEvents.lastBlock,
-        };
     }
 
     /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -378,11 +302,6 @@ export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceCon
     merkleTreeService?: MerkleTreeService;
 }
 
-export interface DepositsGraphParams extends BaseGraphParams {
-    amount: string;
-    currency: string;
-}
-
 export class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
     amount: string;
     currency: string;
@@ -421,25 +340,14 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
         return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
     }
 
-    getGraphMethod(): string {
-        return `getAll${this.getType()}s`;
-    }
-
-    getGraphParams(): DepositsGraphParams {
-        return {
-            graphApi: this.graphApi || '',
-            subgraphName: this.subgraphName || '',
-            amount: this.amount,
-            currency: this.currency,
-            fetchDataOptions: this.fetchDataOptions,
-            onProgress: this.updateGraphProgress,
-        };
-    }
-
     async formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]> {
         const type = this.getType().toLowerCase();
         if (type === DEPOSIT) {
-            const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+            const txs = await this.batchTransactionService.getBatchTransactions([
+                ...new Set(events.map(({ transactionHash }) => transactionHash)),
+            ]);
+
+            return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
                 const { commitment, leafIndex, timestamp } = args;
 
                 return {
@@ -449,23 +357,15 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
                     commitment: commitment as string,
                     leafIndex: Number(leafIndex),
                     timestamp: Number(timestamp),
-                };
-            });
-
-            const txs = await this.batchTransactionService.getBatchTransactions([
-                ...new Set(formattedEvents.map(({ transactionHash }) => transactionHash)),
-            ]);
-
-            return formattedEvents.map((event) => {
-                const { from } = txs.find(({ hash }) => hash === event.transactionHash) as TransactionResponse;
-
-                return {
-                    ...event,
-                    from,
+                    from: txs.find(({ hash }) => hash === transactionHash)?.from || '',
                 };
             });
         } else {
-            const formattedEvents = events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+            const blocks = await this.batchBlockService.getBatchBlocks([
+                ...new Set(events.map(({ blockNumber }) => blockNumber)),
+            ]);
+
+            return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
                 const { nullifierHash, to, fee } = args;
 
                 return {
@@ -475,19 +375,7 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
                     nullifierHash: String(nullifierHash),
                     to: getAddress(to),
                     fee: String(fee),
-                };
-            });
-
-            const blocks = await this.batchBlockService.getBatchBlocks([
-                ...new Set(formattedEvents.map(({ blockNumber }) => blockNumber)),
-            ]);
-
-            return formattedEvents.map((event) => {
-                const { timestamp } = blocks.find(({ number }) => number === event.blockNumber) as Block;
-
-                return {
-                    ...event,
-                    timestamp,
+                    timestamp: blocks.find(({ number }) => number === blockNumber)?.timestamp || 0,
                 };
             });
         }
@@ -559,10 +447,6 @@ export class BaseEchoService extends BaseEventsService<EchoEvents> {
         return `echo_${this.netId}`;
     }
 
-    getGraphMethod(): string {
-        return 'getAllGraphEchoEvents';
-    }
-
     async formatEvents(events: EventLog[]) {
         return events
             .map(({ blockNumber, index: logIndex, transactionHash, args }) => {
@@ -583,18 +467,6 @@ export class BaseEchoService extends BaseEventsService<EchoEvents> {
                 }
             })
             .filter((e) => e) as EchoEvents[];
-    }
-
-    async getEventsFromGraph({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<EchoEvents>> {
-        // TheGraph doesn't support our batch sync due to missing blockNumber field
-        if (!this.graphApi || this.graphApi.includes('api.thegraph.com')) {
-            return {
-                events: [],
-                lastBlock: fromBlock,
-            };
-        }
-
-        return super.getEventsFromGraph({ fromBlock });
     }
 }
 
@@ -617,10 +489,6 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
 
     getTovarishType(): string {
         return 'encrypted_notes';
-    }
-
-    getGraphMethod(): string {
-        return 'getAllEncryptedNotes';
     }
 
     async formatEvents(events: EventLog[]) {
@@ -789,10 +657,6 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
         return 'governance';
     }
 
-    getGraphMethod() {
-        return 'getAllGovernanceEvents';
-    }
-
     async formatEvents(events: EventLog[]): Promise<AllGovernanceEvents[]> {
         const proposalEvents: GovernanceProposalCreatedEvents[] = [];
         const votedEvents: GovernanceVotedEvents[] = [];
@@ -878,18 +742,6 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
         }
 
         return [...proposalEvents, ...votedEvents, ...delegatedEvents, ...undelegatedEvents];
-    }
-
-    async getEventsFromGraph({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<AllGovernanceEvents>> {
-        // TheGraph doesn't support governance subgraphs
-        if (!this.graphApi || !this.subgraphName || this.graphApi.includes('api.thegraph.com')) {
-            return {
-                events: [],
-                lastBlock: fromBlock,
-            };
-        }
-
-        return super.getEventsFromGraph({ fromBlock });
     }
 
     async getAllProposals(): Promise<GovernanceProposals[]> {
@@ -1091,7 +943,7 @@ export interface BaseRegistryServiceConstructor extends Omit<BaseEventsServiceCo
     relayerEnsSubdomains: SubdomainMap;
 }
 
-export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
+export class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEvents> {
     Aggregator: Aggregator;
     relayerEnsSubdomains: SubdomainMap;
     updateInterval: number;
@@ -1102,7 +954,7 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
         super({
             ...serviceConstructor,
             contract,
-            type: 'RelayerRegistered',
+            type: '*',
         });
 
         this.Aggregator = Aggregator;
@@ -1112,32 +964,75 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     }
 
     getInstanceName() {
-        return `registered_${this.netId}`;
+        return `registry_${this.netId}`;
     }
 
     getTovarishType(): string {
-        return 'registered';
+        return 'registry';
     }
 
-    // Name of method used for graph
-    getGraphMethod() {
-        return 'getAllRegisters';
-    }
+    async formatEvents(events: EventLog[]): Promise<AllRelayerRegistryEvents[]> {
+        const relayerRegisteredEvents: RelayerRegisteredEvents[] = [];
+        const relayerUnregisteredEvents: RelayerUnregisteredEvents[] = [];
+        const workerRegisteredEvents: WorkerRegisteredEvents[] = [];
+        const workerUnregisteredEvents: WorkerUnregisteredEvents[] = [];
 
-    async formatEvents(events: EventLog[]) {
-        return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+        events.forEach(({ blockNumber, index: logIndex, transactionHash, args, eventName: event }) => {
             const eventObjects = {
                 blockNumber,
                 logIndex,
                 transactionHash,
+                event,
             };
 
-            return {
-                ...eventObjects,
-                ensName: args.ensName,
-                relayerAddress: args.relayerAddress,
-            };
+            if (event === 'RelayerRegistered') {
+                const { relayer: ensHash, ensName, relayerAddress, stakedAmount } = args;
+
+                relayerRegisteredEvents.push({
+                    ...eventObjects,
+                    ensName,
+                    relayerAddress,
+                    ensHash,
+                    stakedAmount: formatEther(stakedAmount),
+                });
+            }
+
+            if (event === 'RelayerUnregistered') {
+                const { relayer: relayerAddress } = args;
+
+                relayerUnregisteredEvents.push({
+                    ...eventObjects,
+                    relayerAddress,
+                });
+            }
+
+            if (event === 'WorkerRegistered') {
+                const { relayer: relayerAddress, worker: workerAddress } = args;
+
+                workerRegisteredEvents.push({
+                    ...eventObjects,
+                    relayerAddress,
+                    workerAddress,
+                });
+            }
+
+            if (event === 'WorkerUnregistered') {
+                const { relayer: relayerAddress, worker: workerAddress } = args;
+
+                workerUnregisteredEvents.push({
+                    ...eventObjects,
+                    relayerAddress,
+                    workerAddress,
+                });
+            }
         });
+
+        return [
+            ...relayerRegisteredEvents,
+            ...relayerUnregisteredEvents,
+            ...workerRegisteredEvents,
+            ...workerUnregisteredEvents,
+        ];
     }
 
     /**
@@ -1174,7 +1069,9 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
     }
 
     async getLatestRelayers(): Promise<CachedRelayers> {
-        const { events, lastBlock } = await this.updateEvents();
+        const { events: allEvents, lastBlock } = await this.updateEvents();
+
+        const events = allEvents.filter((e) => e.event === 'RelayerRegistered') as RelayerRegisteredEvents[];
 
         const subdomains = Object.values(this.relayerEnsSubdomains);
 
@@ -1273,5 +1170,119 @@ export class BaseRegistryService extends BaseEventsService<RegistersEvents> {
         }
 
         return { lastBlock, timestamp, relayers };
+    }
+}
+
+export interface BaseRevenueServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    RelayerRegistry: RelayerRegistry;
+}
+
+/**
+ * Tracks TORN burned events from RelayerRegistry contract
+ */
+
+export class BaseRevenueService extends BaseEventsService<StakeBurnedEvents> {
+    batchTransactionService: BatchTransactionService;
+    batchBlockService: BatchBlockService;
+
+    constructor(serviceConstructor: BaseRevenueServiceConstructor) {
+        const { RelayerRegistry: contract, provider } = serviceConstructor;
+
+        super({
+            ...serviceConstructor,
+            contract,
+            type: 'StakeBurned',
+        });
+
+        this.batchTransactionService = new BatchTransactionService({
+            provider,
+            onProgress: this.updateTransactionProgress,
+        });
+
+        this.batchBlockService = new BatchBlockService({
+            provider,
+            onProgress: this.updateBlockProgress,
+        });
+    }
+
+    getInstanceName() {
+        return `revenue_${this.netId}`;
+    }
+
+    getTovarishType(): string {
+        return 'revenue';
+    }
+
+    async formatEvents(events: EventLog[]): Promise<StakeBurnedEvents[]> {
+        const blocks = await this.batchBlockService.getBatchBlocks([
+            ...new Set(events.map(({ blockNumber }) => blockNumber)),
+        ]);
+
+        const receipts = await this.batchTransactionService.getBatchReceipt([
+            ...new Set(events.map(({ transactionHash }) => transactionHash)),
+        ]);
+
+        const registeredRelayers = new Set(events.map(({ args }) => args.relayer));
+
+        const tornadoInterface = Tornado__factory.createInterface();
+
+        const withdrawHash = tornadoInterface.getEvent('Withdrawal').topicHash;
+
+        const withdrawalLogs = receipts
+            .map(
+                (receipt) =>
+                    receipt.logs
+                        .map((log) => {
+                            if (log.topics[0] === withdrawHash) {
+                                const block = blocks.find((b) => b.number === log.blockNumber);
+
+                                const parsedLog = tornadoInterface.parseLog(log);
+
+                                if (parsedLog && registeredRelayers.has(parsedLog.args.relayer)) {
+                                    return {
+                                        instanceAddress: log.address,
+                                        gasFee: (receipt.cumulativeGasUsed * receipt.gasPrice).toString(),
+                                        relayerFee: parsedLog.args.fee.toString(),
+                                        timestamp: block?.timestamp || 0,
+                                    };
+                                }
+                            }
+                        })
+                        .filter((l) => l) as {
+                        instanceAddress: string;
+                        gasFee: string;
+                        relayerFee: string;
+                        timestamp: number;
+                    }[],
+            )
+            .flat();
+
+        if (withdrawalLogs.length !== events.length) {
+            console.log(
+                `\nRevenueService: Mismatch on withdrawal logs (${withdrawalLogs.length} ) and events logs (${events.length})\n`,
+            );
+        }
+
+        return events.map(({ blockNumber, index: logIndex, transactionHash, args }, index) => {
+            const eventObjects = {
+                blockNumber,
+                logIndex,
+                transactionHash,
+            };
+
+            const { relayer: relayerAddress, amountBurned } = args;
+
+            const { instanceAddress, gasFee, relayerFee, timestamp } = withdrawalLogs[index];
+
+            return {
+                ...eventObjects,
+                relayerAddress,
+                amountBurned: amountBurned.toString(),
+                instanceAddress,
+                gasFee,
+                relayerFee,
+                timestamp,
+            };
+        });
     }
 }

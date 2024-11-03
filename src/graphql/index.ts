@@ -1,4 +1,4 @@
-import { getAddress } from 'ethers';
+import { ContractEventName, getAddress } from 'ethers';
 import { fetchData, fetchDataOptions } from '../providers';
 
 import type {
@@ -7,7 +7,6 @@ import type {
     DepositsEvents,
     WithdrawalsEvents,
     EncryptedNotesEvents,
-    BatchGraphOnProgress,
     EchoEvents,
     AllGovernanceEvents,
     GovernanceProposalCreatedEvents,
@@ -33,6 +32,18 @@ const isEmptyArray = (arr: object) => !Array.isArray(arr) || !arr.length;
 
 // https://thegraph.com/docs/en/developing/developer-faqs/#23-is-there-a-limit-to-how-many-objects-the-graph-can-return-per-query
 const GRAPHQL_LIMIT = 1000;
+
+export type BatchGraphOnProgress = ({
+    type,
+    fromBlock,
+    toBlock,
+    count,
+}: {
+    type?: ContractEventName;
+    fromBlock?: number;
+    toBlock?: number;
+    count?: number;
+}) => void;
 
 export interface queryGraphParams {
     graphApi: string;

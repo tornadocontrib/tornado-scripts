@@ -8,7 +8,7 @@ declare global {
         ethereum?: Eip1193Provider & EventEmitter;
     }
 }
-export declare const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0";
+export declare const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
 export declare const fetch: nodeFetch;
 export type nodeFetch = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 export type fetchDataOptions = RequestInit & {

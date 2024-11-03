@@ -370,13 +370,35 @@ export async function getIndexedDB(netId?: NetIdType) {
 
     if (registryContract) {
         stores.push({
-            name: `registered_${netId}`,
+            name: `registry_${netId}`,
             keyPath: 'ensName',
             indexes: [
                 ...minimalIndexes,
                 {
-                    name: 'relayerAddress',
+                    name: 'event',
                     unique: false,
+                },
+            ],
+        });
+
+        stores.push({
+            name: `relayers_${netId}`,
+            keyPath: 'timestamp',
+            indexes: [
+                {
+                    name: 'timestamp',
+                    unique: true,
+                },
+            ],
+        });
+
+        stores.push({
+            name: `revenue_${netId}`,
+            keyPath: 'timestamp',
+            indexes: [
+                {
+                    name: 'timestamp',
+                    unique: true,
                 },
             ],
         });

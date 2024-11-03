@@ -33,7 +33,7 @@ declare global {
 }
 
 // Update this for every Tor Browser release
-export const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0';
+export const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
 
 export const fetch = crossFetch as unknown as nodeFetch;
 

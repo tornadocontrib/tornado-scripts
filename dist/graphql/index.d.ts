@@ -1,6 +1,13 @@
+import { ContractEventName } from 'ethers';
 import { fetchDataOptions } from '../providers';
-import type { BaseGraphEvents, RegistersEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, BatchGraphOnProgress, EchoEvents, AllGovernanceEvents } from '../events';
+import type { BaseGraphEvents, RegistersEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, EchoEvents, AllGovernanceEvents } from '../events';
 export * from './queries';
+export type BatchGraphOnProgress = ({ type, fromBlock, toBlock, count, }: {
+    type?: ContractEventName;
+    fromBlock?: number;
+    toBlock?: number;
+    count?: number;
+}) => void;
 export interface queryGraphParams {
     graphApi: string;
     subgraphName: string;

@@ -1,5 +1,5 @@
-import { BaseContract, Provider, EventLog, ContractEventName } from 'ethers';
-import type { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
+import { BaseContract, Provider, EventLog } from 'ethers';
+import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
 import { type NetIdType, type SubdomainMap } from '../networkConfig';
@@ -7,53 +7,34 @@ import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
-import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, RegistersEvents, EchoEvents } from './types';
+import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents } from './types';
 export declare const DEPOSIT = "deposit";
 export declare const WITHDRAWAL = "withdrawal";
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;
-    graphApi?: string;
-    subgraphName?: string;
     contract: BaseContract;
     type: string;
     deployedBlock?: number;
     fetchDataOptions?: fetchDataOptions;
     tovarishClient?: TovarishClient;
 }
-export type BatchGraphOnProgress = ({ type, fromBlock, toBlock, count, }: {
-    type?: ContractEventName;
-    fromBlock?: number;
-    toBlock?: number;
-    count?: number;
-}) => void;
-export interface BaseGraphParams {
-    graphApi: string;
-    subgraphName: string;
-    fetchDataOptions?: fetchDataOptions;
-    onProgress?: BatchGraphOnProgress;
-}
 export declare class BaseEventsService<EventType extends MinimalEvents> {
     netId: NetIdType;
     provider: Provider;
-    graphApi?: string;
-    subgraphName?: string;
     contract: BaseContract;
     type: string;
     deployedBlock: number;
     batchEventsService: BatchEventsService;
     fetchDataOptions?: fetchDataOptions;
     tovarishClient?: TovarishClient;
-    constructor({ netId, provider, graphApi, subgraphName, contract, type, deployedBlock, fetchDataOptions, tovarishClient, }: BaseEventsServiceConstructor);
+    constructor({ netId, provider, contract, type, deployedBlock, fetchDataOptions, tovarishClient, }: BaseEventsServiceConstructor);
     getInstanceName(): string;
     getType(): string;
     getTovarishType(): string;
-    getGraphMethod(): string;
-    getGraphParams(): BaseGraphParams;
     updateEventProgress({ percentage, type, fromBlock, toBlock, count }: Parameters<BatchEventOnProgress>[0]): void;
     updateBlockProgress({ percentage, currentIndex, totalIndex }: Parameters<BatchBlockOnProgress>[0]): void;
     updateTransactionProgress({ percentage, currentIndex, totalIndex }: Parameters<BatchBlockOnProgress>[0]): void;
-    updateGraphProgress({ type, fromBlock, toBlock, count }: Parameters<BatchGraphOnProgress>[0]): void;
     formatEvents(events: EventLog[]): Promise<EventType[]>;
     /**
      * Get saved or cached events
@@ -64,13 +45,6 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
      */
     getEventsFromCache(): Promise<CachedEvents<EventType>>;
     getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>>;
-    /**
-     * Get latest events
-     */
-    getEventsFromGraph({ fromBlock, methodName, }: {
-        fromBlock: number;
-        methodName?: string;
-    }): Promise<BaseEvents<EventType>>;
     getEventsFromRpc({ fromBlock, toBlock, }: {
         fromBlock: number;
         toBlock?: number;
@@ -101,10 +75,6 @@ export interface BaseTornadoServiceConstructor extends Omit<BaseEventsServiceCon
     optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
 }
-export interface DepositsGraphParams extends BaseGraphParams {
-    amount: string;
-    currency: string;
-}
 export declare class BaseTornadoService extends BaseEventsService<DepositsEvents | WithdrawalsEvents> {
     amount: string;
     currency: string;
@@ -114,8 +84,6 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     batchBlockService: BatchBlockService;
     constructor(serviceConstructor: BaseTornadoServiceConstructor);
     getInstanceName(): string;
-    getGraphMethod(): string;
-    getGraphParams(): DepositsGraphParams;
     formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]>;
     validateEvents<S>({ events, hasNewEvents, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
         hasNewEvents?: boolean;
@@ -130,11 +98,7 @@ export interface BaseEchoServiceConstructor extends Omit<BaseEventsServiceConstr
 export declare class BaseEchoService extends BaseEventsService<EchoEvents> {
     constructor(serviceConstructor: BaseEchoServiceConstructor);
     getInstanceName(): string;
-    getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<EchoEvents[]>;
-    getEventsFromGraph({ fromBlock }: {
-        fromBlock: number;
-    }): Promise<BaseEvents<EchoEvents>>;
 }
 export interface BaseEncryptedNotesServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Router: TornadoRouter | TornadoProxyLight;
@@ -143,7 +107,6 @@ export declare class BaseEncryptedNotesService extends BaseEventsService<Encrypt
     constructor(serviceConstructor: BaseEncryptedNotesServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
-    getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<EncryptedNotesEvents[]>;
 }
 export declare const proposalState: {
@@ -178,11 +141,7 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
     constructor(serviceConstructor: BaseGovernanceServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
-    getGraphMethod(): string;
     formatEvents(events: EventLog[]): Promise<AllGovernanceEvents[]>;
-    getEventsFromGraph({ fromBlock }: {
-        fromBlock: number;
-    }): Promise<BaseEvents<AllGovernanceEvents>>;
     getAllProposals(): Promise<GovernanceProposals[]>;
     getVotes(proposalId: number): Promise<GovernanceVotes[]>;
     getDelegatedBalance(ethAccount: string): Promise<{
@@ -221,21 +180,14 @@ export interface BaseRegistryServiceConstructor extends Omit<BaseEventsServiceCo
     Aggregator: Aggregator;
     relayerEnsSubdomains: SubdomainMap;
 }
-export declare class BaseRegistryService extends BaseEventsService<RegistersEvents> {
+export declare class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEvents> {
     Aggregator: Aggregator;
     relayerEnsSubdomains: SubdomainMap;
     updateInterval: number;
     constructor(serviceConstructor: BaseRegistryServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
-    getGraphMethod(): string;
-    formatEvents(events: EventLog[]): Promise<{
-        ensName: any;
-        relayerAddress: any;
-        blockNumber: number;
-        logIndex: number;
-        transactionHash: string;
-    }[]>;
+    formatEvents(events: EventLog[]): Promise<AllRelayerRegistryEvents[]>;
     /**
      * Get saved or cached relayers
      */
@@ -254,4 +206,18 @@ export declare class BaseRegistryService extends BaseEventsService<RegistersEven
      * Get cached or latest relayer and save to local
      */
     updateRelayers(): Promise<CachedRelayers>;
+}
+export interface BaseRevenueServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    RelayerRegistry: RelayerRegistry;
+}
+/**
+ * Tracks TORN burned events from RelayerRegistry contract
+ */
+export declare class BaseRevenueService extends BaseEventsService<StakeBurnedEvents> {
+    batchTransactionService: BatchTransactionService;
+    batchBlockService: BatchBlockService;
+    constructor(serviceConstructor: BaseRevenueServiceConstructor);
+    getInstanceName(): string;
+    getTovarishType(): string;
+    formatEvents(events: EventLog[]): Promise<StakeBurnedEvents[]>;
 }

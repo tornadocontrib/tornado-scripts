@@ -21,6 +21,8 @@ export interface TovarishEventsStatus {
         timestamp: number;
         relayers: number;
     };
+    registry?: EventsStatus;
+    revenue?: EventsStatus;
     echo: EventsStatus;
     encrypted_notes: EventsStatus;
     instances: CurrencyEventsStatus;

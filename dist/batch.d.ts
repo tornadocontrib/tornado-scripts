@@ -1,4 +1,4 @@
-import type { Provider, BlockTag, Block, TransactionResponse, BaseContract, ContractEventName, EventLog } from 'ethers';
+import type { Provider, BlockTag, Block, TransactionResponse, BaseContract, ContractEventName, EventLog, TransactionReceipt } from 'ethers';
 export interface BatchBlockServiceConstructor {
     provider: Provider;
     onProgress?: BatchBlockOnProgress;
@@ -42,8 +42,10 @@ export declare class BatchTransactionService {
     retryOn: number;
     constructor({ provider, onProgress, concurrencySize, batchSize, shouldRetry, retryMax, retryOn, }: BatchBlockServiceConstructor);
     getTransaction(txHash: string): Promise<TransactionResponse>;
-    createBatchRequest(batchArray: string[][]): Promise<TransactionResponse[]>[];
+    getTransactionReceipt(txHash: string): Promise<TransactionReceipt>;
+    createBatchRequest(batchArray: string[][], receipt?: boolean): Promise<TransactionResponse[] | TransactionReceipt[]>[];
     getBatchTransactions(txs: string[]): Promise<TransactionResponse[]>;
+    getBatchReceipt(txs: string[]): Promise<TransactionReceipt[]>;
 }
 export interface BatchEventServiceConstructor {
     provider: Provider;

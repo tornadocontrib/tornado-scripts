@@ -92,16 +92,80 @@ export const governanceEventsSchema = {
     },
 } as const;
 
-export const registeredEventsSchema = {
+export const relayerRegistryEventsSchema = {
+    type: 'array',
+    items: {
+        anyOf: [
+            // RelayerRegisteredEvents
+            {
+                type: 'object',
+                properties: {
+                    ...baseEventsSchemaProperty,
+                    event: { type: 'string' },
+                    ensName: { type: 'string' },
+                    relayerAddress: addressSchemaType,
+                    ensHash: { type: 'string' },
+                    stakedAmount: { type: 'string' },
+                },
+                required: [
+                    ...baseEventsSchemaRequired,
+                    'event',
+                    'ensName',
+                    'relayerAddress',
+                    'ensHash',
+                    'stakedAmount',
+                ],
+                additionalProperties: false,
+            },
+            // RelayerUnregisteredEvents
+            {
+                type: 'object',
+                properties: {
+                    ...baseEventsSchemaProperty,
+                    event: { type: 'string' },
+                    relayerAddress: addressSchemaType,
+                },
+                required: [...baseEventsSchemaRequired, 'event', 'relayerAddress'],
+                additionalProperties: false,
+            },
+            // WorkerRegisteredEvents & WorkerUnregisteredEvents
+            {
+                type: 'object',
+                properties: {
+                    ...baseEventsSchemaProperty,
+                    event: { type: 'string' },
+                    relayerAddress: addressSchemaType,
+                    workerAddress: addressSchemaType,
+                },
+                required: [...baseEventsSchemaRequired, 'event', 'relayerAddress', 'workerAddress'],
+                additionalProperties: false,
+            },
+        ],
+    },
+} as const;
+
+export const stakeBurnedEventsSchema = {
     type: 'array',
     items: {
         type: 'object',
         properties: {
             ...baseEventsSchemaProperty,
-            ensName: { type: 'string' },
             relayerAddress: addressSchemaType,
+            amountBurned: bnSchemaType,
+            instanceAddress: addressSchemaType,
+            gasFee: bnSchemaType,
+            relayerFee: bnSchemaType,
+            timestamp: { type: 'number' },
         },
-        required: [...baseEventsSchemaRequired, 'ensName', 'relayerAddress'],
+        required: [
+            ...baseEventsSchemaRequired,
+            'relayerAddress',
+            'amountBurned',
+            'instanceAddress',
+            'gasFee',
+            'relayerFee',
+            'timestamp',
+        ],
         additionalProperties: false,
     },
 } as const;
@@ -178,8 +242,12 @@ export function getEventsSchemaValidator(type: string) {
         return ajv.compile(governanceEventsSchema);
     }
 
-    if (type === 'registered') {
-        return ajv.compile(registeredEventsSchema);
+    if (type === 'registry') {
+        return ajv.compile(relayerRegistryEventsSchema);
+    }
+
+    if (type === 'revenue') {
+        return ajv.compile(stakeBurnedEventsSchema);
     }
 
     if (type === 'echo') {

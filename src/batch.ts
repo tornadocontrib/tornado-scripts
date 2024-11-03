@@ -1,4 +1,13 @@
-import type { Provider, BlockTag, Block, TransactionResponse, BaseContract, ContractEventName, EventLog } from 'ethers';
+import type {
+    Provider,
+    BlockTag,
+    Block,
+    TransactionResponse,
+    BaseContract,
+    ContractEventName,
+    EventLog,
+    TransactionReceipt,
+} from 'ethers';
 import { chunk, sleep } from './utils';
 
 export interface BatchBlockServiceConstructor {
@@ -65,7 +74,7 @@ export class BatchBlockService {
     createBatchRequest(batchArray: BlockTag[][]): Promise<Block[]>[] {
         return batchArray.map(async (blocks: BlockTag[], index: number) => {
             // send batch requests on milliseconds to avoid including them on a single batch request
-            await sleep(20 * index);
+            await sleep(40 * index);
 
             return (async () => {
                 let retries = 0;
@@ -153,9 +162,23 @@ export class BatchTransactionService {
         return txObject;
     }
 
-    createBatchRequest(batchArray: string[][]): Promise<TransactionResponse[]>[] {
+    async getTransactionReceipt(txHash: string): Promise<TransactionReceipt> {
+        const txObject = await this.provider.getTransactionReceipt(txHash);
+
+        if (!txObject) {
+            const errMsg = `No transaction receipt for ${txHash}`;
+            throw new Error(errMsg);
+        }
+
+        return txObject;
+    }
+
+    createBatchRequest(
+        batchArray: string[][],
+        receipt?: boolean,
+    ): Promise<TransactionResponse[] | TransactionReceipt[]>[] {
         return batchArray.map(async (txs: string[], index: number) => {
-            await sleep(20 * index);
+            await sleep(40 * index);
 
             return (async () => {
                 let retries = 0;
@@ -164,7 +187,11 @@ export class BatchTransactionService {
                 // eslint-disable-next-line no-unmodified-loop-condition
                 while ((!this.shouldRetry && retries === 0) || (this.shouldRetry && retries < this.retryMax)) {
                     try {
-                        return await Promise.all(txs.map((tx) => this.getTransaction(tx)));
+                        if (!receipt) {
+                            return await Promise.all(txs.map((tx) => this.getTransaction(tx)));
+                        } else {
+                            return await Promise.all(txs.map((tx) => this.getTransactionReceipt(tx)));
+                        }
                     } catch (e) {
                         retries++;
                         err = e;
@@ -184,7 +211,34 @@ export class BatchTransactionService {
         const results = [];
 
         for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
-            const chunksResult = (await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))).flat();
+            const chunksResult = (
+                await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize)))
+            ).flat() as TransactionResponse[];
+
+            results.push(...chunksResult);
+
+            txCount += chunks.length;
+
+            if (typeof this.onProgress === 'function') {
+                this.onProgress({
+                    percentage: txCount / txs.length,
+                    currentIndex: txCount,
+                    totalIndex: txs.length,
+                });
+            }
+        }
+
+        return results;
+    }
+
+    async getBatchReceipt(txs: string[]): Promise<TransactionReceipt[]> {
+        let txCount = 0;
+        const results = [];
+
+        for (const chunks of chunk(txs, this.concurrencySize * this.batchSize)) {
+            const chunksResult = (
+                await Promise.all(this.createBatchRequest(chunk(chunks, this.batchSize), true))
+            ).flat() as TransactionReceipt[];
 
             results.push(...chunksResult);
 
@@ -252,7 +306,7 @@ export class BatchEventsService {
         contract,
         onProgress,
         concurrencySize = 10,
-        blocksPerRequest = 2000,
+        blocksPerRequest = 5000,
         shouldRetry = true,
         retryMax = 5,
         retryOn = 500,
@@ -297,7 +351,7 @@ export class BatchEventsService {
 
     createBatchRequest(batchArray: EventInput[]): Promise<EventLog[]>[] {
         return batchArray.map(async (event: EventInput, index: number) => {
-            await sleep(20 * index);
+            await sleep(10 * index);
 
             return this.getPastEvents(event);
         });

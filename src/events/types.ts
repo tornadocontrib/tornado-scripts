@@ -58,6 +58,45 @@ export type AllGovernanceEvents =
     | GovernanceDelegatedEvents
     | GovernanceUndelegatedEvents;
 
+export interface RelayerRegistryEvents extends MinimalEvents {
+    event: string;
+}
+
+export interface RelayerRegisteredEvents extends RelayerRegistryEvents, RelayerParams {
+    ensHash: string;
+    stakedAmount: string;
+}
+
+export interface RelayerUnregisteredEvents extends RelayerRegistryEvents {
+    relayerAddress: string;
+}
+
+export interface WorkerRegisteredEvents extends RelayerRegistryEvents {
+    relayerAddress: string;
+    workerAddress: string;
+}
+
+export interface WorkerUnregisteredEvents extends RelayerRegistryEvents {
+    relayerAddress: string;
+    workerAddress: string;
+}
+
+export type AllRelayerRegistryEvents =
+    | RelayerRegisteredEvents
+    | RelayerUnregisteredEvents
+    | WorkerRegisteredEvents
+    | WorkerUnregisteredEvents;
+
+export interface StakeBurnedEvents extends MinimalEvents {
+    relayerAddress: string;
+    amountBurned: string;
+    instanceAddress: string;
+    gasFee: string;
+    relayerFee: string;
+    timestamp: number;
+}
+
+// Deprecated type
 export type RegistersEvents = MinimalEvents & RelayerParams;
 
 export interface DepositsEvents extends MinimalEvents {

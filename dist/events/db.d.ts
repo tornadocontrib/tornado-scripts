@@ -1,6 +1,6 @@
 import { IndexedDB } from '../idb';
-import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor } from './base';
-import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents, EchoEvents, EncryptedNotesEvents, AllGovernanceEvents, RegistersEvents } from './types';
+import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor, BaseRevenueService, BaseRevenueServiceConstructor, CachedRelayers } from './base';
+import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents, EchoEvents, EncryptedNotesEvents, AllGovernanceEvents, AllRelayerRegistryEvents, StakeBurnedEvents } from './types';
 export declare function saveDBEvents<T extends MinimalEvents>({ idb, instanceName, events, lastBlock, }: {
     idb: IndexedDB;
     instanceName: string;
@@ -77,8 +77,26 @@ export declare class DBRegistryService extends BaseRegistryService {
     staticUrl: string;
     idb: IndexedDB;
     zipDigest?: string;
+    relayerJsonDigest?: string;
     constructor(params: DBRegistryServiceConstructor);
-    getEventsFromDB(): Promise<BaseEvents<RegistersEvents>>;
-    getEventsFromCache(): Promise<CachedEvents<RegistersEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<RegistersEvents>): Promise<void>;
+    getEventsFromDB(): Promise<BaseEvents<AllRelayerRegistryEvents>>;
+    getEventsFromCache(): Promise<CachedEvents<AllRelayerRegistryEvents>>;
+    saveEvents({ events, lastBlock }: BaseEvents<AllRelayerRegistryEvents>): Promise<void>;
+    getRelayersFromDB(): Promise<CachedRelayers>;
+    getRelayersFromCache(): Promise<CachedRelayers>;
+    saveRelayers(cachedRelayers: CachedRelayers): Promise<void>;
+}
+export interface DBRevenueServiceConstructor extends BaseRevenueServiceConstructor {
+    staticUrl: string;
+    idb: IndexedDB;
+}
+export declare class DBRevenueService extends BaseRevenueService {
+    staticUrl: string;
+    idb: IndexedDB;
+    zipDigest?: string;
+    relayerJsonDigest?: string;
+    constructor(params: DBRevenueServiceConstructor);
+    getEventsFromDB(): Promise<BaseEvents<StakeBurnedEvents>>;
+    getEventsFromCache(): Promise<CachedEvents<StakeBurnedEvents>>;
+    saveEvents({ events, lastBlock }: BaseEvents<StakeBurnedEvents>): Promise<void>;
 }

@@ -144,18 +144,127 @@ export declare const governanceEventsSchema: {
         }];
     };
 };
-export declare const registeredEventsSchema: {
+export declare const relayerRegistryEventsSchema: {
+    readonly type: "array";
+    readonly items: {
+        readonly anyOf: readonly [{
+            readonly type: "object";
+            readonly properties: {
+                readonly event: {
+                    readonly type: "string";
+                };
+                readonly ensName: {
+                    readonly type: "string";
+                };
+                readonly relayerAddress: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly ensHash: {
+                    readonly type: "string";
+                };
+                readonly stakedAmount: {
+                    readonly type: "string";
+                };
+                readonly blockNumber: {
+                    readonly type: "number";
+                };
+                readonly logIndex: {
+                    readonly type: "number";
+                };
+                readonly transactionHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+            };
+            readonly required: readonly [...string[], "event", "ensName", "relayerAddress", "ensHash", "stakedAmount"];
+            readonly additionalProperties: false;
+        }, {
+            readonly type: "object";
+            readonly properties: {
+                readonly event: {
+                    readonly type: "string";
+                };
+                readonly relayerAddress: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly blockNumber: {
+                    readonly type: "number";
+                };
+                readonly logIndex: {
+                    readonly type: "number";
+                };
+                readonly transactionHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+            };
+            readonly required: readonly [...string[], "event", "relayerAddress"];
+            readonly additionalProperties: false;
+        }, {
+            readonly type: "object";
+            readonly properties: {
+                readonly event: {
+                    readonly type: "string";
+                };
+                readonly relayerAddress: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly workerAddress: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly blockNumber: {
+                    readonly type: "number";
+                };
+                readonly logIndex: {
+                    readonly type: "number";
+                };
+                readonly transactionHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+            };
+            readonly required: readonly [...string[], "event", "relayerAddress", "workerAddress"];
+            readonly additionalProperties: false;
+        }];
+    };
+};
+export declare const stakeBurnedEventsSchema: {
     readonly type: "array";
     readonly items: {
         readonly type: "object";
         readonly properties: {
-            readonly ensName: {
-                readonly type: "string";
-            };
             readonly relayerAddress: {
                 readonly type: "string";
                 readonly pattern: "^0x[a-fA-F0-9]{40}$";
                 readonly isAddress: true;
+            };
+            readonly amountBurned: {
+                readonly type: "string";
+                readonly BN: true;
+            };
+            readonly instanceAddress: {
+                readonly type: "string";
+                readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                readonly isAddress: true;
+            };
+            readonly gasFee: {
+                readonly type: "string";
+                readonly BN: true;
+            };
+            readonly relayerFee: {
+                readonly type: "string";
+                readonly BN: true;
+            };
+            readonly timestamp: {
+                readonly type: "number";
             };
             readonly blockNumber: {
                 readonly type: "number";
@@ -168,7 +277,7 @@ export declare const registeredEventsSchema: {
                 readonly pattern: "^0x[a-fA-F0-9]{64}$";
             };
         };
-        readonly required: readonly [...string[], "ensName", "relayerAddress"];
+        readonly required: readonly [...string[], "relayerAddress", "amountBurned", "instanceAddress", "gasFee", "relayerFee", "timestamp"];
         readonly additionalProperties: false;
     };
 };

@@ -28,7 +28,7 @@ export declare class ENSUtils {
     getOwner(name: string): Promise<string>;
     unwrap(signer: Signer, name: string): Promise<import("ethers").ContractTransactionResponse>;
     setSubnodeRecord(signer: Signer, name: string): Promise<import("ethers").ContractTransactionResponse>;
-    setText(signer: Signer, name: string, key: string, value: string): Promise<import("ethers").ContractTransactionResponse>;
     getResolver(name: string): Promise<EnsResolver | null>;
     getText(name: string, key: string): Promise<string | null>;
+    setText(signer: Signer, name: string, key: string, value: string): Promise<import("ethers").ContractTransactionResponse>;
 }
