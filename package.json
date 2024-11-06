@@ -74,6 +74,7 @@
         "eslint-import-resolver-typescript": "^3.6.3",
         "eslint-plugin-import": "^2.31.0",
         "eslint-plugin-prettier": "^5.2.1",
+        "fetch-mock": "^12.0.2",
         "hardhat": "^2.22.10",
         "hardhat-gas-reporter": "^2.2.1",
         "mocha": "^10.7.3",

@@ -131,15 +131,15 @@ export const defaultConfig: networkConfig = {
                 url: 'https://tornadowithdraw.com/mainnet',
             },
             tornadoRpc: {
-                name: 'Tornado RPC',
+                name: 'torn-city.eth',
                 url: 'https://tornadocash-rpc.com',
             },
             mevblockerRPC: {
-                name: 'MevblockerRPC',
+                name: 'MEV Blocker',
                 url: 'https://rpc.mevblocker.io',
             },
             keydonix: {
-                name: 'keydonix',
+                name: 'Horswap ( Keydonix )',
                 url: 'https://ethereum.keydonix.com/v1/mainnet',
             },
             SecureRpc: {
@@ -147,7 +147,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://api.securerpc.com/v1',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
             },
             oneRpc: {
@@ -282,7 +282,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://tornadowithdraw.com/bsc',
             },
             tornadoRpc: {
-                name: 'Tornado RPC',
+                name: 'torn-city.eth',
                 url: 'https://tornadocash-rpc.com/bsc',
             },
             bnbchain: {
@@ -290,7 +290,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://bsc-dataseed.bnbchain.org',
             },
             ninicoin: {
-                name: 'ninicoin',
+                name: 'BNB Chain 2',
                 url: 'https://bsc-dataseed1.ninicoin.io',
             },
             nodereal: {
@@ -298,7 +298,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://binance.nodereal.io',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/bsc-mainnet',
             },
             oneRpc: {
@@ -353,7 +353,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://1rpc.io/matic',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/polygon-mainnet',
             },
         },
@@ -405,7 +405,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://1rpc.io/op',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/optimism-mainnet',
             },
         },
@@ -452,11 +452,11 @@ export const defaultConfig: networkConfig = {
         subgraphs: {},
         rpcUrls: {
             Arbitrum: {
-                name: 'Arbitrum RPC',
+                name: 'Arbitrum',
                 url: 'https://arb1.arbitrum.io/rpc',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
             },
             oneRpc: {
@@ -511,7 +511,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://tornadowithdraw.com/gnosis',
             },
             tornadoRpc: {
-                name: 'Tornado RPC',
+                name: 'torn-city.eth',
                 url: 'https://tornadocash-rpc.com/gnosis',
             },
             gnosis: {
@@ -570,7 +570,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://1rpc.io/avax/c',
             },
             stackup: {
-                name: 'Stackup RPC',
+                name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/avalanche-mainnet',
             },
         },
@@ -626,7 +626,7 @@ export const defaultConfig: networkConfig = {
                 url: 'https://tornadowithdraw.com/sepolia',
             },
             tornadoRpc: {
-                name: 'Tornado RPC',
+                name: 'torn-city.eth',
                 url: 'https://tornadocash-rpc.com/sepolia',
             },
             sepolia: {

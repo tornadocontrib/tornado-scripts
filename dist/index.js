@@ -398,7 +398,6 @@ class BatchEventsService {
 }
 
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
-const fetch = crossFetch;
 function getHttpAgent({
   fetchUrl,
   proxyUrl,
@@ -429,6 +428,7 @@ async function fetchData(url, options = {}) {
   const MAX_RETRY = options.maxRetry ?? 3;
   const RETRY_ON = options.retryOn ?? 500;
   const userAgent = options.userAgent ?? defaultUserAgent;
+  const fetch = globalThis.useGlobalFetch ? globalThis.fetch : crossFetch;
   let retry = 0;
   let errorObject;
   if (!options.method) {
@@ -452,6 +452,14 @@ async function fetchData(url, options = {}) {
       timeout = setTimeout(() => {
         controller.abort();
       }, options.timeout);
+      if (options.cancelSignal) {
+        if (options.cancelSignal.cancelled) {
+          throw new Error("request cancelled before sending");
+        }
+        options.cancelSignal.addListener(() => {
+          controller.abort();
+        });
+      }
     }
     if (!options.agent && isNode && (options.proxy || options.torPort)) {
       options.agent = getHttpAgent({
@@ -516,20 +524,13 @@ async function fetchData(url, options = {}) {
   throw errorObject;
 }
 const fetchGetUrlFunc = (options = {}) => async (req, _signal) => {
-  let signal;
-  if (_signal) {
-    const controller = new AbortController();
-    signal = controller.signal;
-    _signal.addListener(() => {
-      controller.abort();
-    });
-  }
   const init = {
     ...options,
     method: req.method || "POST",
     headers: req.headers,
     body: req.body || void 0,
-    signal,
+    timeout: options.timeout || req.timeout,
+    cancelSignal: _signal,
     returnResponse: true
   };
   const resp = await fetchData(req.url, init);
@@ -740,15 +741,15 @@ const defaultConfig = {
         url: "https://tornadowithdraw.com/mainnet"
       },
       tornadoRpc: {
-        name: "Tornado RPC",
+        name: "torn-city.eth",
         url: "https://tornadocash-rpc.com"
       },
       mevblockerRPC: {
-        name: "MevblockerRPC",
+        name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
       },
       keydonix: {
-        name: "keydonix",
+        name: "Horswap ( Keydonix )",
         url: "https://ethereum.keydonix.com/v1/mainnet"
       },
       SecureRpc: {
@@ -756,7 +757,7 @@ const defaultConfig = {
         url: "https://api.securerpc.com/v1"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/ethereum-mainnet"
       },
       oneRpc: {
@@ -891,7 +892,7 @@ const defaultConfig = {
         url: "https://tornadowithdraw.com/bsc"
       },
       tornadoRpc: {
-        name: "Tornado RPC",
+        name: "torn-city.eth",
         url: "https://tornadocash-rpc.com/bsc"
       },
       bnbchain: {
@@ -899,7 +900,7 @@ const defaultConfig = {
         url: "https://bsc-dataseed.bnbchain.org"
       },
       ninicoin: {
-        name: "ninicoin",
+        name: "BNB Chain 2",
         url: "https://bsc-dataseed1.ninicoin.io"
       },
       nodereal: {
@@ -907,7 +908,7 @@ const defaultConfig = {
         url: "https://binance.nodereal.io"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/bsc-mainnet"
       },
       oneRpc: {
@@ -962,7 +963,7 @@ const defaultConfig = {
         url: "https://1rpc.io/matic"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/polygon-mainnet"
       }
     },
@@ -1014,7 +1015,7 @@ const defaultConfig = {
         url: "https://1rpc.io/op"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/optimism-mainnet"
       }
     },
@@ -1061,11 +1062,11 @@ const defaultConfig = {
     subgraphs: {},
     rpcUrls: {
       Arbitrum: {
-        name: "Arbitrum RPC",
+        name: "Arbitrum",
         url: "https://arb1.arbitrum.io/rpc"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/arbitrum-one"
       },
       oneRpc: {
@@ -1120,7 +1121,7 @@ const defaultConfig = {
         url: "https://tornadowithdraw.com/gnosis"
       },
       tornadoRpc: {
-        name: "Tornado RPC",
+        name: "torn-city.eth",
         url: "https://tornadocash-rpc.com/gnosis"
       },
       gnosis: {
@@ -1179,7 +1180,7 @@ const defaultConfig = {
         url: "https://1rpc.io/avax/c"
       },
       stackup: {
-        name: "Stackup RPC",
+        name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/avalanche-mainnet"
       }
     },
@@ -1235,7 +1236,7 @@ const defaultConfig = {
         url: "https://tornadowithdraw.com/sepolia"
       },
       tornadoRpc: {
-        name: "Tornado RPC",
+        name: "torn-city.eth",
         url: "https://tornadocash-rpc.com/sepolia"
       },
       sepolia: {
@@ -10402,7 +10403,6 @@ exports.enabledChains = enabledChains;
 exports.encodedLabelToLabelhash = encodedLabelToLabelhash;
 exports.encryptedNotesSchema = encryptedNotesSchema;
 exports.factories = index;
-exports.fetch = fetch;
 exports.fetchData = fetchData;
 exports.fetchGetUrlFunc = fetchGetUrlFunc;
 exports.fetchIp = fetchIp;

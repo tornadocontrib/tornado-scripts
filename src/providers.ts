@@ -19,6 +19,7 @@ import {
     Network,
     EnsPlugin,
     GasCostPlugin,
+    FetchCancelSignal,
 } from 'ethers';
 import type { RequestInfo, RequestInit, Response, HeadersInit } from 'node-fetch';
 // Temporary workaround until @types/node-fetch is compatible with @types/node
@@ -35,8 +36,6 @@ declare global {
 // Update this for every Tor Browser release
 export const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
 
-export const fetch = crossFetch as unknown as nodeFetch;
-
 export type nodeFetch = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
 export type fetchDataOptions = RequestInit & {
@@ -51,6 +50,7 @@ export type fetchDataOptions = RequestInit & {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     debug?: Function;
     returnResponse?: boolean;
+    cancelSignal?: FetchCancelSignal;
 };
 
 export type NodeAgent = RequestOptions['agent'] | ((parsedUrl: URL) => RequestOptions['agent']);
@@ -99,6 +99,10 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
     const RETRY_ON = options.retryOn ?? 500;
     const userAgent = options.userAgent ?? defaultUserAgent;
 
+    const fetch = ((globalThis as unknown as { useGlobalFetch?: boolean }).useGlobalFetch
+        ? globalThis.fetch
+        : crossFetch) as unknown as nodeFetch;
+
     let retry = 0;
     let errorObject;
 
@@ -121,7 +125,6 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
     while (retry < MAX_RETRY + 1) {
         let timeout;
 
-        // Define promise timeout when the options.timeout is available
         if (!options.signal && options.timeout) {
             const controller = new AbortController();
 
@@ -132,6 +135,18 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
             timeout = setTimeout(() => {
                 controller.abort();
             }, options.timeout);
+
+            // Support Ethers.js style FetchCancelSignal class
+            if (options.cancelSignal) {
+                // assert(_signal == null || !_signal.cancelled, "request cancelled before sending", "CANCELLED");
+                if (options.cancelSignal.cancelled) {
+                    throw new Error('request cancelled before sending');
+                }
+
+                options.cancelSignal.addListener(() => {
+                    controller.abort();
+                });
+            }
         }
 
         if (!options.agent && isNode && (options.proxy || options.torPort)) {
@@ -217,23 +232,13 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
 export const fetchGetUrlFunc =
     (options: fetchDataOptions = {}): FetchGetUrlFunc =>
     async (req, _signal) => {
-        let signal;
-
-        if (_signal) {
-            const controller = new AbortController();
-            // Temporary workaround until @types/node-fetch is compatible with @types/node
-            signal = controller.signal as FetchAbortSignal;
-            _signal.addListener(() => {
-                controller.abort();
-            });
-        }
-
         const init = {
             ...options,
             method: req.method || 'POST',
             headers: req.headers,
             body: req.body || undefined,
-            signal,
+            timeout: options.timeout || req.timeout,
+            cancelSignal: _signal,
             returnResponse: true,
         };
 

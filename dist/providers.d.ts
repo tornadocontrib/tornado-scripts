@@ -1,6 +1,6 @@
 import type { EventEmitter } from 'stream';
 import type { RequestOptions } from 'http';
-import { JsonRpcApiProvider, JsonRpcProvider, Wallet, FetchGetUrlFunc, Provider, SigningKey, TransactionRequest, JsonRpcSigner, BrowserProvider, Networkish, Eip1193Provider, VoidSigner } from 'ethers';
+import { JsonRpcApiProvider, JsonRpcProvider, Wallet, FetchGetUrlFunc, Provider, SigningKey, TransactionRequest, JsonRpcSigner, BrowserProvider, Networkish, Eip1193Provider, VoidSigner, FetchCancelSignal } from 'ethers';
 import type { RequestInfo, RequestInit, Response, HeadersInit } from 'node-fetch';
 import type { Config, NetIdType } from './networkConfig';
 declare global {
@@ -9,7 +9,6 @@ declare global {
     }
 }
 export declare const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
-export declare const fetch: nodeFetch;
 export type nodeFetch = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 export type fetchDataOptions = RequestInit & {
     headers?: HeadersInit | any;
@@ -21,6 +20,7 @@ export type fetchDataOptions = RequestInit & {
     torPort?: number;
     debug?: Function;
     returnResponse?: boolean;
+    cancelSignal?: FetchCancelSignal;
 };
 export type NodeAgent = RequestOptions['agent'] | ((parsedUrl: URL) => RequestOptions['agent']);
 export declare function getHttpAgent({ fetchUrl, proxyUrl, torPort, retry, }: {
