@@ -3207,9 +3207,6 @@ class DBRegistryService extends BaseRegistryService {
     try {
       const resp = await fetchData(url, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        },
         returnResponse: true
       });
       const data = new Uint8Array(await resp.arrayBuffer());

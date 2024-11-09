@@ -411,9 +411,6 @@ export class DBRegistryService extends BaseRegistryService {
         try {
             const resp = await fetchData(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 returnResponse: true,
             });
 
