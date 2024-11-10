@@ -26,4 +26,6 @@ export declare function substring(str: string, length?: number): string;
 export declare function digest(bytes: Uint8Array, algo?: string): Promise<Uint8Array>;
 export declare function numberFormatter(num: string | number | bigint, digits?: number): string;
 export declare function isHex(value: string): boolean;
+export declare function toContentHash(ipfsUrl: string): any;
+export declare function fromContentHash(contentHash: string): any;
 export {};

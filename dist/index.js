@@ -4,6 +4,7 @@ var ethers = require('ethers');
 var contracts = require('@tornado/contracts');
 var crypto$1 = require('crypto');
 var BN = require('bn.js');
+var contentHashUtils = require('@ensdomains/content-hash');
 var crossFetch = require('cross-fetch');
 var Ajv = require('ajv');
 var fflate = require('fflate');
@@ -32,6 +33,7 @@ function _interopNamespaceDefault(e) {
     return Object.freeze(n);
 }
 
+var contentHashUtils__namespace = /*#__PURE__*/_interopNamespaceDefault(contentHashUtils);
 var websnarkUtils__namespace = /*#__PURE__*/_interopNamespaceDefault(websnarkUtils);
 
 BigInt.prototype.toJSON = function() {
@@ -144,6 +146,12 @@ function numberFormatter(num, digits = 3) {
 }
 function isHex(value) {
   return /^0x[0-9a-fA-F]*$/.test(value);
+}
+function toContentHash(ipfsUrl) {
+  return contentHashUtils__namespace.fromIpfs(ipfsUrl);
+}
+function fromContentHash(contentHash) {
+  return contentHashUtils__namespace.decode(contentHash);
 }
 
 class BatchBlockService {
@@ -10403,6 +10411,7 @@ exports.factories = index;
 exports.fetchData = fetchData;
 exports.fetchGetUrlFunc = fetchGetUrlFunc;
 exports.fetchIp = fetchIp;
+exports.fromContentHash = fromContentHash;
 exports.gasZipID = gasZipID;
 exports.gasZipInbounds = gasZipInbounds;
 exports.gasZipInput = gasZipInput;
@@ -10460,6 +10469,7 @@ exports.saveDBEvents = saveDBEvents;
 exports.sleep = sleep;
 exports.stakeBurnedEventsSchema = stakeBurnedEventsSchema;
 exports.substring = substring;
+exports.toContentHash = toContentHash;
 exports.toFixedHex = toFixedHex;
 exports.toFixedLength = toFixedLength;
 exports.unpackEncryptedMessage = unpackEncryptedMessage;

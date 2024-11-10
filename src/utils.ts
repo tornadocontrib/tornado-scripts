@@ -1,5 +1,7 @@
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
+// @ts-expect-error no-contenthash-types
+import * as contentHashUtils from '@ensdomains/content-hash';
 import type { BigNumberish } from 'ethers';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,4 +174,13 @@ export function numberFormatter(num: string | number | bigint, digits: number = 
 
 export function isHex(value: string) {
     return /^0x[0-9a-fA-F]*$/.test(value);
+}
+
+// Return binary format of IPFS URL https://eips.ethereum.org/EIPS/eip-1577
+export function toContentHash(ipfsUrl: string) {
+    return contentHashUtils.fromIpfs(ipfsUrl);
+}
+
+export function fromContentHash(contentHash: string) {
+    return contentHashUtils.decode(contentHash);
 }

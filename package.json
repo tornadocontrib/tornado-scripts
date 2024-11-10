@@ -32,6 +32,7 @@
         "yarn.lock"
     ],
     "dependencies": {
+        "@ensdomains/content-hash": "2.5.7",
         "@metamask/eth-sig-util": "^8.0.0",
         "@tornado/contracts": "git+https://git.tornado.ws/tornadocontrib/tornado-contracts.git#1b1d707878c16a3dc60d295299d4f0e7ce6ba831",
         "@tornado/fixed-merkle-tree": "^0.7.3",
