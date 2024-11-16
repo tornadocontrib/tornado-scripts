@@ -126,14 +126,6 @@ export const defaultConfig: networkConfig = {
         networkName: 'Ethereum Mainnet',
         deployedBlock: 9116966,
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'tornadowithdraw.eth',
-                url: 'https://tornadowithdraw.com/mainnet',
-            },
-            tornadoRpc: {
-                name: 'torn-city.eth',
-                url: 'https://tornadocash-rpc.com',
-            },
             mevblockerRPC: {
                 name: 'MEV Blocker',
                 url: 'https://rpc.mevblocker.io',
@@ -277,14 +269,6 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/bsc-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'tornadowithdraw.eth',
-                url: 'https://tornadowithdraw.com/bsc',
-            },
-            tornadoRpc: {
-                name: 'torn-city.eth',
-                url: 'https://tornadocash-rpc.com/bsc',
-            },
             bnbchain: {
                 name: 'BNB Chain',
                 url: 'https://bsc-dataseed.bnbchain.org',
@@ -506,14 +490,6 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/xdai-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'tornadowithdraw.eth',
-                url: 'https://tornadowithdraw.com/gnosis',
-            },
-            tornadoRpc: {
-                name: 'torn-city.eth',
-                url: 'https://tornadocash-rpc.com/gnosis',
-            },
             gnosis: {
                 name: 'Gnosis',
                 url: 'https://rpc.gnosischain.com',
@@ -621,14 +597,6 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'tornadowithdraw.eth',
-                url: 'https://tornadowithdraw.com/sepolia',
-            },
-            tornadoRpc: {
-                name: 'torn-city.eth',
-                url: 'https://tornadocash-rpc.com/sepolia',
-            },
             sepolia: {
                 name: 'Sepolia RPC',
                 url: 'https://rpc.sepolia.org',

@@ -1,10 +1,10 @@
-import { zip, unzip, AsyncZippable, Unzipped } from 'fflate';
+import { zip, unzip, AsyncZippable, Unzipped, ZipAttributes } from 'fflate';
 import { fetchData } from './providers';
 import { bytesToBase64, digest } from './utils';
 
-export function zipAsync(file: AsyncZippable): Promise<Uint8Array> {
+export function zipAsync(file: AsyncZippable, options?: ZipAttributes): Promise<Uint8Array> {
     return new Promise((res, rej) => {
-        zip(file, { mtime: new Date('1/1/1980') }, (err, data) => {
+        zip(file, { ...(options || {}), mtime: new Date('1/1/1980') }, (err, data) => {
             if (err) {
                 rej(err);
                 return;

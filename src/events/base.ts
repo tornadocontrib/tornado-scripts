@@ -58,9 +58,6 @@ import type {
     StakeBurnedEvents,
 } from './types';
 
-export const DEPOSIT = 'deposit';
-export const WITHDRAWAL = 'withdrawal';
-
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;
@@ -208,7 +205,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     }
 
     async getLatestEvents({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<EventType>> {
-        if (this.tovarishClient?.selectedRelayer && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
+        if (this.tovarishClient?.selectedRelayer && !['Deposit', 'Withdrawal'].includes(this.type)) {
             const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents<EventType>({
                 type: this.getTovarishType(),
                 fromBlock,
@@ -341,8 +338,8 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
     }
 
     async formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]> {
-        const type = this.getType().toLowerCase();
-        if (type === DEPOSIT) {
+        const type = this.getType();
+        if (type === 'Deposit') {
             const txs = await this.batchTransactionService.getBatchTransactions([
                 ...new Set(events.map(({ transactionHash }) => transactionHash)),
             ]);
@@ -387,7 +384,7 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
     }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
         hasNewEvents?: boolean;
     }) {
-        if (events.length && this.getType().toLowerCase() === DEPOSIT) {
+        if (events.length && this.getType() === 'Deposit') {
             const depositEvents = events as DepositsEvents[];
 
             const lastEvent = depositEvents[depositEvents.length - 1];

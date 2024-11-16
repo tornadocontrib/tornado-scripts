@@ -1,4 +1,3 @@
-import { DEPOSIT, WITHDRAWAL } from '../events';
 import { ajv } from './ajv';
 import { addressSchemaType, bnSchemaType, bytes32SchemaType } from './types';
 
@@ -230,11 +229,11 @@ export const encryptedNotesSchema = {
 } as const;
 
 export function getEventsSchemaValidator(type: string) {
-    if (type === DEPOSIT) {
+    if (type === 'deposit') {
         return ajv.compile(depositsEventsSchema);
     }
 
-    if (type === WITHDRAWAL) {
+    if (type === 'withdrawal') {
         return ajv.compile(withdrawalsEventsSchema);
     }
 

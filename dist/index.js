@@ -744,14 +744,6 @@ const defaultConfig = {
     networkName: "Ethereum Mainnet",
     deployedBlock: 9116966,
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/mainnet"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com"
-      },
       mevblockerRPC: {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
@@ -895,14 +887,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/bsc-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/bsc"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/bsc"
-      },
       bnbchain: {
         name: "BNB Chain",
         url: "https://bsc-dataseed.bnbchain.org"
@@ -1124,14 +1108,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/gnosis"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/gnosis"
-      },
       gnosis: {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
@@ -1239,14 +1215,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/sepolia"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/sepolia"
-      },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
@@ -1629,10 +1597,10 @@ const encryptedNotesSchema = {
   }
 };
 function getEventsSchemaValidator(type) {
-  if (type === DEPOSIT) {
+  if (type === "deposit") {
     return ajv.compile(depositsEventsSchema);
   }
-  if (type === WITHDRAWAL) {
+  if (type === "withdrawal") {
     return ajv.compile(withdrawalsEventsSchema);
   }
   if (type === "governance") {
@@ -2006,8 +1974,6 @@ class RelayerClient {
   }
 }
 
-const DEPOSIT = "deposit";
-const WITHDRAWAL = "withdrawal";
 class BaseEventsService {
   netId;
   provider;
@@ -2120,7 +2086,7 @@ class BaseEventsService {
     }
   }
   async getLatestEvents({ fromBlock }) {
-    if (this.tovarishClient?.selectedRelayer && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
+    if (this.tovarishClient?.selectedRelayer && !["Deposit", "Withdrawal"].includes(this.type)) {
       const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
         type: this.getTovarishType(),
         fromBlock
@@ -2217,8 +2183,8 @@ class BaseTornadoService extends BaseEventsService {
     return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
   }
   async formatEvents(events) {
-    const type = this.getType().toLowerCase();
-    if (type === DEPOSIT) {
+    const type = this.getType();
+    if (type === "Deposit") {
       const txs = await this.batchTransactionService.getBatchTransactions([
         ...new Set(events.map(({ transactionHash }) => transactionHash))
       ]);
@@ -2256,7 +2222,7 @@ class BaseTornadoService extends BaseEventsService {
     events,
     hasNewEvents
   }) {
-    if (events.length && this.getType().toLowerCase() === DEPOSIT) {
+    if (events.length && this.getType() === "Deposit") {
       const depositEvents = events;
       const lastEvent = depositEvents[depositEvents.length - 1];
       if (lastEvent.leafIndex !== depositEvents.length - 1) {
@@ -2904,9 +2870,9 @@ RevenueService: Mismatch on withdrawal logs (${withdrawalLogs.length} ) and even
   }
 }
 
-function zipAsync(file) {
+function zipAsync(file, options) {
   return new Promise((res, rej) => {
-    fflate.zip(file, { mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
+    fflate.zip(file, { ...options || {}, mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
       if (err) {
         rej(err);
         return;
@@ -10342,7 +10308,6 @@ exports.DBGovernanceService = DBGovernanceService;
 exports.DBRegistryService = DBRegistryService;
 exports.DBRevenueService = DBRevenueService;
 exports.DBTornadoService = DBTornadoService;
-exports.DEPOSIT = DEPOSIT;
 exports.Deposit = Deposit;
 exports.ENSNameWrapper__factory = ENSNameWrapper__factory;
 exports.ENSRegistry__factory = ENSRegistry__factory;
@@ -10375,7 +10340,6 @@ exports.TornadoRpcSigner = TornadoRpcSigner;
 exports.TornadoVoidSigner = TornadoVoidSigner;
 exports.TornadoWallet = TornadoWallet;
 exports.TovarishClient = TovarishClient;
-exports.WITHDRAWAL = WITHDRAWAL;
 exports.addNetwork = addNetwork;
 exports.addressSchemaType = addressSchemaType;
 exports.ajv = ajv;

@@ -8,8 +8,6 @@ import type { TovarishClient } from '../tovarishClient';
 import type { ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
 import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents } from './types';
-export declare const DEPOSIT = "deposit";
-export declare const WITHDRAWAL = "withdrawal";
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;

@@ -722,14 +722,6 @@ const defaultConfig = {
     networkName: "Ethereum Mainnet",
     deployedBlock: 9116966,
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/mainnet"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com"
-      },
       mevblockerRPC: {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
@@ -873,14 +865,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/bsc-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/bsc"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/bsc"
-      },
       bnbchain: {
         name: "BNB Chain",
         url: "https://bsc-dataseed.bnbchain.org"
@@ -1102,14 +1086,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/gnosis"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/gnosis"
-      },
       gnosis: {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
@@ -1217,14 +1193,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "tornadowithdraw.eth",
-        url: "https://tornadowithdraw.com/sepolia"
-      },
-      tornadoRpc: {
-        name: "torn-city.eth",
-        url: "https://tornadocash-rpc.com/sepolia"
-      },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
@@ -1607,10 +1575,10 @@ const encryptedNotesSchema = {
   }
 };
 function getEventsSchemaValidator(type) {
-  if (type === DEPOSIT) {
+  if (type === "deposit") {
     return ajv.compile(depositsEventsSchema);
   }
-  if (type === WITHDRAWAL) {
+  if (type === "withdrawal") {
     return ajv.compile(withdrawalsEventsSchema);
   }
   if (type === "governance") {
@@ -1984,8 +1952,6 @@ class RelayerClient {
   }
 }
 
-const DEPOSIT = "deposit";
-const WITHDRAWAL = "withdrawal";
 class BaseEventsService {
   netId;
   provider;
@@ -2098,7 +2064,7 @@ class BaseEventsService {
     }
   }
   async getLatestEvents({ fromBlock }) {
-    if (this.tovarishClient?.selectedRelayer && ![DEPOSIT, WITHDRAWAL].includes(this.type.toLowerCase())) {
+    if (this.tovarishClient?.selectedRelayer && !["Deposit", "Withdrawal"].includes(this.type)) {
       const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
         type: this.getTovarishType(),
         fromBlock
@@ -2195,8 +2161,8 @@ class BaseTornadoService extends BaseEventsService {
     return `${this.getType().toLowerCase()}s_${this.netId}_${this.currency}_${this.amount}`;
   }
   async formatEvents(events) {
-    const type = this.getType().toLowerCase();
-    if (type === DEPOSIT) {
+    const type = this.getType();
+    if (type === "Deposit") {
       const txs = await this.batchTransactionService.getBatchTransactions([
         ...new Set(events.map(({ transactionHash }) => transactionHash))
       ]);
@@ -2234,7 +2200,7 @@ class BaseTornadoService extends BaseEventsService {
     events,
     hasNewEvents
   }) {
-    if (events.length && this.getType().toLowerCase() === DEPOSIT) {
+    if (events.length && this.getType() === "Deposit") {
       const depositEvents = events;
       const lastEvent = depositEvents[depositEvents.length - 1];
       if (lastEvent.leafIndex !== depositEvents.length - 1) {
@@ -2882,9 +2848,9 @@ RevenueService: Mismatch on withdrawal logs (${withdrawalLogs.length} ) and even
   }
 }
 
-function zipAsync(file) {
+function zipAsync(file, options) {
   return new Promise((res, rej) => {
-    zip(file, { mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
+    zip(file, { ...options || {}, mtime: /* @__PURE__ */ new Date("1/1/1980") }, (err, data) => {
       if (err) {
         rej(err);
         return;
@@ -10304,4 +10270,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBRevenueService, DBTornadoService, DEPOSIT, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, WITHDRAWAL, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getNetworkConfig, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBRevenueService, DBTornadoService, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getNetworkConfig, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
