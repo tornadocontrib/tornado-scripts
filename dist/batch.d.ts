@@ -1,4 +1,14 @@
-import type { Provider, BlockTag, Block, TransactionResponse, BaseContract, ContractEventName, EventLog, TransactionReceipt } from 'ethers';
+import { Provider, BlockTag, Block, TransactionResponse, BaseContract, ContractEventName, EventLog, TransactionReceipt, EventFragment, TopicFilter, Interface, Log } from 'ethers';
+/**
+ * Copied from ethers.js as they don't export this function
+ * https://github.com/ethers-io/ethers.js/blob/main/src.ts/contract/contract.ts#L464
+ */
+export declare function getSubInfo(abiInterface: Interface, event: ContractEventName): Promise<{
+    fragment: null | EventFragment;
+    tag: string;
+    topics: TopicFilter;
+}>;
+export declare function multiQueryFilter(address: string | string[], contract: BaseContract, event: ContractEventName, fromBlock?: BlockTag, toBlock?: BlockTag): Promise<Log[]>;
 export interface BatchBlockServiceConstructor {
     provider: Provider;
     onProgress?: BatchBlockOnProgress;
@@ -50,6 +60,7 @@ export declare class BatchTransactionService {
 export interface BatchEventServiceConstructor {
     provider: Provider;
     contract: BaseContract;
+    address?: string | string[];
     onProgress?: BatchEventOnProgress;
     concurrencySize?: number;
     blocksPerRequest?: number;
@@ -75,13 +86,14 @@ export interface EventInput {
 export declare class BatchEventsService {
     provider: Provider;
     contract: BaseContract;
+    address?: string | string[];
     onProgress?: BatchEventOnProgress;
     concurrencySize: number;
     blocksPerRequest: number;
     shouldRetry: boolean;
     retryMax: number;
     retryOn: number;
-    constructor({ provider, contract, onProgress, concurrencySize, blocksPerRequest, shouldRetry, retryMax, retryOn, }: BatchEventServiceConstructor);
+    constructor({ provider, contract, address, onProgress, concurrencySize, blocksPerRequest, shouldRetry, retryMax, retryOn, }: BatchEventServiceConstructor);
     getPastEvents({ fromBlock, toBlock, type }: EventInput): Promise<EventLog[]>;
     createBatchRequest(batchArray: EventInput[]): Promise<EventLog[]>[];
     getBatchEvents({ fromBlock, toBlock, type }: EventInput): Promise<EventLog[]>;

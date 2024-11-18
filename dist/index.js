@@ -154,6 +154,107 @@ function fromContentHash(contentHash) {
   return contentHashUtils__namespace.decode(contentHash);
 }
 
+function isDeferred(value) {
+  return value && typeof value === "object" && "getTopicFilter" in value && typeof value.getTopicFilter === "function" && value.fragment;
+}
+async function getSubInfo(abiInterface, event) {
+  let topics;
+  let fragment = null;
+  if (Array.isArray(event)) {
+    const topicHashify = function(name) {
+      if (ethers.isHexString(name, 32)) {
+        return name;
+      }
+      const fragment2 = abiInterface.getEvent(name);
+      ethers.assertArgument(fragment2, "unknown fragment", "name", name);
+      return fragment2.topicHash;
+    };
+    topics = event.map((e) => {
+      if (e == null) {
+        return null;
+      }
+      if (Array.isArray(e)) {
+        return e.map(topicHashify);
+      }
+      return topicHashify(e);
+    });
+  } else if (event === "*") {
+    topics = [null];
+  } else if (typeof event === "string") {
+    if (ethers.isHexString(event, 32)) {
+      topics = [event];
+    } else {
+      fragment = abiInterface.getEvent(event);
+      ethers.assertArgument(fragment, "unknown fragment", "event", event);
+      topics = [fragment.topicHash];
+    }
+  } else if (isDeferred(event)) {
+    topics = await event.getTopicFilter();
+  } else if ("fragment" in event) {
+    fragment = event.fragment;
+    topics = [fragment.topicHash];
+  } else {
+    ethers.assertArgument(false, "unknown event name", "event", event);
+  }
+  topics = topics.map((t) => {
+    if (t == null) {
+      return null;
+    }
+    if (Array.isArray(t)) {
+      const items = Array.from(new Set(t.map((t2) => t2.toLowerCase())).values());
+      if (items.length === 1) {
+        return items[0];
+      }
+      items.sort();
+      return items;
+    }
+    return t.toLowerCase();
+  });
+  const tag = topics.map((t) => {
+    if (t == null) {
+      return "null";
+    }
+    if (Array.isArray(t)) {
+      return t.join("|");
+    }
+    return t;
+  }).join("&");
+  return { fragment, tag, topics };
+}
+async function multiQueryFilter(address, contract, event, fromBlock, toBlock) {
+  if (fromBlock == null) {
+    fromBlock = 0;
+  }
+  if (toBlock == null) {
+    toBlock = "latest";
+  }
+  const { fragment, topics } = await getSubInfo(contract.interface, event);
+  const filter = {
+    address: address === "*" ? void 0 : address,
+    topics,
+    fromBlock,
+    toBlock
+  };
+  const provider = contract.runner;
+  ethers.assert(provider, "contract runner does not have a provider", "UNSUPPORTED_OPERATION", { operation: "queryFilter" });
+  return (await provider.getLogs(filter)).map((log) => {
+    let foundFragment = fragment;
+    if (foundFragment == null) {
+      try {
+        foundFragment = contract.interface.getEvent(log.topics[0]);
+      } catch {
+      }
+    }
+    if (foundFragment) {
+      try {
+        return new ethers.EventLog(log, contract.interface, foundFragment);
+      } catch (error) {
+        return new ethers.UndecodedEventLog(log, error);
+      }
+    }
+    return new ethers.Log(log, provider);
+  });
+}
 class BatchBlockService {
   provider;
   onProgress;
@@ -326,6 +427,7 @@ class BatchTransactionService {
 class BatchEventsService {
   provider;
   contract;
+  address;
   onProgress;
   concurrencySize;
   blocksPerRequest;
@@ -335,6 +437,7 @@ class BatchEventsService {
   constructor({
     provider,
     contract,
+    address,
     onProgress,
     concurrencySize = 10,
     blocksPerRequest = 5e3,
@@ -344,6 +447,7 @@ class BatchEventsService {
   }) {
     this.provider = provider;
     this.contract = contract;
+    this.address = address;
     this.onProgress = onProgress;
     this.concurrencySize = concurrencySize;
     this.blocksPerRequest = blocksPerRequest;
@@ -356,6 +460,15 @@ class BatchEventsService {
     let retries = 0;
     while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
       try {
+        if (this.address) {
+          return await multiQueryFilter(
+            this.address,
+            this.contract,
+            type,
+            fromBlock,
+            toBlock
+          );
+        }
         return await this.contract.queryFilter(type, fromBlock, toBlock);
       } catch (e) {
         err = e;
@@ -2086,7 +2199,7 @@ class BaseEventsService {
     }
   }
   async getLatestEvents({ fromBlock }) {
-    if (this.tovarishClient?.selectedRelayer && !["Deposit", "Withdrawal"].includes(this.type)) {
+    if (this.tovarishClient?.selectedRelayer) {
       const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
         type: this.getTovarishType(),
         fromBlock
@@ -2103,8 +2216,8 @@ class BaseEventsService {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async validateEvents({
     events,
-    lastBlock,
-    hasNewEvents
+    newEvents,
+    lastBlock
   }) {
     return void 0;
   }
@@ -2140,8 +2253,8 @@ class BaseEventsService {
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
     const validateResult = await this.validateEvents({
       events: allEvents,
-      lastBlock,
-      hasNewEvents: Boolean(newEvents.events.length)
+      newEvents: newEvents.events,
+      lastBlock
     });
     if (savedEvents.fromCache || newEvents.events.length) {
       await this.saveEvents({ events: allEvents, lastBlock });
@@ -2220,7 +2333,7 @@ class BaseTornadoService extends BaseEventsService {
   }
   async validateEvents({
     events,
-    hasNewEvents
+    newEvents
   }) {
     if (events.length && this.getType() === "Deposit") {
       const depositEvents = events;
@@ -2229,7 +2342,7 @@ class BaseTornadoService extends BaseEventsService {
         const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
-      if (this.merkleTreeService && (!this.optionalTree || hasNewEvents)) {
+      if (this.merkleTreeService && (!this.optionalTree || newEvents.length)) {
         return await this.merkleTreeService.verifyTree(depositEvents);
       }
     }
@@ -2250,7 +2363,9 @@ class BaseTornadoService extends BaseEventsService {
         lastBlock
       };
     }
-    return super.getLatestEvents({ fromBlock });
+    return await this.getEventsFromRpc({
+      fromBlock
+    });
   }
 }
 class BaseEchoService extends BaseEventsService {
@@ -10396,6 +10511,7 @@ exports.getProvider = getProvider;
 exports.getProviderWithNetId = getProviderWithNetId;
 exports.getRelayerEnsSubdomains = getRelayerEnsSubdomains;
 exports.getStatusSchema = getStatusSchema;
+exports.getSubInfo = getSubInfo;
 exports.getSupportedInstances = getSupportedInstances;
 exports.getTokenBalances = getTokenBalances;
 exports.getTovarishNetworks = getTovarishNetworks;
@@ -10415,6 +10531,7 @@ exports.loadDBEvents = loadDBEvents;
 exports.loadRemoteEvents = loadRemoteEvents;
 exports.makeLabelNodeAndParent = makeLabelNodeAndParent;
 exports.mimc = mimc;
+exports.multiQueryFilter = multiQueryFilter;
 exports.multicall = multicall;
 exports.numberFormatter = numberFormatter;
 exports.packEncryptedMessage = packEncryptedMessage;

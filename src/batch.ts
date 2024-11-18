@@ -1,4 +1,4 @@
-import type {
+import {
     Provider,
     BlockTag,
     Block,
@@ -7,8 +7,170 @@ import type {
     ContractEventName,
     EventLog,
     TransactionReceipt,
+    isHexString,
+    assert,
+    assertArgument,
+    DeferredTopicFilter,
+    EventFragment,
+    TopicFilter,
+    Interface,
+    UndecodedEventLog,
+    Log,
 } from 'ethers';
 import { chunk, sleep } from './utils';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isDeferred(value: any): value is DeferredTopicFilter {
+    return (
+        value &&
+        typeof value === 'object' &&
+        'getTopicFilter' in value &&
+        typeof value.getTopicFilter === 'function' &&
+        value.fragment
+    );
+}
+
+/**
+ * Copied from ethers.js as they don't export this function
+ * https://github.com/ethers-io/ethers.js/blob/main/src.ts/contract/contract.ts#L464
+ */
+export async function getSubInfo(
+    abiInterface: Interface,
+    event: ContractEventName,
+): Promise<{
+    fragment: null | EventFragment;
+    tag: string;
+    topics: TopicFilter;
+}> {
+    let topics: Array<null | string | Array<string>>;
+    let fragment: null | EventFragment = null;
+
+    // Convert named events to topicHash and get the fragment for
+    // events which need deconstructing.
+
+    if (Array.isArray(event)) {
+        const topicHashify = function (name: string): string {
+            if (isHexString(name, 32)) {
+                return name;
+            }
+            const fragment = abiInterface.getEvent(name);
+            assertArgument(fragment, 'unknown fragment', 'name', name);
+            return fragment.topicHash;
+        };
+
+        // Array of Topics and Names; e.g. `[ "0x1234...89ab", "Transfer(address)" ]`
+        topics = event.map((e) => {
+            if (e == null) {
+                return null;
+            }
+            if (Array.isArray(e)) {
+                return e.map(topicHashify);
+            }
+            return topicHashify(e);
+        });
+    } else if (event === '*') {
+        topics = [null];
+    } else if (typeof event === 'string') {
+        if (isHexString(event, 32)) {
+            // Topic Hash
+            topics = [event];
+        } else {
+            // Name or Signature; e.g. `"Transfer", `"Transfer(address)"`
+            fragment = abiInterface.getEvent(event);
+            assertArgument(fragment, 'unknown fragment', 'event', event);
+            topics = [fragment.topicHash];
+        }
+    } else if (isDeferred(event)) {
+        // Deferred Topic Filter; e.g. `contract.filter.Transfer(from)`
+        topics = await event.getTopicFilter();
+    } else if ('fragment' in event) {
+        // ContractEvent; e.g. `contract.filter.Transfer`
+        fragment = event.fragment;
+        topics = [fragment.topicHash];
+    } else {
+        assertArgument(false, 'unknown event name', 'event', event);
+    }
+
+    // Normalize topics and sort TopicSets
+    topics = topics.map((t) => {
+        if (t == null) {
+            return null;
+        }
+        if (Array.isArray(t)) {
+            const items = Array.from(new Set(t.map((t) => t.toLowerCase())).values());
+            if (items.length === 1) {
+                return items[0];
+            }
+            items.sort();
+            return items;
+        }
+        return t.toLowerCase();
+    });
+
+    const tag = topics
+        .map((t) => {
+            if (t == null) {
+                return 'null';
+            }
+            if (Array.isArray(t)) {
+                return t.join('|');
+            }
+            return t;
+        })
+        .join('&');
+
+    return { fragment, tag, topics };
+}
+
+export async function multiQueryFilter(
+    // Single address will scan for a single contract, array for multiple, and * for all contracts with event topic
+    address: string | string[],
+    contract: BaseContract,
+    event: ContractEventName,
+    fromBlock?: BlockTag,
+    toBlock?: BlockTag,
+) {
+    if (fromBlock == null) {
+        fromBlock = 0;
+    }
+    if (toBlock == null) {
+        toBlock = 'latest';
+    }
+
+    const { fragment, topics } = await getSubInfo(contract.interface, event);
+
+    const filter = {
+        address: address === '*' ? undefined : address,
+        topics,
+        fromBlock,
+        toBlock,
+    };
+
+    const provider = contract.runner as Provider | null;
+
+    assert(provider, 'contract runner does not have a provider', 'UNSUPPORTED_OPERATION', { operation: 'queryFilter' });
+
+    return (await provider.getLogs(filter)).map((log) => {
+        let foundFragment = fragment;
+        if (foundFragment == null) {
+            try {
+                foundFragment = contract.interface.getEvent(log.topics[0]);
+                // eslint-disable-next-line no-empty
+            } catch {}
+        }
+
+        if (foundFragment) {
+            try {
+                return new EventLog(log, contract.interface, foundFragment);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                return new UndecodedEventLog(log, error);
+            }
+        }
+
+        return new Log(log, provider);
+    });
+}
 
 export interface BatchBlockServiceConstructor {
     provider: Provider;
@@ -260,6 +422,7 @@ export class BatchTransactionService {
 export interface BatchEventServiceConstructor {
     provider: Provider;
     contract: BaseContract;
+    address?: string | string[];
     onProgress?: BatchEventOnProgress;
     concurrencySize?: number;
     blocksPerRequest?: number;
@@ -295,6 +458,7 @@ export interface EventInput {
 export class BatchEventsService {
     provider: Provider;
     contract: BaseContract;
+    address?: string | string[];
     onProgress?: BatchEventOnProgress;
     concurrencySize: number;
     blocksPerRequest: number;
@@ -304,6 +468,7 @@ export class BatchEventsService {
     constructor({
         provider,
         contract,
+        address,
         onProgress,
         concurrencySize = 10,
         blocksPerRequest = 5000,
@@ -313,6 +478,7 @@ export class BatchEventsService {
     }: BatchEventServiceConstructor) {
         this.provider = provider;
         this.contract = contract;
+        this.address = address;
         this.onProgress = onProgress;
         this.concurrencySize = concurrencySize;
         this.blocksPerRequest = blocksPerRequest;
@@ -328,6 +494,15 @@ export class BatchEventsService {
         // eslint-disable-next-line no-unmodified-loop-condition
         while ((!this.shouldRetry && retries === 0) || (this.shouldRetry && retries < this.retryMax)) {
             try {
+                if (this.address) {
+                    return (await multiQueryFilter(
+                        this.address,
+                        this.contract,
+                        type,
+                        fromBlock,
+                        toBlock,
+                    )) as EventLog[];
+                }
                 return (await this.contract.queryFilter(type, fromBlock, toBlock)) as EventLog[];
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {

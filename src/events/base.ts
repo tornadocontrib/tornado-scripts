@@ -205,7 +205,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     }
 
     async getLatestEvents({ fromBlock }: { fromBlock: number }): Promise<BaseEvents<EventType>> {
-        if (this.tovarishClient?.selectedRelayer && !['Deposit', 'Withdrawal'].includes(this.type)) {
+        if (this.tovarishClient?.selectedRelayer) {
             const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents<EventType>({
                 type: this.getTovarishType(),
                 fromBlock,
@@ -225,9 +225,9 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     /* eslint-disable @typescript-eslint/no-unused-vars */
     async validateEvents<S>({
         events,
+        newEvents,
         lastBlock,
-        hasNewEvents,
-    }: BaseEvents<EventType> & { hasNewEvents?: boolean }): Promise<S> {
+    }: BaseEvents<EventType> & { newEvents: EventType[] }): Promise<S> {
         return undefined as S;
     }
     /* eslint-enable @typescript-eslint/no-unused-vars */
@@ -274,8 +274,8 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
         const validateResult = await this.validateEvents<S>({
             events: allEvents,
+            newEvents: newEvents.events,
             lastBlock,
-            hasNewEvents: Boolean(newEvents.events.length),
         });
 
         // If the events are loaded from cache or we have found new events, save them
@@ -380,9 +380,9 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
 
     async validateEvents<S>({
         events,
-        hasNewEvents,
+        newEvents,
     }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
-        hasNewEvents?: boolean;
+        newEvents: (DepositsEvents | WithdrawalsEvents)[];
     }) {
         if (events.length && this.getType() === 'Deposit') {
             const depositEvents = events as DepositsEvents[];
@@ -394,7 +394,7 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
                 throw new Error(errMsg);
             }
 
-            if (this.merkleTreeService && (!this.optionalTree || hasNewEvents)) {
+            if (this.merkleTreeService && (!this.optionalTree || newEvents.length)) {
                 return (await this.merkleTreeService.verifyTree(depositEvents)) as S;
             }
         }
@@ -423,7 +423,9 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
             };
         }
 
-        return super.getLatestEvents({ fromBlock });
+        return await this.getEventsFromRpc({
+            fromBlock,
+        });
     }
 }
 

@@ -1,4 +1,4 @@
-import { FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, solidityPackedKeccak256, TypedDataEncoder, ZeroAddress } from 'ethers';
+import { isHexString, assertArgument, assert, EventLog, UndecodedEventLog, Log, FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, solidityPackedKeccak256, TypedDataEncoder, ZeroAddress } from 'ethers';
 import { Tornado__factory } from '@tornado/contracts';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
@@ -132,6 +132,107 @@ function fromContentHash(contentHash) {
   return contentHashUtils.decode(contentHash);
 }
 
+function isDeferred(value) {
+  return value && typeof value === "object" && "getTopicFilter" in value && typeof value.getTopicFilter === "function" && value.fragment;
+}
+async function getSubInfo(abiInterface, event) {
+  let topics;
+  let fragment = null;
+  if (Array.isArray(event)) {
+    const topicHashify = function(name) {
+      if (isHexString(name, 32)) {
+        return name;
+      }
+      const fragment2 = abiInterface.getEvent(name);
+      assertArgument(fragment2, "unknown fragment", "name", name);
+      return fragment2.topicHash;
+    };
+    topics = event.map((e) => {
+      if (e == null) {
+        return null;
+      }
+      if (Array.isArray(e)) {
+        return e.map(topicHashify);
+      }
+      return topicHashify(e);
+    });
+  } else if (event === "*") {
+    topics = [null];
+  } else if (typeof event === "string") {
+    if (isHexString(event, 32)) {
+      topics = [event];
+    } else {
+      fragment = abiInterface.getEvent(event);
+      assertArgument(fragment, "unknown fragment", "event", event);
+      topics = [fragment.topicHash];
+    }
+  } else if (isDeferred(event)) {
+    topics = await event.getTopicFilter();
+  } else if ("fragment" in event) {
+    fragment = event.fragment;
+    topics = [fragment.topicHash];
+  } else {
+    assertArgument(false, "unknown event name", "event", event);
+  }
+  topics = topics.map((t) => {
+    if (t == null) {
+      return null;
+    }
+    if (Array.isArray(t)) {
+      const items = Array.from(new Set(t.map((t2) => t2.toLowerCase())).values());
+      if (items.length === 1) {
+        return items[0];
+      }
+      items.sort();
+      return items;
+    }
+    return t.toLowerCase();
+  });
+  const tag = topics.map((t) => {
+    if (t == null) {
+      return "null";
+    }
+    if (Array.isArray(t)) {
+      return t.join("|");
+    }
+    return t;
+  }).join("&");
+  return { fragment, tag, topics };
+}
+async function multiQueryFilter(address, contract, event, fromBlock, toBlock) {
+  if (fromBlock == null) {
+    fromBlock = 0;
+  }
+  if (toBlock == null) {
+    toBlock = "latest";
+  }
+  const { fragment, topics } = await getSubInfo(contract.interface, event);
+  const filter = {
+    address: address === "*" ? void 0 : address,
+    topics,
+    fromBlock,
+    toBlock
+  };
+  const provider = contract.runner;
+  assert(provider, "contract runner does not have a provider", "UNSUPPORTED_OPERATION", { operation: "queryFilter" });
+  return (await provider.getLogs(filter)).map((log) => {
+    let foundFragment = fragment;
+    if (foundFragment == null) {
+      try {
+        foundFragment = contract.interface.getEvent(log.topics[0]);
+      } catch {
+      }
+    }
+    if (foundFragment) {
+      try {
+        return new EventLog(log, contract.interface, foundFragment);
+      } catch (error) {
+        return new UndecodedEventLog(log, error);
+      }
+    }
+    return new Log(log, provider);
+  });
+}
 class BatchBlockService {
   provider;
   onProgress;
@@ -304,6 +405,7 @@ class BatchTransactionService {
 class BatchEventsService {
   provider;
   contract;
+  address;
   onProgress;
   concurrencySize;
   blocksPerRequest;
@@ -313,6 +415,7 @@ class BatchEventsService {
   constructor({
     provider,
     contract,
+    address,
     onProgress,
     concurrencySize = 10,
     blocksPerRequest = 5e3,
@@ -322,6 +425,7 @@ class BatchEventsService {
   }) {
     this.provider = provider;
     this.contract = contract;
+    this.address = address;
     this.onProgress = onProgress;
     this.concurrencySize = concurrencySize;
     this.blocksPerRequest = blocksPerRequest;
@@ -334,6 +438,15 @@ class BatchEventsService {
     let retries = 0;
     while (!this.shouldRetry && retries === 0 || this.shouldRetry && retries < this.retryMax) {
       try {
+        if (this.address) {
+          return await multiQueryFilter(
+            this.address,
+            this.contract,
+            type,
+            fromBlock,
+            toBlock
+          );
+        }
         return await this.contract.queryFilter(type, fromBlock, toBlock);
       } catch (e) {
         err = e;
@@ -2064,7 +2177,7 @@ class BaseEventsService {
     }
   }
   async getLatestEvents({ fromBlock }) {
-    if (this.tovarishClient?.selectedRelayer && !["Deposit", "Withdrawal"].includes(this.type)) {
+    if (this.tovarishClient?.selectedRelayer) {
       const { events, lastSyncBlock: lastBlock } = await this.tovarishClient.getEvents({
         type: this.getTovarishType(),
         fromBlock
@@ -2081,8 +2194,8 @@ class BaseEventsService {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async validateEvents({
     events,
-    lastBlock,
-    hasNewEvents
+    newEvents,
+    lastBlock
   }) {
     return void 0;
   }
@@ -2118,8 +2231,8 @@ class BaseEventsService {
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
     const validateResult = await this.validateEvents({
       events: allEvents,
-      lastBlock,
-      hasNewEvents: Boolean(newEvents.events.length)
+      newEvents: newEvents.events,
+      lastBlock
     });
     if (savedEvents.fromCache || newEvents.events.length) {
       await this.saveEvents({ events: allEvents, lastBlock });
@@ -2198,7 +2311,7 @@ class BaseTornadoService extends BaseEventsService {
   }
   async validateEvents({
     events,
-    hasNewEvents
+    newEvents
   }) {
     if (events.length && this.getType() === "Deposit") {
       const depositEvents = events;
@@ -2207,7 +2320,7 @@ class BaseTornadoService extends BaseEventsService {
         const errMsg = `Deposit events invalid wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
         throw new Error(errMsg);
       }
-      if (this.merkleTreeService && (!this.optionalTree || hasNewEvents)) {
+      if (this.merkleTreeService && (!this.optionalTree || newEvents.length)) {
         return await this.merkleTreeService.verifyTree(depositEvents);
       }
     }
@@ -2228,7 +2341,9 @@ class BaseTornadoService extends BaseEventsService {
         lastBlock
       };
     }
-    return super.getLatestEvents({ fromBlock });
+    return await this.getEventsFromRpc({
+      fromBlock
+    });
   }
 }
 class BaseEchoService extends BaseEventsService {
@@ -10270,4 +10385,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBRevenueService, DBTornadoService, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getNetworkConfig, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBRegistryService, DBRevenueService, DBTornadoService, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getNetworkConfig, getPermit2CommitmentsSignature, getPermit2Signature, getPermitCommitmentsSignature, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSubInfo, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multiQueryFilter, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };

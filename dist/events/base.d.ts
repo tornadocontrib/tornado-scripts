@@ -50,8 +50,8 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     getLatestEvents({ fromBlock }: {
         fromBlock: number;
     }): Promise<BaseEvents<EventType>>;
-    validateEvents<S>({ events, lastBlock, hasNewEvents, }: BaseEvents<EventType> & {
-        hasNewEvents?: boolean;
+    validateEvents<S>({ events, newEvents, lastBlock, }: BaseEvents<EventType> & {
+        newEvents: EventType[];
     }): Promise<S>;
     /**
      * Handle saving events
@@ -83,8 +83,8 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     constructor(serviceConstructor: BaseTornadoServiceConstructor);
     getInstanceName(): string;
     formatEvents(events: EventLog[]): Promise<(DepositsEvents | WithdrawalsEvents)[]>;
-    validateEvents<S>({ events, hasNewEvents, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
-        hasNewEvents?: boolean;
+    validateEvents<S>({ events, newEvents, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
+        newEvents: (DepositsEvents | WithdrawalsEvents)[];
     }): Promise<S>;
     getLatestEvents({ fromBlock, }: {
         fromBlock: number;
