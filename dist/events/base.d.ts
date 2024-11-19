@@ -1,5 +1,6 @@
 import { BaseContract, Provider, EventLog } from 'ethers';
 import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
+import type { MerkleTree } from '@tornado/fixed-merkle-tree';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
 import { type NetIdType, type SubdomainMap } from '../networkConfig';
@@ -7,7 +8,8 @@ import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
-import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents } from './types';
+import type { DepositType } from '../deposits';
+import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents, MultiDepositsEvents, MultiWithdrawalsEvents } from './types';
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;
@@ -56,7 +58,9 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
     /**
      * Handle saving events
      */
-    saveEvents({ events, lastBlock }: BaseEvents<EventType>): Promise<void>;
+    saveEvents({ events, newEvents, lastBlock }: BaseEvents<EventType> & {
+        newEvents: EventType[];
+    }): Promise<void>;
     /**
      * Trigger saving and receiving latest events
      */
@@ -89,6 +93,35 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     getLatestEvents({ fromBlock, }: {
         fromBlock: number;
     }): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;
+}
+export interface BaseMultiTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    instances: {
+        [key in string]: DepositType;
+    };
+    optionalTree?: boolean;
+    merkleTreeService?: MerkleTreeService;
+}
+export declare class BaseMultiTornadoService extends BaseEventsService<MultiDepositsEvents | MultiWithdrawalsEvents> {
+    instances: {
+        [key in string]: DepositType;
+    };
+    optionalTree?: boolean;
+    merkleTreeService?: MerkleTreeService;
+    batchTransactionService: BatchTransactionService;
+    batchBlockService: BatchBlockService;
+    constructor(serviceConstructor: BaseMultiTornadoServiceConstructor);
+    getInstanceName(): string;
+    getTovarishType(): string;
+    formatEvents(events: EventLog[]): Promise<(MultiDepositsEvents | MultiWithdrawalsEvents)[]>;
+    validateEvents<S>({ events, newEvents, }: BaseEvents<MultiDepositsEvents | MultiWithdrawalsEvents> & {
+        newEvents: (MultiDepositsEvents | MultiWithdrawalsEvents)[];
+    }): Promise<S>;
+    getEvents(instanceAddress: string): Promise<{
+        depositEvents: MultiDepositsEvents[];
+        withdrawalEvents: MultiWithdrawalsEvents[];
+        tree: MerkleTree | undefined;
+        lastBlock: number;
+    }>;
 }
 export interface BaseEchoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Echoer: Echoer;

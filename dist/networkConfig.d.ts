@@ -1,3 +1,4 @@
+import type { DepositType } from './deposits';
 /**
  * Type of default supported networks
  */
@@ -114,5 +115,11 @@ export declare function getActiveTokenInstances(config: Config): TokenInstances;
 export declare function getInstanceByAddress(config: Config, address: string): {
     amount: string;
     currency: string;
+    symbol: string;
+    decimals: number;
+    tokenAddress: string | undefined;
 } | undefined;
 export declare function getRelayerEnsSubdomains(): SubdomainMap;
+export declare function getMultiInstances(netId: NetIdType, config: Config): {
+    [key in string]: DepositType;
+};

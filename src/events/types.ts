@@ -113,6 +113,17 @@ export interface WithdrawalsEvents extends MinimalEvents {
     timestamp: number;
 }
 
+export interface BaseMultiTornadoEvents {
+    event: string;
+    instanceAddress: string;
+}
+
+export interface MultiDepositsEvents extends BaseMultiTornadoEvents, DepositsEvents {}
+
+export interface MultiWithdrawalsEvents extends BaseMultiTornadoEvents, WithdrawalsEvents {
+    relayerAddress: string;
+}
+
 export interface EchoEvents extends MinimalEvents {
     address: string;
     encryptedAccount: string;

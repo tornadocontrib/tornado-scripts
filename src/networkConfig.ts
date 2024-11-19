@@ -1,3 +1,5 @@
+import type { DepositType } from './deposits';
+
 /**
  * Type of default supported networks
  */
@@ -725,7 +727,7 @@ export function getActiveTokenInstances(config: Config): TokenInstances {
 export function getInstanceByAddress(config: Config, address: string) {
     const { tokens, disabledTokens } = config;
 
-    for (const [currency, { instanceAddress }] of Object.entries(tokens)) {
+    for (const [currency, { instanceAddress, tokenAddress, symbol, decimals }] of Object.entries(tokens)) {
         if (disabledTokens?.includes(currency)) {
             continue;
         }
@@ -734,6 +736,9 @@ export function getInstanceByAddress(config: Config, address: string) {
                 return {
                     amount,
                     currency,
+                    symbol,
+                    decimals,
+                    tokenAddress,
                 };
             }
         }
@@ -747,4 +752,20 @@ export function getRelayerEnsSubdomains() {
         acc[chain] = allConfig[chain].relayerEnsSubdomain;
         return acc;
     }, {} as SubdomainMap);
+}
+
+export function getMultiInstances(netId: NetIdType, config: Config): { [key in string]: DepositType } {
+    return Object.entries(config.tokens).reduce(
+        (acc, [currency, { instanceAddress }]) => {
+            Object.entries(instanceAddress).forEach(([amount, contractAddress]) => {
+                acc[contractAddress] = {
+                    currency,
+                    amount,
+                    netId,
+                };
+            });
+            return acc;
+        },
+        {} as { [key in string]: DepositType },
+    );
 }

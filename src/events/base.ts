@@ -22,6 +22,7 @@ import {
     Tornado__factory,
 } from '@tornado/contracts';
 
+import type { MerkleTree } from '@tornado/fixed-merkle-tree';
 import {
     BatchEventsService,
     BatchBlockService,
@@ -37,6 +38,7 @@ import type { TovarishClient } from '../tovarishClient';
 
 import type { ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
+import type { DepositType } from '../deposits';
 import type {
     BaseEvents,
     CachedEvents,
@@ -56,6 +58,8 @@ import type {
     WorkerUnregisteredEvents,
     AllRelayerRegistryEvents,
     StakeBurnedEvents,
+    MultiDepositsEvents,
+    MultiWithdrawalsEvents,
 } from './types';
 
 export interface BaseEventsServiceConstructor {
@@ -237,7 +241,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
      */
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async saveEvents({ events, lastBlock }: BaseEvents<EventType>) {}
+    async saveEvents({ events, newEvents, lastBlock }: BaseEvents<EventType> & { newEvents: EventType[] }) {}
 
     /**
      * Trigger saving and receiving latest events
@@ -280,7 +284,7 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
         // If the events are loaded from cache or we have found new events, save them
         if ((savedEvents as CachedEvents<EventType>).fromCache || newEvents.events.length) {
-            await this.saveEvents({ events: allEvents, lastBlock });
+            await this.saveEvents({ events: allEvents, newEvents: newEvents.events, lastBlock });
         }
 
         return {
@@ -426,6 +430,199 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
         return await this.getEventsFromRpc({
             fromBlock,
         });
+    }
+}
+
+export interface BaseMultiTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    instances: {
+        [key in string]: DepositType;
+    };
+    optionalTree?: boolean;
+    merkleTreeService?: MerkleTreeService;
+}
+
+export class BaseMultiTornadoService extends BaseEventsService<MultiDepositsEvents | MultiWithdrawalsEvents> {
+    instances: {
+        [key in string]: DepositType;
+    };
+
+    optionalTree?: boolean;
+    merkleTreeService?: MerkleTreeService;
+    batchTransactionService: BatchTransactionService;
+    batchBlockService: BatchBlockService;
+
+    constructor(serviceConstructor: BaseMultiTornadoServiceConstructor) {
+        const { instances, provider, optionalTree, merkleTreeService } = serviceConstructor;
+
+        const contract =
+            merkleTreeService?.Tornado || Tornado__factory.connect(Object.keys(instances)[0] as string, provider);
+
+        super({
+            ...serviceConstructor,
+            contract,
+            type: '*',
+        });
+
+        this.batchEventsService = new BatchEventsService({
+            provider,
+            contract,
+            address: Object.keys(instances),
+            onProgress: this.updateEventProgress,
+        });
+
+        this.instances = instances;
+
+        this.optionalTree = optionalTree;
+        this.merkleTreeService = merkleTreeService;
+
+        this.batchTransactionService = new BatchTransactionService({
+            provider,
+            onProgress: this.updateTransactionProgress,
+        });
+
+        this.batchBlockService = new BatchBlockService({
+            provider,
+            onProgress: this.updateBlockProgress,
+        });
+    }
+
+    getInstanceName(): string {
+        return `tornado_${this.netId}`;
+    }
+
+    getTovarishType(): string {
+        return 'tornado';
+    }
+
+    async formatEvents(events: EventLog[]): Promise<(MultiDepositsEvents | MultiWithdrawalsEvents)[]> {
+        const txs = await this.batchTransactionService.getBatchTransactions([
+            ...new Set(
+                events.filter(({ eventName }) => eventName === 'Deposit').map(({ transactionHash }) => transactionHash),
+            ),
+        ]);
+
+        const blocks = await this.batchBlockService.getBatchBlocks([
+            ...new Set(
+                events.filter(({ eventName }) => eventName === 'Withdrawal').map(({ blockNumber }) => blockNumber),
+            ),
+        ]);
+
+        return events
+            .map(
+                ({
+                    address: instanceAddress,
+                    blockNumber,
+                    index: logIndex,
+                    transactionHash,
+                    args,
+                    eventName: event,
+                }) => {
+                    const eventObjects = {
+                        blockNumber,
+                        logIndex,
+                        transactionHash,
+                        event,
+                        instanceAddress,
+                    };
+
+                    if (event === 'Deposit') {
+                        const { commitment, leafIndex, timestamp } = args;
+
+                        return {
+                            ...eventObjects,
+                            commitment: commitment as string,
+                            leafIndex: Number(leafIndex),
+                            timestamp: Number(timestamp),
+                            from: txs.find(({ hash }) => hash === transactionHash)?.from || '',
+                        } as MultiDepositsEvents;
+                    }
+
+                    if (event === 'Withdrawal') {
+                        const { nullifierHash, to, relayer: relayerAddress, fee } = args;
+
+                        return {
+                            ...eventObjects,
+                            logIndex,
+                            transactionHash,
+                            nullifierHash: String(nullifierHash),
+                            to,
+                            relayerAddress,
+                            fee: String(fee),
+                            timestamp: blocks.find(({ number }) => number === blockNumber)?.timestamp || 0,
+                        } as MultiWithdrawalsEvents;
+                    }
+                },
+            )
+            .filter((e) => e) as (MultiDepositsEvents | MultiWithdrawalsEvents)[];
+    }
+
+    async validateEvents<S>({
+        events,
+        newEvents,
+    }: BaseEvents<MultiDepositsEvents | MultiWithdrawalsEvents> & {
+        newEvents: (MultiDepositsEvents | MultiWithdrawalsEvents)[];
+    }) {
+        const instancesWithNewEvents = [
+            ...new Set(
+                newEvents.filter(({ event }) => event === 'Deposit').map(({ instanceAddress }) => instanceAddress),
+            ),
+        ];
+
+        let tree: S | undefined;
+
+        const requiredTree = this.merkleTreeService?.Tornado?.target as string | undefined;
+
+        // Audit and create deposit tree
+        if (requiredTree && !instancesWithNewEvents.includes(requiredTree)) {
+            instancesWithNewEvents.push(requiredTree);
+        }
+
+        for (const instance of instancesWithNewEvents) {
+            const depositEvents = events.filter(
+                ({ instanceAddress, event }) => instanceAddress === instance && event === 'Deposit',
+            ) as MultiDepositsEvents[];
+
+            const lastEvent = depositEvents[depositEvents.length - 1];
+
+            if (lastEvent.leafIndex !== depositEvents.length - 1) {
+                const errMsg = `Invalid deposit events for ${instance} wants ${depositEvents.length - 1} leafIndex have ${lastEvent.leafIndex}`;
+                throw new Error(errMsg);
+            }
+
+            if (requiredTree === instance && !this.optionalTree) {
+                tree = (await this.merkleTreeService?.verifyTree(depositEvents)) as S;
+            }
+        }
+
+        return tree as S;
+    }
+
+    async getEvents(instanceAddress: string) {
+        const { events, validateResult: tree, lastBlock } = await this.updateEvents<MerkleTree | undefined>();
+
+        const { depositEvents, withdrawalEvents } = events.reduce(
+            (acc, curr) => {
+                if (curr.instanceAddress === instanceAddress) {
+                    if (curr.event === 'Deposit') {
+                        acc.depositEvents.push(curr as MultiDepositsEvents);
+                    } else if (curr.event === 'Withdrawal') {
+                        acc.withdrawalEvents.push(curr as MultiWithdrawalsEvents);
+                    }
+                }
+                return acc;
+            },
+            {} as {
+                depositEvents: MultiDepositsEvents[];
+                withdrawalEvents: MultiWithdrawalsEvents[];
+            },
+        );
+
+        return {
+            depositEvents,
+            withdrawalEvents,
+            tree,
+            lastBlock,
+        };
     }
 }
 

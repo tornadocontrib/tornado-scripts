@@ -201,6 +201,62 @@ export const withdrawalsEventsSchema = {
     },
 } as const;
 
+export const tornadoEventsSchema = {
+    type: 'array',
+    items: {
+        anyOf: [
+            // depositsEvents
+            {
+                type: 'object',
+                properties: {
+                    ...baseEventsSchemaProperty,
+                    event: { type: 'string' },
+                    instanceAddress: { type: 'string' },
+                    commitment: bytes32SchemaType,
+                    leafIndex: { type: 'number' },
+                    timestamp: { type: 'number' },
+                    from: addressSchemaType,
+                },
+                required: [
+                    ...baseEventsSchemaRequired,
+                    'event',
+                    'instanceAddress',
+                    'commitment',
+                    'leafIndex',
+                    'timestamp',
+                    'from',
+                ],
+                additionalProperties: false,
+            },
+            // withdrawalEvents
+            {
+                type: 'object',
+                properties: {
+                    ...baseEventsSchemaProperty,
+                    event: { type: 'string' },
+                    instanceAddress: { type: 'string' },
+                    nullifierHash: bytes32SchemaType,
+                    to: addressSchemaType,
+                    relayerAddress: addressSchemaType,
+                    fee: bnSchemaType,
+                    timestamp: { type: 'number' },
+                },
+                required: [
+                    ...baseEventsSchemaRequired,
+                    'event',
+                    'instanceAddress',
+                    'nullifierHash',
+                    'to',
+                    'relayerAddress',
+                    'fee',
+                    'timestamp',
+                ],
+                additionalProperties: false,
+            },
+        ],
+    },
+} as const;
+
 export const echoEventsSchema = {
     type: 'array',
     items: {
@@ -229,6 +285,10 @@ export const encryptedNotesSchema = {
 } as const;
 
 export function getEventsSchemaValidator(type: string) {
+    if (type === 'tornado') {
+        return ajv.compile(tornadoEventsSchema);
+    }
+
     if (type === 'deposit') {
         return ajv.compile(depositsEventsSchema);
     }

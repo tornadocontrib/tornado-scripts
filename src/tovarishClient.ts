@@ -21,29 +21,13 @@ export interface EventsStatus {
     lastBlock: number;
 }
 
-export interface InstanceEventsStatus {
-    [index: string]: {
-        deposits: EventsStatus;
-        withdrawals: EventsStatus;
-    };
-}
-
-export interface CurrencyEventsStatus {
-    [index: string]: InstanceEventsStatus;
-}
-
 export interface TovarishEventsStatus {
     governance?: EventsStatus;
-    registered?: {
-        lastBlock: number;
-        timestamp: number;
-        relayers: number;
-    };
     registry?: EventsStatus;
     revenue?: EventsStatus;
     echo: EventsStatus;
     encrypted_notes: EventsStatus;
-    instances: CurrencyEventsStatus;
+    tornado: EventsStatus;
 }
 
 export interface TovarishSyncStatus {

@@ -352,6 +352,92 @@ export declare const withdrawalsEventsSchema: {
         readonly additionalProperties: false;
     };
 };
+export declare const tornadoEventsSchema: {
+    readonly type: "array";
+    readonly items: {
+        readonly anyOf: readonly [{
+            readonly type: "object";
+            readonly properties: {
+                readonly event: {
+                    readonly type: "string";
+                };
+                readonly instanceAddress: {
+                    readonly type: "string";
+                };
+                readonly commitment: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+                readonly leafIndex: {
+                    readonly type: "number";
+                };
+                readonly timestamp: {
+                    readonly type: "number";
+                };
+                readonly from: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly blockNumber: {
+                    readonly type: "number";
+                };
+                readonly logIndex: {
+                    readonly type: "number";
+                };
+                readonly transactionHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+            };
+            readonly required: readonly [...string[], "event", "instanceAddress", "commitment", "leafIndex", "timestamp", "from"];
+            readonly additionalProperties: false;
+        }, {
+            readonly type: "object";
+            readonly properties: {
+                readonly event: {
+                    readonly type: "string";
+                };
+                readonly instanceAddress: {
+                    readonly type: "string";
+                };
+                readonly nullifierHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+                readonly to: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly relayerAddress: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{40}$";
+                    readonly isAddress: true;
+                };
+                readonly fee: {
+                    readonly type: "string";
+                    readonly BN: true;
+                };
+                readonly timestamp: {
+                    readonly type: "number";
+                };
+                readonly blockNumber: {
+                    readonly type: "number";
+                };
+                readonly logIndex: {
+                    readonly type: "number";
+                };
+                readonly transactionHash: {
+                    readonly type: "string";
+                    readonly pattern: "^0x[a-fA-F0-9]{64}$";
+                };
+            };
+            readonly required: readonly [...string[], "event", "instanceAddress", "nullifierHash", "to", "relayerAddress", "fee", "timestamp"];
+            readonly additionalProperties: false;
+        }];
+    };
+};
 export declare const echoEventsSchema: {
     readonly type: "array";
     readonly items: {
