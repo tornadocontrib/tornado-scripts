@@ -2327,13 +2327,14 @@ class BaseEventsService {
       return !hasEvent;
     });
     const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
+    const unknownEvents = savedEvents.fromCache ? allEvents : newEvents.events;
     const validateResult = await this.validateEvents({
       events: allEvents,
-      newEvents: newEvents.events,
+      newEvents: unknownEvents,
       lastBlock
     });
-    if (savedEvents.fromCache || newEvents.events.length) {
-      await this.saveEvents({ events: allEvents, newEvents: newEvents.events, lastBlock });
+    if (unknownEvents.length) {
+      await this.saveEvents({ events: allEvents, newEvents: unknownEvents, lastBlock });
     }
     return {
       events: allEvents,

@@ -276,15 +276,17 @@ export class BaseEventsService<EventType extends MinimalEvents> {
 
         const lastBlock = newEvents.lastBlock || allEvents[allEvents.length - 1]?.blockNumber;
 
+        const unknownEvents = (savedEvents as CachedEvents<EventType>).fromCache ? allEvents : newEvents.events;
+
         const validateResult = await this.validateEvents<S>({
             events: allEvents,
-            newEvents: newEvents.events,
+            newEvents: unknownEvents,
             lastBlock,
         });
 
         // If the events are loaded from cache or we have found new events, save them
-        if ((savedEvents as CachedEvents<EventType>).fromCache || newEvents.events.length) {
-            await this.saveEvents({ events: allEvents, newEvents: newEvents.events, lastBlock });
+        if (unknownEvents.length) {
+            await this.saveEvents({ events: allEvents, newEvents: unknownEvents, lastBlock });
         }
 
         return {
