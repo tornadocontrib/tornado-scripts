@@ -333,6 +333,7 @@ export const defaultConfig: networkConfig = {
                 gasLimit: 700_000,
             },
         },
+        optionalTokens: ['usdt', 'btcb'],
         relayerEnsSubdomain: 'bsc-tornado',
         pollInterval: 10,
         constants: {

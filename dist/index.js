@@ -1061,6 +1061,7 @@ const defaultConfig = {
         gasLimit: 7e5
       }
     },
+    optionalTokens: ["usdt", "btcb"],
     relayerEnsSubdomain: "bsc-tornado",
     pollInterval: 10,
     constants: {
