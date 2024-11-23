@@ -55,7 +55,7 @@ export class TornadoFeeOracle {
      * (A single block can bump 12.5% of fees, see the methodology https://hackmd.io/@tvanepps/1559-wallets)
      * (Still it is recommended to use 100% premium for sending transactions to prevent stucking it)
      */
-    async gasPrice() {
+    async gasPrice(premium?: number) {
         const [block, getGasPrice, getPriorityFee] = await Promise.all([
             this.provider.getBlock('latest'),
             (async () => {
@@ -74,7 +74,9 @@ export class TornadoFeeOracle {
             })(),
         ]);
 
-        return block?.baseFeePerGas ? (block.baseFeePerGas * BigInt(15)) / BigInt(10) + getPriorityFee : getGasPrice;
+        return block?.baseFeePerGas
+            ? (block.baseFeePerGas * BigInt(10000 * (100 + (premium || 50)))) / BigInt(10000 * 100) + getPriorityFee
+            : getGasPrice;
     }
 
     /**

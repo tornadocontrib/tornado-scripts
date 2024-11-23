@@ -29,7 +29,7 @@ export declare class TornadoFeeOracle {
      * (A single block can bump 12.5% of fees, see the methodology https://hackmd.io/@tvanepps/1559-wallets)
      * (Still it is recommended to use 100% premium for sending transactions to prevent stucking it)
      */
-    gasPrice(): Promise<bigint>;
+    gasPrice(premium?: number): Promise<bigint>;
     /**
      * Calculate L1 fee for op-stack chains
      *

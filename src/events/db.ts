@@ -17,6 +17,8 @@ import {
     BaseRevenueService,
     BaseRevenueServiceConstructor,
     CachedRelayers,
+    BaseMultiTornadoService,
+    BaseMultiTornadoServiceConstructor,
 } from './base';
 
 import {
@@ -30,21 +32,23 @@ import {
     AllGovernanceEvents,
     AllRelayerRegistryEvents,
     StakeBurnedEvents,
+    MultiDepositsEvents,
+    MultiWithdrawalsEvents,
 } from './types';
 
 export async function saveDBEvents<T extends MinimalEvents>({
     idb,
     instanceName,
-    events,
+    newEvents,
     lastBlock,
 }: {
     idb: IndexedDB;
     instanceName: string;
-    events: T[];
+    newEvents: T[];
     lastBlock: number;
 }) {
     try {
-        const formattedEvents = events.map((e) => {
+        const formattedEvents = newEvents.map((e) => {
             return {
                 eid: `${e.transactionHash}_${e.logIndex}`,
                 ...e,
@@ -192,11 +196,63 @@ export class DBTornadoService extends BaseTornadoService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<DepositsEvents | WithdrawalsEvents>) {
+    async saveEvents({
+        newEvents,
+        lastBlock,
+    }: BaseEvents<DepositsEvents | WithdrawalsEvents> & { newEvents: (DepositsEvents | WithdrawalsEvents)[] }) {
         await saveDBEvents<DepositsEvents | WithdrawalsEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
+            lastBlock,
+        });
+    }
+}
+
+export interface DBMultiTornadoServiceConstructor extends BaseMultiTornadoServiceConstructor {
+    staticUrl: string;
+    idb: IndexedDB;
+}
+
+export class DBMultiTornadoService extends BaseMultiTornadoService {
+    staticUrl: string;
+    idb: IndexedDB;
+
+    zipDigest?: string;
+
+    constructor(params: DBMultiTornadoServiceConstructor) {
+        super(params);
+
+        this.staticUrl = params.staticUrl;
+        this.idb = params.idb;
+    }
+
+    async getEventsFromDB() {
+        return await loadDBEvents<MultiDepositsEvents | MultiWithdrawalsEvents>({
+            idb: this.idb,
+            instanceName: this.getInstanceName(),
+        });
+    }
+
+    async getEventsFromCache() {
+        return await loadRemoteEvents<MultiDepositsEvents | MultiWithdrawalsEvents>({
+            staticUrl: this.staticUrl,
+            instanceName: this.getInstanceName(),
+            deployedBlock: this.deployedBlock,
+            zipDigest: this.zipDigest,
+        });
+    }
+
+    async saveEvents({
+        newEvents,
+        lastBlock,
+    }: BaseEvents<MultiDepositsEvents | MultiWithdrawalsEvents> & {
+        newEvents: (MultiDepositsEvents | MultiWithdrawalsEvents)[];
+    }) {
+        await saveDBEvents<MultiDepositsEvents | MultiWithdrawalsEvents>({
+            idb: this.idb,
+            instanceName: this.getInstanceName(),
+            newEvents,
             lastBlock,
         });
     }
@@ -236,11 +292,11 @@ export class DBEchoService extends BaseEchoService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<EchoEvents>) {
+    async saveEvents({ newEvents, lastBlock }: BaseEvents<EchoEvents> & { newEvents: EchoEvents[] }) {
         await saveDBEvents<EchoEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
             lastBlock,
         });
     }
@@ -280,11 +336,14 @@ export class DBEncryptedNotesService extends BaseEncryptedNotesService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<EncryptedNotesEvents>) {
+    async saveEvents({
+        newEvents,
+        lastBlock,
+    }: BaseEvents<EncryptedNotesEvents> & { newEvents: EncryptedNotesEvents[] }) {
         await saveDBEvents<EncryptedNotesEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
             lastBlock,
         });
     }
@@ -324,11 +383,11 @@ export class DBGovernanceService extends BaseGovernanceService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<AllGovernanceEvents>) {
+    async saveEvents({ newEvents, lastBlock }: BaseEvents<AllGovernanceEvents> & { newEvents: AllGovernanceEvents[] }) {
         await saveDBEvents<AllGovernanceEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
             lastBlock,
         });
     }
@@ -369,11 +428,14 @@ export class DBRegistryService extends BaseRegistryService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<AllRelayerRegistryEvents>) {
+    async saveEvents({
+        newEvents,
+        lastBlock,
+    }: BaseEvents<AllRelayerRegistryEvents> & { newEvents: AllRelayerRegistryEvents[] }) {
         await saveDBEvents<AllRelayerRegistryEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
             lastBlock,
         });
     }
@@ -486,11 +548,11 @@ export class DBRevenueService extends BaseRevenueService {
         });
     }
 
-    async saveEvents({ events, lastBlock }: BaseEvents<StakeBurnedEvents>) {
+    async saveEvents({ newEvents, lastBlock }: BaseEvents<StakeBurnedEvents> & { newEvents: StakeBurnedEvents[] }) {
         await saveDBEvents<StakeBurnedEvents>({
             idb: this.idb,
             instanceName: this.getInstanceName(),
-            events,
+            newEvents,
             lastBlock,
         });
     }

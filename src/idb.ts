@@ -55,7 +55,7 @@ export class IndexedDB {
         };
 
         this.dbName = dbName;
-        this.dbVersion = 35;
+        this.dbVersion = 36;
     }
 
     async initDB() {
@@ -324,16 +324,17 @@ export async function getIndexedDB(netId?: NetIdType) {
 
     const minimalIndexes = [
         {
-            name: 'blockNumber',
-            unique: false,
-        },
-        {
-            name: 'transactionHash',
-            unique: false,
+            name: 'eid',
+            unique: true,
         },
     ];
 
     const defaultState = [
+        {
+            name: `tornado_${netId}`,
+            keyPath: 'eid',
+            indexes: [...minimalIndexes],
+        },
         {
             name: `echo_${netId}`,
             keyPath: 'eid',
@@ -362,9 +363,7 @@ export async function getIndexedDB(netId?: NetIdType) {
         },
     ];
 
-    const config = getConfig(netId);
-
-    const { tokens, nativeCurrency, registryContract, governanceContract } = config;
+    const { tokens, nativeCurrency, registryContract, governanceContract } = getConfig(netId);
 
     const stores = [...defaultState];
 

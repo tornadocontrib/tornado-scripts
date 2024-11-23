@@ -38,6 +38,7 @@ export interface TornadoInstance {
     instanceAddress: {
         [key: string]: string;
     };
+    instanceApproval?: boolean;
     optionalInstances?: string[];
     tokenAddress?: string;
     tokenGasLimit?: number;
@@ -302,6 +303,34 @@ export const defaultConfig: networkConfig = {
                 },
                 symbol: 'BNB',
                 decimals: 18,
+            },
+            usdt: {
+                instanceAddress: {
+                    '10': '0x261fB4f84bb0BdEe7E035B6a8a08e5c35AdacdDD',
+                    '100': '0x3957861d4897d883C9b944C0b4E22bBd0DDE6e21',
+                    '1000': '0x6D180403AdFb39F70983eB51A033C5e52eb9BB69',
+                    '10000': '0x3722662D8AaB07B216B14C02eF0ee940d14A4200',
+                },
+                instanceApproval: true,
+                tokenAddress: '0x55d398326f99059fF775485246999027B3197955',
+                tokenGasLimit: 70_000,
+                symbol: 'USDT',
+                decimals: 18,
+                gasLimit: 700_000,
+            },
+            btcb: {
+                instanceAddress: {
+                    '0.0001': '0x736dABbFc8101Ae75287104eCcf67e45D7369Ae1',
+                    '0.001': '0x82c7Ce6f1F158cEC5536d591a2BC19864b3CA823',
+                    '0.01': '0x8284c96679037d8081E498d8F767cA5a140BFAAf',
+                    '0.1': '0x2bcD128Ce23ee30Ee945E613ff129c4DE1102C79',
+                },
+                instanceApproval: true,
+                tokenAddress: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
+                tokenGasLimit: 70_000,
+                symbol: 'BTCB',
+                decimals: 18,
+                gasLimit: 700_000,
             },
         },
         relayerEnsSubdomain: 'bsc-tornado',

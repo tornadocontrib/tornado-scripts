@@ -613,9 +613,9 @@ export class BaseMultiTornadoService extends BaseEventsService<MultiDepositsEven
                 }
                 return acc;
             },
-            {} as {
-                depositEvents: MultiDepositsEvents[];
-                withdrawalEvents: MultiWithdrawalsEvents[];
+            {
+                depositEvents: [] as MultiDepositsEvents[],
+                withdrawalEvents: [] as MultiWithdrawalsEvents[],
             },
         );
 

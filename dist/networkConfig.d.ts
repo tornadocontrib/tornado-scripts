@@ -31,6 +31,7 @@ export interface TornadoInstance {
     instanceAddress: {
         [key: string]: string;
     };
+    instanceApproval?: boolean;
     optionalInstances?: string[];
     tokenAddress?: string;
     tokenGasLimit?: number;

@@ -1,10 +1,10 @@
 import { IndexedDB } from '../idb';
-import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor, BaseRevenueService, BaseRevenueServiceConstructor, CachedRelayers } from './base';
-import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents, EchoEvents, EncryptedNotesEvents, AllGovernanceEvents, AllRelayerRegistryEvents, StakeBurnedEvents } from './types';
-export declare function saveDBEvents<T extends MinimalEvents>({ idb, instanceName, events, lastBlock, }: {
+import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor, BaseRevenueService, BaseRevenueServiceConstructor, CachedRelayers, BaseMultiTornadoService, BaseMultiTornadoServiceConstructor } from './base';
+import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents, EchoEvents, EncryptedNotesEvents, AllGovernanceEvents, AllRelayerRegistryEvents, StakeBurnedEvents, MultiDepositsEvents, MultiWithdrawalsEvents } from './types';
+export declare function saveDBEvents<T extends MinimalEvents>({ idb, instanceName, newEvents, lastBlock, }: {
     idb: IndexedDB;
     instanceName: string;
-    events: T[];
+    newEvents: T[];
     lastBlock: number;
 }): Promise<void>;
 export declare function loadDBEvents<T extends MinimalEvents>({ idb, instanceName, }: {
@@ -28,7 +28,24 @@ export declare class DBTornadoService extends BaseTornadoService {
     constructor(params: DBTornadoServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;
     getEventsFromCache(): Promise<CachedEvents<DepositsEvents | WithdrawalsEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<DepositsEvents | WithdrawalsEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock, }: BaseEvents<DepositsEvents | WithdrawalsEvents> & {
+        newEvents: (DepositsEvents | WithdrawalsEvents)[];
+    }): Promise<void>;
+}
+export interface DBMultiTornadoServiceConstructor extends BaseMultiTornadoServiceConstructor {
+    staticUrl: string;
+    idb: IndexedDB;
+}
+export declare class DBMultiTornadoService extends BaseMultiTornadoService {
+    staticUrl: string;
+    idb: IndexedDB;
+    zipDigest?: string;
+    constructor(params: DBMultiTornadoServiceConstructor);
+    getEventsFromDB(): Promise<BaseEvents<MultiDepositsEvents | MultiWithdrawalsEvents>>;
+    getEventsFromCache(): Promise<CachedEvents<MultiDepositsEvents | MultiWithdrawalsEvents>>;
+    saveEvents({ newEvents, lastBlock, }: BaseEvents<MultiDepositsEvents | MultiWithdrawalsEvents> & {
+        newEvents: (MultiDepositsEvents | MultiWithdrawalsEvents)[];
+    }): Promise<void>;
 }
 export interface DBEchoServiceConstructor extends BaseEchoServiceConstructor {
     staticUrl: string;
@@ -41,7 +58,9 @@ export declare class DBEchoService extends BaseEchoService {
     constructor(params: DBEchoServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<EchoEvents>>;
     getEventsFromCache(): Promise<CachedEvents<EchoEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<EchoEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock }: BaseEvents<EchoEvents> & {
+        newEvents: EchoEvents[];
+    }): Promise<void>;
 }
 export interface DBEncryptedNotesServiceConstructor extends BaseEncryptedNotesServiceConstructor {
     staticUrl: string;
@@ -54,7 +73,9 @@ export declare class DBEncryptedNotesService extends BaseEncryptedNotesService {
     constructor(params: DBEncryptedNotesServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<EncryptedNotesEvents>>;
     getEventsFromCache(): Promise<CachedEvents<EncryptedNotesEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<EncryptedNotesEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock, }: BaseEvents<EncryptedNotesEvents> & {
+        newEvents: EncryptedNotesEvents[];
+    }): Promise<void>;
 }
 export interface DBGovernanceServiceConstructor extends BaseGovernanceServiceConstructor {
     staticUrl: string;
@@ -67,7 +88,9 @@ export declare class DBGovernanceService extends BaseGovernanceService {
     constructor(params: DBGovernanceServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<AllGovernanceEvents>>;
     getEventsFromCache(): Promise<CachedEvents<AllGovernanceEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<AllGovernanceEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock }: BaseEvents<AllGovernanceEvents> & {
+        newEvents: AllGovernanceEvents[];
+    }): Promise<void>;
 }
 export interface DBRegistryServiceConstructor extends BaseRegistryServiceConstructor {
     staticUrl: string;
@@ -81,7 +104,9 @@ export declare class DBRegistryService extends BaseRegistryService {
     constructor(params: DBRegistryServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<AllRelayerRegistryEvents>>;
     getEventsFromCache(): Promise<CachedEvents<AllRelayerRegistryEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<AllRelayerRegistryEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock, }: BaseEvents<AllRelayerRegistryEvents> & {
+        newEvents: AllRelayerRegistryEvents[];
+    }): Promise<void>;
     getRelayersFromDB(): Promise<CachedRelayers>;
     getRelayersFromCache(): Promise<CachedRelayers>;
     saveRelayers(cachedRelayers: CachedRelayers): Promise<void>;
@@ -98,5 +123,7 @@ export declare class DBRevenueService extends BaseRevenueService {
     constructor(params: DBRevenueServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<StakeBurnedEvents>>;
     getEventsFromCache(): Promise<CachedEvents<StakeBurnedEvents>>;
-    saveEvents({ events, lastBlock }: BaseEvents<StakeBurnedEvents>): Promise<void>;
+    saveEvents({ newEvents, lastBlock }: BaseEvents<StakeBurnedEvents> & {
+        newEvents: StakeBurnedEvents[];
+    }): Promise<void>;
 }
