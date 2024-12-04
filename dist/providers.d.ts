@@ -43,6 +43,7 @@ export interface TornadoWalletOptions {
     gasLimitBump?: number;
     gasFailover?: boolean;
     bumpNonce?: boolean;
+    readonlyProvider?: Provider;
 }
 export declare class TornadoWallet extends Wallet {
     nonce?: number;
@@ -69,7 +70,8 @@ export declare class TornadoRpcSigner extends JsonRpcSigner {
     gasLimitBump: number;
     gasFailover: boolean;
     bumpNonce: boolean;
-    constructor(provider: JsonRpcApiProvider, address: string, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }?: TornadoWalletOptions);
+    readonlyProvider?: Provider;
+    constructor(provider: JsonRpcApiProvider, address: string, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce, readonlyProvider }?: TornadoWalletOptions);
     sendUncheckedTransaction(tx: TransactionRequest): Promise<string>;
 }
 export type connectWalletFunc = (...args: any[]) => Promise<void>;

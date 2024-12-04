@@ -677,7 +677,7 @@ function getProviderWithNetId(netId, rpcUrl, config, fetchOptions) {
   return provider;
 }
 const populateTransaction = async (signer, tx) => {
-  const provider = signer.provider;
+  const provider = signer.readonlyProvider || signer.provider;
   if (!tx.from) {
     tx.from = signer.address;
   } else if (tx.from !== signer.address) {
@@ -772,12 +772,14 @@ class TornadoRpcSigner extends JsonRpcSigner {
   gasLimitBump;
   gasFailover;
   bumpNonce;
-  constructor(provider, address, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce } = {}) {
+  readonlyProvider;
+  constructor(provider, address, { gasPriceBump, gasLimitBump, gasFailover, bumpNonce, readonlyProvider } = {}) {
     super(provider, address);
     this.gasPriceBump = gasPriceBump ?? 0;
     this.gasLimitBump = gasLimitBump ?? 3e3;
     this.gasFailover = gasFailover ?? false;
     this.bumpNonce = bumpNonce ?? false;
+    this.readonlyProvider = readonlyProvider;
   }
   async sendUncheckedTransaction(tx) {
     return super.sendUncheckedTransaction(await populateTransaction(this, tx));

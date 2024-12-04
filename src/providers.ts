@@ -316,7 +316,7 @@ export const populateTransaction = async (
     signer: TornadoWallet | TornadoVoidSigner | TornadoRpcSigner,
     tx: TransactionRequest,
 ) => {
-    const provider = signer.provider as Provider;
+    const provider = ((signer as TornadoRpcSigner).readonlyProvider || signer.provider) as Provider;
 
     if (!tx.from) {
         tx.from = signer.address;
@@ -381,6 +381,7 @@ export interface TornadoWalletOptions {
     gasLimitBump?: number;
     gasFailover?: boolean;
     bumpNonce?: boolean;
+    readonlyProvider?: Provider;
 }
 
 export class TornadoWallet extends Wallet {
@@ -453,10 +454,11 @@ export class TornadoRpcSigner extends JsonRpcSigner {
     gasLimitBump: number;
     gasFailover: boolean;
     bumpNonce: boolean;
+    readonlyProvider?: Provider;
     constructor(
         provider: JsonRpcApiProvider,
         address: string,
-        { gasPriceBump, gasLimitBump, gasFailover, bumpNonce }: TornadoWalletOptions = {},
+        { gasPriceBump, gasLimitBump, gasFailover, bumpNonce, readonlyProvider }: TornadoWalletOptions = {},
     ) {
         super(provider, address);
         // 10% bump from the recommended fee
@@ -466,6 +468,7 @@ export class TornadoRpcSigner extends JsonRpcSigner {
         this.gasFailover = gasFailover ?? false;
         // turn off bumpNonce feature for browser wallet
         this.bumpNonce = bumpNonce ?? false;
+        this.readonlyProvider = readonlyProvider;
     }
 
     async sendUncheckedTransaction(tx: TransactionRequest) {
