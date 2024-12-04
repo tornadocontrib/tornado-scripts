@@ -1,5 +1,5 @@
 import { MimcSponge, buildMimcSponge } from 'circomlibjs';
-import type { Element, HashFunction } from '@tornado/fixed-merkle-tree';
+import type { Element, HashFunction } from 'fixed-merkle-tree';
 
 export class Mimc {
     sponge?: MimcSponge;

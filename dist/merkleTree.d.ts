@@ -1,4 +1,4 @@
-import { MerkleTree, PartialMerkleTree, Element, TreeEdge } from '@tornado/fixed-merkle-tree';
+import { MerkleTree, PartialMerkleTree, Element, TreeEdge } from 'fixed-merkle-tree';
 import type { Tornado } from '@tornado/contracts';
 import type { DepositType } from './deposits';
 import type { DepositsEvents } from './events';

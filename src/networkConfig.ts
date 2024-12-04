@@ -9,6 +9,8 @@ export enum NetId {
     POLYGON = 137,
     OPTIMISM = 10,
     ARBITRUM = 42161,
+    BASE = 8453,
+    BLAST = 81457,
     GNOSIS = 100,
     AVALANCHE = 43114,
     SEPOLIA = 11155111,
@@ -133,6 +135,10 @@ export const defaultConfig: networkConfig = {
                 name: 'MEV Blocker',
                 url: 'https://rpc.mevblocker.io',
             },
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com',
+            },
             keydonix: {
                 name: 'Horswap ( Keydonix )',
                 url: 'https://ethereum.keydonix.com/v1/mainnet',
@@ -252,10 +258,10 @@ export const defaultConfig: networkConfig = {
     [NetId.BSC]: {
         rpcCallRetryAttempt: 15,
         gasPrices: {
-            instant: 5,
-            fast: 5,
-            standard: 5,
-            low: 5,
+            instant: 3,
+            fast: 1,
+            standard: 1,
+            low: 1,
         },
         nativeCurrency: 'bnb',
         currencyName: 'BNB',
@@ -279,6 +285,10 @@ export const defaultConfig: networkConfig = {
             ninicoin: {
                 name: 'BNB Chain 2',
                 url: 'https://bsc-dataseed1.ninicoin.io',
+            },
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/bsc',
             },
             nodereal: {
                 name: 'NodeReal',
@@ -335,7 +345,7 @@ export const defaultConfig: networkConfig = {
         },
         optionalTokens: ['usdt', 'btcb'],
         relayerEnsSubdomain: 'bsc-tornado',
-        pollInterval: 10,
+        pollInterval: 3,
         constants: {
             NOTE_ACCOUNT_BLOCK: 8159269,
             ENCRYPTED_NOTES_BLOCK: 8159269,
@@ -344,9 +354,9 @@ export const defaultConfig: networkConfig = {
     [NetId.POLYGON]: {
         rpcCallRetryAttempt: 15,
         gasPrices: {
-            instant: 100,
-            fast: 75,
-            standard: 50,
+            instant: 60,
+            fast: 30,
+            standard: 30,
             low: 30,
         },
         nativeCurrency: 'matic',
@@ -386,7 +396,7 @@ export const defaultConfig: networkConfig = {
             },
         },
         relayerEnsSubdomain: 'polygon-tornado',
-        pollInterval: 10,
+        pollInterval: 2,
         constants: {
             NOTE_ACCOUNT_BLOCK: 16257996,
             ENCRYPTED_NOTES_BLOCK: 16257996,
@@ -428,17 +438,20 @@ export const defaultConfig: networkConfig = {
         tokens: {
             eth: {
                 instanceAddress: {
+                    '0.001': '0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76',
+                    '0.01': '0xA287c40411685438750a247Ca67488DEBe56EE32',
                     '0.1': '0x84443CFd09A48AF6eF360C6976C5392aC5023a1F',
                     '1': '0xd47438C816c9E7f2E2888E060936a499Af9582b3',
                     '10': '0x330bdFADE01eE9bF63C209Ee33102DD334618e0a',
                     '100': '0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD',
                 },
+                optionalInstances: ['0.001', '0.01'],
                 symbol: 'ETH',
                 decimals: 18,
             },
         },
         relayerEnsSubdomain: 'optimism-tornado',
-        pollInterval: 15,
+        pollInterval: 2,
         constants: {
             NOTE_ACCOUNT_BLOCK: 2243694,
             ENCRYPTED_NOTES_BLOCK: 2243694,
@@ -447,10 +460,10 @@ export const defaultConfig: networkConfig = {
     [NetId.ARBITRUM]: {
         rpcCallRetryAttempt: 15,
         gasPrices: {
-            instant: 4,
-            fast: 3,
-            standard: 2.52,
-            low: 2.29,
+            instant: 0.02,
+            fast: 0.02,
+            standard: 0.02,
+            low: 0.02,
         },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
@@ -471,6 +484,10 @@ export const defaultConfig: networkConfig = {
                 name: 'Arbitrum',
                 url: 'https://arb1.arbitrum.io/rpc',
             },
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/arbitrum',
+            },
             stackup: {
                 name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
@@ -483,6 +500,148 @@ export const defaultConfig: networkConfig = {
         tokens: {
             eth: {
                 instanceAddress: {
+                    '0.001': '0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76',
+                    '0.01': '0xA287c40411685438750a247Ca67488DEBe56EE32',
+                    '0.1': '0x84443CFd09A48AF6eF360C6976C5392aC5023a1F',
+                    '1': '0xd47438C816c9E7f2E2888E060936a499Af9582b3',
+                    '10': '0x330bdFADE01eE9bF63C209Ee33102DD334618e0a',
+                    '100': '0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD',
+                },
+                optionalInstances: ['0.001', '0.01'],
+                symbol: 'ETH',
+                decimals: 18,
+            },
+        },
+        relayerEnsSubdomain: 'arbitrum-tornado',
+        pollInterval: 2,
+        constants: {
+            NOTE_ACCOUNT_BLOCK: 3430605,
+            ENCRYPTED_NOTES_BLOCK: 3430605,
+        },
+    },
+    [NetId.BASE]: {
+        rpcCallRetryAttempt: 15,
+        gasPrices: {
+            instant: 0.1,
+            fast: 0.06,
+            standard: 0.05,
+            low: 0.02,
+        },
+        nativeCurrency: 'eth',
+        currencyName: 'ETH',
+        explorerUrl: 'https://basescan.org',
+        merkleTreeHeight: 20,
+        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
+        networkName: 'Base',
+        deployedBlock: 23149794,
+        stablecoin: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
+        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
+        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
+        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        tornadoSubgraph: 'tornadocash/base-tornado-subgraph',
+        subgraphs: {},
+        rpcUrls: {
+            Base: {
+                name: 'Base',
+                url: 'https://mainnet.base.org',
+            },
+            stackup: {
+                name: 'Stackup',
+                url: 'https://public.stackup.sh/api/v1/node/base-mainnet',
+            },
+            oneRpc: {
+                name: '1RPC',
+                url: 'https://1rpc.io/base',
+            },
+        },
+        tokens: {
+            eth: {
+                instanceAddress: {
+                    '0.001': '0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76',
+                    '0.01': '0xA287c40411685438750a247Ca67488DEBe56EE32',
+                    '0.1': '0x84443CFd09A48AF6eF360C6976C5392aC5023a1F',
+                    '1': '0xd47438C816c9E7f2E2888E060936a499Af9582b3',
+                    '10': '0x330bdFADE01eE9bF63C209Ee33102DD334618e0a',
+                    '100': '0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD',
+                },
+                symbol: 'ETH',
+                decimals: 18,
+            },
+            dai: {
+                instanceAddress: {
+                    '10': '0x70CC374aE7D1549a4666b7172B78dDCF672B74f7',
+                    '100': '0xD063894588177B8362Dda6C0A7EF09BF6fDF851c',
+                    '1000': '0xa7513fdfF61fc83a9C5c08CE31266e6dd400C54E',
+                    '10000': '0x8f05eDE57098D843F30bE74AC25c292F87b7f775',
+                    '100000': '0xeB7fc86c32e9a5E9DD2a0a78C091b8b625cbee24',
+                },
+                instanceApproval: true,
+                tokenAddress: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
+                tokenGasLimit: 70_000,
+                symbol: 'DAI',
+                decimals: 18,
+                gasLimit: 700_000,
+            },
+            tbtc: {
+                instanceAddress: {
+                    '0.0001': '0x5465800D7Be34dAe2c1572d2227De94dE93B4432',
+                    '0.001': '0xf2d3404c03C8cC0b120bd6E8edD6F69226F03c6d',
+                    '0.01': '0x4261d5209A285410DEa8173B6FE1A0e7BCf20f7c',
+                    '0.1': '0x9FB147F49bFE17D19789547187EAE2406590b217',
+                    '1': '0x2A8515F39716B0C160a3eB32D24E4cbeB76932d2',
+                },
+                instanceApproval: true,
+                tokenAddress: '0x236aa50979D5f3De3Bd1Eeb40E81137F22ab794b',
+                tokenGasLimit: 70_000,
+                symbol: 'tBTC',
+                decimals: 18,
+                gasLimit: 700_000,
+            },
+        },
+        relayerEnsSubdomain: 'base-tornado',
+        pollInterval: 2,
+        constants: {
+            NOTE_ACCOUNT_BLOCK: 23149794,
+            ENCRYPTED_NOTES_BLOCK: 23149794,
+        },
+    },
+    [NetId.BLAST]: {
+        rpcCallRetryAttempt: 15,
+        gasPrices: {
+            instant: 0.001,
+            fast: 0.001,
+            standard: 0.001,
+            low: 0.001,
+        },
+        nativeCurrency: 'eth',
+        currencyName: 'ETH',
+        explorerUrl: 'https://blastscan.io',
+        merkleTreeHeight: 20,
+        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
+        networkName: 'Blast',
+        deployedBlock: 12144065,
+        stablecoin: '0x4300000000000000000000000000000000000003',
+        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
+        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
+        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
+        tornadoSubgraph: 'tornadocash/blast-tornado-subgraph',
+        subgraphs: {},
+        rpcUrls: {
+            Blast: {
+                name: 'Blast',
+                url: 'https://rpc.blast.io',
+            },
+            blastApi: {
+                name: 'BlastApi',
+                url: 'https://blastl2-mainnet.public.blastapi.io',
+            },
+        },
+        tokens: {
+            eth: {
+                instanceAddress: {
+                    '0.001': '0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76',
+                    '0.01': '0xA287c40411685438750a247Ca67488DEBe56EE32',
                     '0.1': '0x84443CFd09A48AF6eF360C6976C5392aC5023a1F',
                     '1': '0xd47438C816c9E7f2E2888E060936a499Af9582b3',
                     '10': '0x330bdFADE01eE9bF63C209Ee33102DD334618e0a',
@@ -492,11 +651,11 @@ export const defaultConfig: networkConfig = {
                 decimals: 18,
             },
         },
-        relayerEnsSubdomain: 'arbitrum-tornado',
-        pollInterval: 15,
+        relayerEnsSubdomain: 'blast-tornado',
+        pollInterval: 2,
         constants: {
-            NOTE_ACCOUNT_BLOCK: 3430605,
-            ENCRYPTED_NOTES_BLOCK: 3430605,
+            NOTE_ACCOUNT_BLOCK: 12144065,
+            ENCRYPTED_NOTES_BLOCK: 12144065,
         },
     },
     [NetId.GNOSIS]: {
@@ -544,7 +703,7 @@ export const defaultConfig: networkConfig = {
             },
         },
         relayerEnsSubdomain: 'gnosis-tornado',
-        pollInterval: 15,
+        pollInterval: 5,
         constants: {
             NOTE_ACCOUNT_BLOCK: 17754564,
             ENCRYPTED_NOTES_BLOCK: 17754564,
@@ -594,7 +753,7 @@ export const defaultConfig: networkConfig = {
             },
         },
         relayerEnsSubdomain: 'avalanche-tornado',
-        pollInterval: 10,
+        pollInterval: 2,
         constants: {
             NOTE_ACCOUNT_BLOCK: 4429813,
             ENCRYPTED_NOTES_BLOCK: 4429813,
@@ -629,6 +788,14 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
+            oneRpc: {
+                name: '1RPC',
+                url: 'https://1rpc.io/sepolia',
+            },
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/sepolia',
+            },
             sepolia: {
                 name: 'Sepolia RPC',
                 url: 'https://rpc.sepolia.org',
@@ -636,10 +803,6 @@ export const defaultConfig: networkConfig = {
             stackup: {
                 name: 'Stackup',
                 url: 'https://public.stackup.sh/api/v1/node/ethereum-sepolia',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/sepolia',
             },
             ethpandaops: {
                 name: 'ethpandaops',

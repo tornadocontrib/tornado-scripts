@@ -8,6 +8,8 @@ export const gasZipInbounds: { [key in NetIdType]: string } = {
     [NetId.POLYGON]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.OPTIMISM]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.ARBITRUM]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
+    [NetId.BASE]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
+    [NetId.BLAST]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.GNOSIS]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.AVALANCHE]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
 };
@@ -19,6 +21,8 @@ export const gasZipID: { [key in NetIdType]: number } = {
     [NetId.POLYGON]: 17,
     [NetId.OPTIMISM]: 55,
     [NetId.ARBITRUM]: 57,
+    [NetId.BASE]: 54,
+    [NetId.BLAST]: 96,
     [NetId.GNOSIS]: 16,
     [NetId.AVALANCHE]: 15,
     [NetId.SEPOLIA]: 102,

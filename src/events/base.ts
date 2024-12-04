@@ -22,7 +22,7 @@ import {
     Tornado__factory,
 } from '@tornado/contracts';
 
-import type { MerkleTree } from '@tornado/fixed-merkle-tree';
+import type { MerkleTree } from 'fixed-merkle-tree';
 import {
     BatchEventsService,
     BatchBlockService,
@@ -36,7 +36,7 @@ import { enabledChains, type NetIdType, type SubdomainMap } from '../networkConf
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 
-import type { ReverseRecords } from '../typechain';
+import type { ERC20, ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
 import type { DepositType } from '../deposits';
 import type {
@@ -60,6 +60,7 @@ import type {
     StakeBurnedEvents,
     MultiDepositsEvents,
     MultiWithdrawalsEvents,
+    TransferEvents,
 } from './types';
 
 export interface BaseEventsServiceConstructor {
@@ -156,6 +157,9 @@ export class BaseEventsService<EventType extends MinimalEvents> {
         };
     }
 
+    /**
+     * This may not return in sorted events when called from browser, make sure to sort it again when directly called
+     */
     async getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>> {
         let dbEvents = await this.getEventsFromDB();
 
@@ -992,7 +996,12 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
     }
 
     async getVotes(proposalId: number): Promise<GovernanceVotes[]> {
-        const { events } = await this.getSavedEvents();
+        const events = (await this.getSavedEvents()).events.sort((a, b) => {
+            if (a.blockNumber === b.blockNumber) {
+                return a.logIndex - b.logIndex;
+            }
+            return a.blockNumber - b.blockNumber;
+        });
 
         const votedEvents = events.filter(
             (e) => e.event === 'Voted' && (e as GovernanceVotedEvents).proposalId === proposalId,
@@ -1030,7 +1039,12 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
     }
 
     async getDelegatedBalance(ethAccount: string) {
-        const { events } = await this.getSavedEvents();
+        const events = (await this.getSavedEvents()).events.sort((a, b) => {
+            if (a.blockNumber === b.blockNumber) {
+                return a.logIndex - b.logIndex;
+            }
+            return a.blockNumber - b.blockNumber;
+        });
 
         const delegatedAccs = events
             .filter((e) => e.event === 'Delegated' && (e as GovernanceDelegatedEvents).delegateTo === ethAccount)
@@ -1124,6 +1138,13 @@ const staticRelayers: CachedRelayerInfo[] = [
         relayerAddress: '0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64',
         hostnames: {},
         tovarishHost: 'tornadowithdraw.com',
+        tovarishNetworks: enabledChains,
+    },
+    {
+        ensName: 'rpc.tornadowithdraw.eth',
+        relayerAddress: '0xFF787B7A5cd8a88508361E3B7bcE791Aa2796526',
+        hostnames: {},
+        tovarishHost: 'tornadocash-rpc.com',
         tovarishNetworks: enabledChains,
     },
 ];
@@ -1482,5 +1503,40 @@ export class BaseRevenueService extends BaseEventsService<StakeBurnedEvents> {
                 timestamp,
             };
         });
+    }
+}
+
+export interface BaseTransferServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    Token: ERC20;
+}
+
+export class BaseTransferService extends BaseEventsService<TransferEvents> {
+    constructor(serviceConstructor: BaseTransferServiceConstructor) {
+        super({
+            ...serviceConstructor,
+            contract: serviceConstructor.Token,
+            type: 'Transfer',
+        });
+    }
+
+    async formatEvents(events: EventLog[]) {
+        return events
+            .map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+                const { from, to, value } = args;
+
+                const eventObjects = {
+                    blockNumber,
+                    logIndex,
+                    transactionHash,
+                };
+
+                return {
+                    ...eventObjects,
+                    from,
+                    to,
+                    value,
+                };
+            })
+            .filter((e) => e) as TransferEvents[];
     }
 }

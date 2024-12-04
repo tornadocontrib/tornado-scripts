@@ -1,15 +1,5 @@
-import { ERC20Permit, ERC20Mock, TORN, PermitTornado } from '@tornado/contracts';
-import {
-    BaseContract,
-    MaxUint256,
-    Provider,
-    Signature,
-    Signer,
-    solidityPackedKeccak256,
-    TypedDataEncoder,
-    TypedDataField,
-} from 'ethers';
-import { rBigInt } from './utils';
+import { ERC20Permit, ERC20Mock, TORN } from '@tornado/contracts';
+import { MaxUint256, Provider, Signature, Signer, TypedDataField } from 'ethers';
 
 export interface PermitValue {
     spender: string;
@@ -87,6 +77,7 @@ export async function getPermitSignature({
     );
 }
 
+/**
 export async function getPermitCommitmentsSignature({
     PermitTornado,
     Token,
@@ -240,3 +231,4 @@ export async function getPermit2CommitmentsSignature({
         },
     });
 }
+**/

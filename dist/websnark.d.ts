@@ -1,4 +1,4 @@
-import type { Element } from '@tornado/fixed-merkle-tree';
+import type { Element } from 'fixed-merkle-tree';
 export interface snarkInputs {
     root: Element;
     nullifierHex: string;

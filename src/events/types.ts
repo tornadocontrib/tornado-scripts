@@ -132,3 +132,9 @@ export interface EchoEvents extends MinimalEvents {
 export interface EncryptedNotesEvents extends MinimalEvents {
     encryptedNote: string;
 }
+
+export interface TransferEvents extends MinimalEvents {
+    from: string;
+    to: string;
+    value: bigint;
+}

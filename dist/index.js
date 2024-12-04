@@ -12,9 +12,9 @@ var circomlibjs = require('circomlibjs');
 var ethSigUtil = require('@metamask/eth-sig-util');
 var idb = require('idb');
 var worker_threads = require('worker_threads');
-var fixedMerkleTree = require('@tornado/fixed-merkle-tree');
-var websnarkUtils = require('@tornado/websnark/src/utils');
-var websnarkGroth = require('@tornado/websnark/src/groth16');
+var fixedMerkleTree = require('fixed-merkle-tree');
+var websnarkUtils = require('websnark/src/utils');
+var websnarkGroth = require('websnark/src/groth16');
 
 function _interopNamespaceDefault(e) {
     var n = Object.create(null);
@@ -835,6 +835,8 @@ var NetId = /* @__PURE__ */ ((NetId2) => {
   NetId2[NetId2["POLYGON"] = 137] = "POLYGON";
   NetId2[NetId2["OPTIMISM"] = 10] = "OPTIMISM";
   NetId2[NetId2["ARBITRUM"] = 42161] = "ARBITRUM";
+  NetId2[NetId2["BASE"] = 8453] = "BASE";
+  NetId2[NetId2["BLAST"] = 81457] = "BLAST";
   NetId2[NetId2["GNOSIS"] = 100] = "GNOSIS";
   NetId2[NetId2["AVALANCHE"] = 43114] = "AVALANCHE";
   NetId2[NetId2["SEPOLIA"] = 11155111] = "SEPOLIA";
@@ -860,6 +862,10 @@ const defaultConfig = {
       mevblockerRPC: {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com"
       },
       keydonix: {
         name: "Horswap ( Keydonix )",
@@ -980,10 +986,10 @@ const defaultConfig = {
   [56 /* BSC */]: {
     rpcCallRetryAttempt: 15,
     gasPrices: {
-      instant: 5,
-      fast: 5,
-      standard: 5,
-      low: 5
+      instant: 3,
+      fast: 1,
+      standard: 1,
+      low: 1
     },
     nativeCurrency: "bnb",
     currencyName: "BNB",
@@ -1007,6 +1013,10 @@ const defaultConfig = {
       ninicoin: {
         name: "BNB Chain 2",
         url: "https://bsc-dataseed1.ninicoin.io"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/bsc"
       },
       nodereal: {
         name: "NodeReal",
@@ -1063,7 +1073,7 @@ const defaultConfig = {
     },
     optionalTokens: ["usdt", "btcb"],
     relayerEnsSubdomain: "bsc-tornado",
-    pollInterval: 10,
+    pollInterval: 3,
     constants: {
       NOTE_ACCOUNT_BLOCK: 8159269,
       ENCRYPTED_NOTES_BLOCK: 8159269
@@ -1072,9 +1082,9 @@ const defaultConfig = {
   [137 /* POLYGON */]: {
     rpcCallRetryAttempt: 15,
     gasPrices: {
-      instant: 100,
-      fast: 75,
-      standard: 50,
+      instant: 60,
+      fast: 30,
+      standard: 30,
       low: 30
     },
     nativeCurrency: "matic",
@@ -1114,7 +1124,7 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "polygon-tornado",
-    pollInterval: 10,
+    pollInterval: 2,
     constants: {
       NOTE_ACCOUNT_BLOCK: 16257996,
       ENCRYPTED_NOTES_BLOCK: 16257996
@@ -1156,17 +1166,20 @@ const defaultConfig = {
     tokens: {
       eth: {
         instanceAddress: {
+          "0.001": "0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76",
+          "0.01": "0xA287c40411685438750a247Ca67488DEBe56EE32",
           "0.1": "0x84443CFd09A48AF6eF360C6976C5392aC5023a1F",
           "1": "0xd47438C816c9E7f2E2888E060936a499Af9582b3",
           "10": "0x330bdFADE01eE9bF63C209Ee33102DD334618e0a",
           "100": "0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD"
         },
+        optionalInstances: ["0.001", "0.01"],
         symbol: "ETH",
         decimals: 18
       }
     },
     relayerEnsSubdomain: "optimism-tornado",
-    pollInterval: 15,
+    pollInterval: 2,
     constants: {
       NOTE_ACCOUNT_BLOCK: 2243694,
       ENCRYPTED_NOTES_BLOCK: 2243694
@@ -1175,10 +1188,10 @@ const defaultConfig = {
   [42161 /* ARBITRUM */]: {
     rpcCallRetryAttempt: 15,
     gasPrices: {
-      instant: 4,
-      fast: 3,
-      standard: 2.52,
-      low: 2.29
+      instant: 0.02,
+      fast: 0.02,
+      standard: 0.02,
+      low: 0.02
     },
     nativeCurrency: "eth",
     currencyName: "ETH",
@@ -1199,6 +1212,10 @@ const defaultConfig = {
         name: "Arbitrum",
         url: "https://arb1.arbitrum.io/rpc"
       },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/arbitrum"
+      },
       stackup: {
         name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/arbitrum-one"
@@ -1211,6 +1228,148 @@ const defaultConfig = {
     tokens: {
       eth: {
         instanceAddress: {
+          "0.001": "0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76",
+          "0.01": "0xA287c40411685438750a247Ca67488DEBe56EE32",
+          "0.1": "0x84443CFd09A48AF6eF360C6976C5392aC5023a1F",
+          "1": "0xd47438C816c9E7f2E2888E060936a499Af9582b3",
+          "10": "0x330bdFADE01eE9bF63C209Ee33102DD334618e0a",
+          "100": "0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD"
+        },
+        optionalInstances: ["0.001", "0.01"],
+        symbol: "ETH",
+        decimals: 18
+      }
+    },
+    relayerEnsSubdomain: "arbitrum-tornado",
+    pollInterval: 2,
+    constants: {
+      NOTE_ACCOUNT_BLOCK: 3430605,
+      ENCRYPTED_NOTES_BLOCK: 3430605
+    }
+  },
+  [8453 /* BASE */]: {
+    rpcCallRetryAttempt: 15,
+    gasPrices: {
+      instant: 0.1,
+      fast: 0.06,
+      standard: 0.05,
+      low: 0.02
+    },
+    nativeCurrency: "eth",
+    currencyName: "ETH",
+    explorerUrl: "https://basescan.org",
+    merkleTreeHeight: 20,
+    emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
+    networkName: "Base",
+    deployedBlock: 23149794,
+    stablecoin: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
+    routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
+    echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
+    offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
+    tornadoSubgraph: "tornadocash/base-tornado-subgraph",
+    subgraphs: {},
+    rpcUrls: {
+      Base: {
+        name: "Base",
+        url: "https://mainnet.base.org"
+      },
+      stackup: {
+        name: "Stackup",
+        url: "https://public.stackup.sh/api/v1/node/base-mainnet"
+      },
+      oneRpc: {
+        name: "1RPC",
+        url: "https://1rpc.io/base"
+      }
+    },
+    tokens: {
+      eth: {
+        instanceAddress: {
+          "0.001": "0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76",
+          "0.01": "0xA287c40411685438750a247Ca67488DEBe56EE32",
+          "0.1": "0x84443CFd09A48AF6eF360C6976C5392aC5023a1F",
+          "1": "0xd47438C816c9E7f2E2888E060936a499Af9582b3",
+          "10": "0x330bdFADE01eE9bF63C209Ee33102DD334618e0a",
+          "100": "0x1E34A77868E19A6647b1f2F47B51ed72dEDE95DD"
+        },
+        symbol: "ETH",
+        decimals: 18
+      },
+      dai: {
+        instanceAddress: {
+          "10": "0x70CC374aE7D1549a4666b7172B78dDCF672B74f7",
+          "100": "0xD063894588177B8362Dda6C0A7EF09BF6fDF851c",
+          "1000": "0xa7513fdfF61fc83a9C5c08CE31266e6dd400C54E",
+          "10000": "0x8f05eDE57098D843F30bE74AC25c292F87b7f775",
+          "100000": "0xeB7fc86c32e9a5E9DD2a0a78C091b8b625cbee24"
+        },
+        instanceApproval: true,
+        tokenAddress: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+        tokenGasLimit: 7e4,
+        symbol: "DAI",
+        decimals: 18,
+        gasLimit: 7e5
+      },
+      tbtc: {
+        instanceAddress: {
+          "0.0001": "0x5465800D7Be34dAe2c1572d2227De94dE93B4432",
+          "0.001": "0xf2d3404c03C8cC0b120bd6E8edD6F69226F03c6d",
+          "0.01": "0x4261d5209A285410DEa8173B6FE1A0e7BCf20f7c",
+          "0.1": "0x9FB147F49bFE17D19789547187EAE2406590b217",
+          "1": "0x2A8515F39716B0C160a3eB32D24E4cbeB76932d2"
+        },
+        instanceApproval: true,
+        tokenAddress: "0x236aa50979D5f3De3Bd1Eeb40E81137F22ab794b",
+        tokenGasLimit: 7e4,
+        symbol: "tBTC",
+        decimals: 18,
+        gasLimit: 7e5
+      }
+    },
+    relayerEnsSubdomain: "base-tornado",
+    pollInterval: 2,
+    constants: {
+      NOTE_ACCOUNT_BLOCK: 23149794,
+      ENCRYPTED_NOTES_BLOCK: 23149794
+    }
+  },
+  [81457 /* BLAST */]: {
+    rpcCallRetryAttempt: 15,
+    gasPrices: {
+      instant: 1e-3,
+      fast: 1e-3,
+      standard: 1e-3,
+      low: 1e-3
+    },
+    nativeCurrency: "eth",
+    currencyName: "ETH",
+    explorerUrl: "https://blastscan.io",
+    merkleTreeHeight: 20,
+    emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
+    networkName: "Blast",
+    deployedBlock: 12144065,
+    stablecoin: "0x4300000000000000000000000000000000000003",
+    multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
+    routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
+    echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
+    tornadoSubgraph: "tornadocash/blast-tornado-subgraph",
+    subgraphs: {},
+    rpcUrls: {
+      Blast: {
+        name: "Blast",
+        url: "https://rpc.blast.io"
+      },
+      blastApi: {
+        name: "BlastApi",
+        url: "https://blastl2-mainnet.public.blastapi.io"
+      }
+    },
+    tokens: {
+      eth: {
+        instanceAddress: {
+          "0.001": "0x82859DC3697062c16422E9b5e8Ba1B6a6EC72c76",
+          "0.01": "0xA287c40411685438750a247Ca67488DEBe56EE32",
           "0.1": "0x84443CFd09A48AF6eF360C6976C5392aC5023a1F",
           "1": "0xd47438C816c9E7f2E2888E060936a499Af9582b3",
           "10": "0x330bdFADE01eE9bF63C209Ee33102DD334618e0a",
@@ -1220,11 +1379,11 @@ const defaultConfig = {
         decimals: 18
       }
     },
-    relayerEnsSubdomain: "arbitrum-tornado",
-    pollInterval: 15,
+    relayerEnsSubdomain: "blast-tornado",
+    pollInterval: 2,
     constants: {
-      NOTE_ACCOUNT_BLOCK: 3430605,
-      ENCRYPTED_NOTES_BLOCK: 3430605
+      NOTE_ACCOUNT_BLOCK: 12144065,
+      ENCRYPTED_NOTES_BLOCK: 12144065
     }
   },
   [100 /* GNOSIS */]: {
@@ -1272,7 +1431,7 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "gnosis-tornado",
-    pollInterval: 15,
+    pollInterval: 5,
     constants: {
       NOTE_ACCOUNT_BLOCK: 17754564,
       ENCRYPTED_NOTES_BLOCK: 17754564
@@ -1322,7 +1481,7 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "avalanche-tornado",
-    pollInterval: 10,
+    pollInterval: 2,
     constants: {
       NOTE_ACCOUNT_BLOCK: 4429813,
       ENCRYPTED_NOTES_BLOCK: 4429813
@@ -1357,6 +1516,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      oneRpc: {
+        name: "1RPC",
+        url: "https://1rpc.io/sepolia"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/sepolia"
+      },
       sepolia: {
         name: "Sepolia RPC",
         url: "https://rpc.sepolia.org"
@@ -1364,10 +1531,6 @@ const defaultConfig = {
       stackup: {
         name: "Stackup",
         url: "https://public.stackup.sh/api/v1/node/ethereum-sepolia"
-      },
-      oneRpc: {
-        name: "1RPC",
-        url: "https://1rpc.io/sepolia"
       },
       ethpandaops: {
         name: "ethpandaops",
@@ -2262,6 +2425,9 @@ class BaseEventsService {
       fromCache: true
     };
   }
+  /**
+   * This may not return in sorted events when called from browser, make sure to sort it again when directly called
+   */
   async getSavedEvents() {
     let dbEvents = await this.getEventsFromDB();
     if (!dbEvents.lastBlock) {
@@ -2888,7 +3054,12 @@ class BaseGovernanceService extends BaseEventsService {
     });
   }
   async getVotes(proposalId) {
-    const { events } = await this.getSavedEvents();
+    const events = (await this.getSavedEvents()).events.sort((a, b) => {
+      if (a.blockNumber === b.blockNumber) {
+        return a.logIndex - b.logIndex;
+      }
+      return a.blockNumber - b.blockNumber;
+    });
     const votedEvents = events.filter(
       (e) => e.event === "Voted" && e.proposalId === proposalId
     );
@@ -2917,7 +3088,12 @@ class BaseGovernanceService extends BaseEventsService {
     return votes;
   }
   async getDelegatedBalance(ethAccount) {
-    const { events } = await this.getSavedEvents();
+    const events = (await this.getSavedEvents()).events.sort((a, b) => {
+      if (a.blockNumber === b.blockNumber) {
+        return a.logIndex - b.logIndex;
+      }
+      return a.blockNumber - b.blockNumber;
+    });
     const delegatedAccs = events.filter((e) => e.event === "Delegated" && e.delegateTo === ethAccount).map((e) => e.account);
     const undelegatedAccs = events.filter((e) => e.event === "Undelegated" && e.delegateFrom === ethAccount).map((e) => e.account);
     const undel = [...undelegatedAccs];
@@ -2976,6 +3152,13 @@ const staticRelayers = [
     relayerAddress: "0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64",
     hostnames: {},
     tovarishHost: "tornadowithdraw.com",
+    tovarishNetworks: enabledChains
+  },
+  {
+    ensName: "rpc.tornadowithdraw.eth",
+    relayerAddress: "0xFF787B7A5cd8a88508361E3B7bcE791Aa2796526",
+    hostnames: {},
+    tovarishHost: "tornadocash-rpc.com",
     tovarishNetworks: enabledChains
   }
 ];
@@ -3234,6 +3417,31 @@ RevenueService: Mismatch on withdrawal logs (${withdrawalLogs.length} ) and even
         timestamp
       };
     });
+  }
+}
+class BaseTransferService extends BaseEventsService {
+  constructor(serviceConstructor) {
+    super({
+      ...serviceConstructor,
+      contract: serviceConstructor.Token,
+      type: "Transfer"
+    });
+  }
+  async formatEvents(events) {
+    return events.map(({ blockNumber, index: logIndex, transactionHash, args }) => {
+      const { from, to, value } = args;
+      const eventObjects = {
+        blockNumber,
+        logIndex,
+        transactionHash
+      };
+      return {
+        ...eventObjects,
+        from,
+        to,
+        value
+      };
+    }).filter((e) => e);
   }
 }
 
@@ -9504,6 +9712,8 @@ const gasZipInbounds = {
   [NetId.POLYGON]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
   [NetId.OPTIMISM]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
   [NetId.ARBITRUM]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.BASE]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
+  [NetId.BLAST]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
   [NetId.GNOSIS]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604",
   [NetId.AVALANCHE]: "0x391E7C679d29bD940d63be94AD22A25d25b5A604"
 };
@@ -9513,6 +9723,8 @@ const gasZipID = {
   [NetId.POLYGON]: 17,
   [NetId.OPTIMISM]: 55,
   [NetId.ARBITRUM]: 57,
+  [NetId.BASE]: 54,
+  [NetId.BLAST]: 96,
   [NetId.GNOSIS]: 16,
   [NetId.AVALANCHE]: 15,
   [NetId.SEPOLIA]: 102
@@ -10155,122 +10367,6 @@ async function getPermitSignature({
     })
   );
 }
-async function getPermitCommitmentsSignature({
-  PermitTornado: PermitTornado2,
-  Token,
-  signer,
-  denomination,
-  commitments,
-  nonce
-}) {
-  const value = BigInt(commitments.length) * denomination;
-  const commitmentsHash = ethers.solidityPackedKeccak256(["bytes32[]"], [commitments]);
-  return await getPermitSignature({
-    Token,
-    signer,
-    spender: PermitTornado2.target,
-    value,
-    nonce,
-    deadline: BigInt(commitmentsHash)
-  });
-}
-async function getPermit2Signature({
-  Token,
-  signer,
-  spender,
-  value: amount,
-  nonce,
-  deadline,
-  witness
-}) {
-  const sigSigner = signer || Token.runner;
-  const provider = sigSigner.provider;
-  const domain = {
-    name: "Permit2",
-    chainId: (await provider.getNetwork()).chainId,
-    verifyingContract: permit2Address
-  };
-  const types = !witness ? {
-    PermitTransferFrom: [
-      { name: "permitted", type: "TokenPermissions" },
-      { name: "spender", type: "address" },
-      { name: "nonce", type: "uint256" },
-      { name: "deadline", type: "uint256" }
-    ],
-    TokenPermissions: [
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" }
-    ]
-  } : {
-    PermitWitnessTransferFrom: [
-      { name: "permitted", type: "TokenPermissions" },
-      { name: "spender", type: "address" },
-      { name: "nonce", type: "uint256" },
-      { name: "deadline", type: "uint256" },
-      { name: "witness", type: witness.witnessTypeName }
-    ],
-    TokenPermissions: [
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" }
-    ],
-    ...witness.witnessType
-  };
-  const values = {
-    permitted: {
-      token: Token.target,
-      amount
-    },
-    spender,
-    // Sorted nonce are not required for Permit2
-    nonce: nonce || rBigInt(16),
-    deadline: deadline || ethers.MaxUint256
-  };
-  if (witness) {
-    values.witness = witness.witness;
-  }
-  const hash = new ethers.TypedDataEncoder(types).hash(values);
-  const signature = ethers.Signature.from(await sigSigner.signTypedData(domain, types, values));
-  return {
-    domain,
-    types,
-    values,
-    hash,
-    signature
-  };
-}
-async function getPermit2CommitmentsSignature({
-  PermitTornado: PermitTornado2,
-  Token,
-  signer,
-  denomination,
-  commitments,
-  nonce,
-  deadline
-}) {
-  const value = BigInt(commitments.length) * denomination;
-  const commitmentsHash = ethers.solidityPackedKeccak256(["bytes32[]"], [commitments]);
-  return await getPermit2Signature({
-    Token,
-    signer,
-    spender: PermitTornado2.target,
-    value,
-    nonce,
-    deadline,
-    witness: {
-      witnessTypeName: "PermitCommitments",
-      witnessType: {
-        PermitCommitments: [
-          { name: "instance", type: "address" },
-          { name: "commitmentsHash", type: "bytes32" }
-        ]
-      },
-      witness: {
-        instance: PermitTornado2.target,
-        commitmentsHash
-      }
-    }
-  });
-}
 
 class TokenPriceOracle {
   oracle;
@@ -10711,6 +10807,7 @@ exports.BaseMultiTornadoService = BaseMultiTornadoService;
 exports.BaseRegistryService = BaseRegistryService;
 exports.BaseRevenueService = BaseRevenueService;
 exports.BaseTornadoService = BaseTornadoService;
+exports.BaseTransferService = BaseTransferService;
 exports.BatchBlockService = BatchBlockService;
 exports.BatchEventsService = BatchEventsService;
 exports.BatchTransactionService = BatchTransactionService;
@@ -10802,9 +10899,6 @@ exports.getIndexedDB = getIndexedDB;
 exports.getInstanceByAddress = getInstanceByAddress;
 exports.getMultiInstances = getMultiInstances;
 exports.getNetworkConfig = getNetworkConfig;
-exports.getPermit2CommitmentsSignature = getPermit2CommitmentsSignature;
-exports.getPermit2Signature = getPermit2Signature;
-exports.getPermitCommitmentsSignature = getPermitCommitmentsSignature;
 exports.getPermitSignature = getPermitSignature;
 exports.getProvider = getProvider;
 exports.getProviderWithNetId = getProviderWithNetId;

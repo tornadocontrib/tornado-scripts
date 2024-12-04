@@ -1,8 +1,8 @@
 // @ts-expect-error no-websnark-types
-import * as websnarkUtils from '@tornado/websnark/src/utils';
+import * as websnarkUtils from 'websnark/src/utils';
 // @ts-expect-error no-websnark-types
-import websnarkGroth from '@tornado/websnark/src/groth16';
-import type { Element } from '@tornado/fixed-merkle-tree';
+import websnarkGroth from 'websnark/src/groth16';
+import type { Element } from 'fixed-merkle-tree';
 import { toFixedHex } from './utils';
 
 export interface snarkInputs {

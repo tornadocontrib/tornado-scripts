@@ -12,8 +12,8 @@ const external = Object.keys(pkgJson.dependencies).concat(
         'http-proxy-agent',
         'https-proxy-agent',
         'socks-proxy-agent',
-        '@tornado/websnark/src/utils',
-        '@tornado/websnark/src/groth16',
+        'websnark/src/utils',
+        'websnark/src/groth16',
     ]
 );
 

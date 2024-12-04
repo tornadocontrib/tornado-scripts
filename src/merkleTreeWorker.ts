@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import workerThreads from 'worker_threads';
-import { MerkleTree, Element, TreeEdge, PartialMerkleTree } from '@tornado/fixed-merkle-tree';
+import { MerkleTree, Element, TreeEdge, PartialMerkleTree } from 'fixed-merkle-tree';
 import { mimc } from './mimc';
 import { isNode } from './utils';
 

@@ -8,6 +8,8 @@ export declare enum NetId {
     POLYGON = 137,
     OPTIMISM = 10,
     ARBITRUM = 42161,
+    BASE = 8453,
+    BLAST = 81457,
     GNOSIS = 100,
     AVALANCHE = 43114,
     SEPOLIA = 11155111

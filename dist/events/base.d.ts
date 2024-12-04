@@ -1,15 +1,15 @@
 import { BaseContract, Provider, EventLog } from 'ethers';
 import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
-import type { MerkleTree } from '@tornado/fixed-merkle-tree';
+import type { MerkleTree } from 'fixed-merkle-tree';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
 import { type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
-import type { ReverseRecords } from '../typechain';
+import type { ERC20, ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
 import type { DepositType } from '../deposits';
-import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents, MultiDepositsEvents, MultiWithdrawalsEvents } from './types';
+import type { BaseEvents, CachedEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, EncryptedNotesEvents, AllGovernanceEvents, GovernanceProposalCreatedEvents, GovernanceVotedEvents, EchoEvents, AllRelayerRegistryEvents, StakeBurnedEvents, MultiDepositsEvents, MultiWithdrawalsEvents, TransferEvents } from './types';
 export interface BaseEventsServiceConstructor {
     netId: NetIdType;
     provider: Provider;
@@ -44,6 +44,9 @@ export declare class BaseEventsService<EventType extends MinimalEvents> {
      * Events from remote cache (Either from local cache, CDN, or from IPFS)
      */
     getEventsFromCache(): Promise<CachedEvents<EventType>>;
+    /**
+     * This may not return in sorted events when called from browser, make sure to sort it again when directly called
+     */
     getSavedEvents(): Promise<BaseEvents<EventType> | CachedEvents<EventType>>;
     getEventsFromRpc({ fromBlock, toBlock, }: {
         fromBlock: number;
@@ -251,4 +254,11 @@ export declare class BaseRevenueService extends BaseEventsService<StakeBurnedEve
     getInstanceName(): string;
     getTovarishType(): string;
     formatEvents(events: EventLog[]): Promise<StakeBurnedEvents[]>;
+}
+export interface BaseTransferServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    Token: ERC20;
+}
+export declare class BaseTransferService extends BaseEventsService<TransferEvents> {
+    constructor(serviceConstructor: BaseTransferServiceConstructor);
+    formatEvents(events: EventLog[]): Promise<TransferEvents[]>;
 }
