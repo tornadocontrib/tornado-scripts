@@ -539,6 +539,7 @@ export const defaultConfig: networkConfig = {
         routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
         echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
         offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        ovmGasPriceOracleContract: '0x420000000000000000000000000000000000000F',
         tornadoSubgraph: 'tornadocash/base-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
@@ -625,6 +626,7 @@ export const defaultConfig: networkConfig = {
         multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
         routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
         echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
+        ovmGasPriceOracleContract: '0x420000000000000000000000000000000000000F',
         tornadoSubgraph: 'tornadocash/blast-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {

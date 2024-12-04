@@ -84,7 +84,7 @@ export class TornadoFeeOracle {
      *
      * This is required since relayers would pay the full transaction fees for users
      */
-    fetchL1OptimismFee(tx?: TransactionLike): Promise<bigint> {
+    async fetchL1OptimismFee(tx?: TransactionLike): Promise<bigint> {
         if (!this.ovmGasPriceOracle) {
             return new Promise((resolve) => resolve(BigInt(0)));
         }
@@ -102,7 +102,9 @@ export class TornadoFeeOracle {
             };
         }
 
-        return this.ovmGasPriceOracle.getL1Fee.staticCall(Transaction.from(tx).unsignedSerialized);
+        return (
+            ((await this.ovmGasPriceOracle.getL1Fee.staticCall(Transaction.from(tx).unsignedSerialized)) * 12n) / 10n
+        );
     }
 
     /**

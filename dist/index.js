@@ -1269,6 +1269,7 @@ const defaultConfig = {
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
     offchainOracleContract: "0x00000000000D6FFc74A8feb35aF5827bf57f6786",
+    ovmGasPriceOracleContract: "0x420000000000000000000000000000000000000F",
     tornadoSubgraph: "tornadocash/base-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -1355,6 +1356,7 @@ const defaultConfig = {
     multicallContract: "0xcA11bde05977b3631167028862bE2a173976CA11",
     routerContract: "0x0D5550d52428E7e3175bfc9550207e4ad3859b17",
     echoContract: "0xa75BF2815618872f155b7C4B0C81bF990f5245E4",
+    ovmGasPriceOracleContract: "0x420000000000000000000000000000000000000F",
     tornadoSubgraph: "tornadocash/blast-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
@@ -9652,7 +9654,7 @@ class TornadoFeeOracle {
    *
    * This is required since relayers would pay the full transaction fees for users
    */
-  fetchL1OptimismFee(tx) {
+  async fetchL1OptimismFee(tx) {
     if (!this.ovmGasPriceOracle) {
       return new Promise((resolve) => resolve(BigInt(0)));
     }
@@ -9666,7 +9668,7 @@ class TornadoFeeOracle {
         to: DUMMY_ADDRESS
       };
     }
-    return this.ovmGasPriceOracle.getL1Fee.staticCall(ethers.Transaction.from(tx).unsignedSerialized);
+    return await this.ovmGasPriceOracle.getL1Fee.staticCall(ethers.Transaction.from(tx).unsignedSerialized) * 12n / 10n;
   }
   /**
    * We don't need to distinguish default refunds by tokens since most users interact with other defi protocols after withdrawal
