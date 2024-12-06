@@ -7,7 +7,7 @@ RUN apt update && apt install --yes --no-install-recommends wget git apt-transpo
 
 ENV GIT_REPOSITORY=https://git.tornado.ws/tornadocontrib/tornado-core.git
 # From development branch, double check with tornado.ws
-ENV GIT_COMMIT_HASH=309a53600ce4e17b8d3225ca5923bdf280edaaf0
+ENV GIT_COMMIT_HASH=f16bb2ed12464dce4f31aa5a237bb1643989e02d
 
 # clone the repository
 RUN mkdir /app/
