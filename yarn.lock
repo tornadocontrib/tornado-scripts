@@ -6266,9 +6266,9 @@ slice-ansi@^4.0.0:
     astral-regex "^2.0.0"
     is-fullwidth-code-point "^3.0.0"
 
-"snarkjs@git+https://github.com/MicahZoltu/snarkjs.git#2c964b3fe6019e057acab04cc17705d1f7fdaf9a":
+"snarkjs@git+https://github.com/tornadocontrib/snarkjs.git#2c964b3fe6019e057acab04cc17705d1f7fdaf9a":
   version "0.1.20"
-  resolved "git+https://github.com/MicahZoltu/snarkjs.git#2c964b3fe6019e057acab04cc17705d1f7fdaf9a"
+  resolved "git+https://github.com/tornadocontrib/snarkjs.git#2c964b3fe6019e057acab04cc17705d1f7fdaf9a"
   dependencies:
     "@noble/hashes" "1.6.1"
     big-integer "1.6.43"
@@ -7126,9 +7126,9 @@ webpack@^5.95.0:
     watchpack "^2.4.1"
     webpack-sources "^3.2.3"
 
-"websnark@git+https://github.com/MicahZoltu/websnark.git#f0ddbf34b3045cac9e6d3e4d977bf3b439869fae":
+"websnark@git+https://github.com/tornadocontrib/websnark.git#f0ddbf34b3045cac9e6d3e4d977bf3b439869fae":
   version "0.0.4"
-  resolved "git+https://github.com/MicahZoltu/websnark.git#f0ddbf34b3045cac9e6d3e4d977bf3b439869fae"
+  resolved "git+https://github.com/tornadocontrib/websnark.git#f0ddbf34b3045cac9e6d3e4d977bf3b439869fae"
   dependencies:
     big-integer "1.6.52"
 
