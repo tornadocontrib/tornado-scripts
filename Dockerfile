@@ -7,7 +7,7 @@ RUN apt update && apt install --yes --no-install-recommends wget git apt-transpo
 
 ENV GIT_REPOSITORY=https://github.com/tornadocontrib/tornado-scripts.git
 # From main branch, double check with git.tornado.ws and codeberg.org
-ENV GIT_COMMIT_HASH=722c426fcb729fc554c3daed21842fcf8fb3c76e
+ENV GIT_COMMIT_HASH=d143bc2923e4dcb1c84e4123fbc56cb406e6db6f
 
 # clone the repository
 RUN mkdir /app/
