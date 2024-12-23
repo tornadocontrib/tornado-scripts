@@ -19,20 +19,14 @@ export interface RpcUrl {
     name: string;
     url: string;
 }
-export interface RpcUrls {
-    [key: string]: RpcUrl;
-}
+export type RpcUrls = Record<string, RpcUrl>;
 export interface SubgraphUrl {
     name: string;
     url: string;
 }
-export interface SubgraphUrls {
-    [key: string]: SubgraphUrl;
-}
+export type SubgraphUrls = Record<string, SubgraphUrl>;
 export interface TornadoInstance {
-    instanceAddress: {
-        [key: string]: string;
-    };
+    instanceAddress: Record<string, string>;
     instanceApproval?: boolean;
     optionalInstances?: string[];
     tokenAddress?: string;
@@ -41,9 +35,7 @@ export interface TornadoInstance {
     decimals: number;
     gasLimit?: number;
 }
-export interface TokenInstances {
-    [key: string]: TornadoInstance;
-}
+export type TokenInstances = Record<string, TornadoInstance>;
 export interface Config {
     rpcCallRetryAttempt?: number;
     gasPrices: {
@@ -90,12 +82,8 @@ export interface Config {
         MINING_BLOCK_TIME?: number;
     };
 }
-export interface networkConfig {
-    [key: NetIdType]: Config;
-}
-export interface SubdomainMap {
-    [key: NetIdType]: string;
-}
+export type networkConfig = Record<NetIdType, Config>;
+export type SubdomainMap = Record<NetIdType, string>;
 export declare const defaultConfig: networkConfig;
 export declare const enabledChains: NetIdType[];
 /**
@@ -123,6 +111,4 @@ export declare function getInstanceByAddress(config: Config, address: string): {
     tokenAddress: string | undefined;
 } | undefined;
 export declare function getRelayerEnsSubdomains(): SubdomainMap;
-export declare function getMultiInstances(netId: NetIdType, config: Config): {
-    [key in string]: DepositType;
-};
+export declare function getMultiInstances(netId: NetIdType, config: Config): Record<string, DepositType>;

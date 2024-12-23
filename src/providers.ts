@@ -244,7 +244,7 @@ export const fetchGetUrlFunc =
 
         const resp = await fetchData(req.url, init);
 
-        const headers = {} as { [key in string]: any };
+        const headers = {} as Record<string, any>;
         resp.headers.forEach((value: any, key: string) => {
             headers[key.toLowerCase()] = value;
         });

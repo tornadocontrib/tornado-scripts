@@ -2,7 +2,7 @@ import { isAddress } from 'ethers';
 import { NetId, NetIdType } from './networkConfig';
 
 // https://dev.gas.zip/gas/chain-support/inbound
-export const gasZipInbounds: { [key in NetIdType]: string } = {
+export const gasZipInbounds: Record<NetIdType, string> = {
     [NetId.MAINNET]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.BSC]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
     [NetId.POLYGON]: '0x391E7C679d29bD940d63be94AD22A25d25b5A604',
@@ -15,7 +15,7 @@ export const gasZipInbounds: { [key in NetIdType]: string } = {
 };
 
 // https://dev.gas.zip/gas/chain-support/outbound
-export const gasZipID: { [key in NetIdType]: number } = {
+export const gasZipID: Record<NetIdType, number> = {
     [NetId.MAINNET]: 255,
     [NetId.BSC]: 14,
     [NetId.POLYGON]: 17,

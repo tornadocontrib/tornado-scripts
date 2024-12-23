@@ -28,9 +28,7 @@ export interface RelayerInfo extends RelayerParams {
     instances: string[];
     stakeBalance?: string;
     gasPrice?: number;
-    ethPrices?: {
-        [key in string]: string;
-    };
+    ethPrices?: Record<string, string>;
     currentQueue: number;
     tornadoServiceFee: number;
 }
@@ -45,24 +43,21 @@ export interface RelayerError {
 export interface RelayerStatus {
     url: string;
     rewardAccount: string;
-    instances: {
-        [key in string]: {
-            instanceAddress: {
-                [key in string]: string;
-            };
+    instances: Record<
+        string,
+        {
+            instanceAddress: Record<string, string>;
             tokenAddress?: string;
             symbol: string;
             decimals: number;
-        };
-    };
+        }
+    >;
     gasPrices?: {
         fast: number;
         additionalProperties?: number;
     };
     netId: NetIdType;
-    ethPrices?: {
-        [key in string]: string;
-    };
+    ethPrices?: Record<string, string>;
     tornadoServiceFee: number;
     latestBlock?: number;
     version: string;
@@ -149,13 +144,12 @@ export function getWeightRandom(weightsScores: bigint[], random: bigint) {
     return Math.floor(Math.random() * weightsScores.length);
 }
 
-export interface RelayerInstanceList {
-    [key: string]: {
-        instanceAddress: {
-            [key: string]: string;
-        };
-    };
-}
+export type RelayerInstanceList = Record<
+    string,
+    {
+        instanceAddress: Record<string, string>;
+    }
+>;
 
 export function getSupportedInstances(instanceList: RelayerInstanceList) {
     const rawList = Object.values(instanceList)

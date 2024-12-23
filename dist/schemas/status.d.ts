@@ -5,9 +5,7 @@ export interface statusInstanceType {
     properties: {
         instanceAddress: {
             type: string;
-            properties: {
-                [key in string]: typeof addressSchemaType;
-            };
+            properties: Record<string, typeof addressSchemaType>;
             required: string[];
         };
         tokenAddress?: typeof addressSchemaType;
@@ -22,16 +20,12 @@ export interface statusInstanceType {
 }
 export interface statusInstancesType {
     type: string;
-    properties: {
-        [key in string]: statusInstanceType;
-    };
+    properties: Record<string, statusInstanceType>;
     required: string[];
 }
 export interface statusEthPricesType {
     type: string;
-    properties: {
-        [key in string]: typeof bnSchemaType;
-    };
+    properties: Record<string, typeof bnSchemaType>;
     required?: string[];
 }
 export interface statusSchema {
@@ -41,11 +35,9 @@ export interface statusSchema {
         instances?: statusInstancesType;
         gasPrices: {
             type: string;
-            properties: {
-                [key in string]: {
-                    type: string;
-                };
-            };
+            properties: Record<string, {
+                type: string;
+            }>;
             required: string[];
         };
         netId: {

@@ -17,7 +17,7 @@ const DUMMY_WITHDRAW_DATA =
 export function convertETHToTokenAmount(
     amountInWei: BigNumberish,
     tokenPriceInWei: BigNumberish,
-    tokenDecimals: number = 18,
+    tokenDecimals = 18,
 ): bigint {
     const tokenDecimalsMultiplier = BigInt(10 ** Number(tokenDecimals));
     return (BigInt(amountInWei) * tokenDecimalsMultiplier) / BigInt(tokenPriceInWei);

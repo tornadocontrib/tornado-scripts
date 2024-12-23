@@ -1,7 +1,7 @@
 'use strict';
 
 var ethers = require('ethers');
-var contracts = require('@tornado/contracts');
+var tornadoContracts = require('tornado-contracts');
 var crypto$1 = require('crypto');
 var BN = require('bn.js');
 var contentHashUtils = require('@ensdomains/content-hash');
@@ -865,9 +865,9 @@ const defaultConfig = {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/mainnet"
       },
       keydonix: {
         name: "Horswap ( Keydonix )",
@@ -1016,9 +1016,9 @@ const defaultConfig = {
         name: "BNB Chain 2",
         url: "https://bsc-dataseed1.ninicoin.io"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/bsc"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/bsc"
       },
       nodereal: {
         name: "NodeReal",
@@ -1104,6 +1104,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/matic-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/polygon"
+      },
+      polygon: {
+        name: "Polygon",
+        url: "https://polygon-rpc.com"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/matic"
@@ -1156,6 +1164,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/op"
+      },
+      optimism: {
+        name: "Optimism",
+        url: "https://mainnet.optimism.io"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/op"
@@ -1214,9 +1230,9 @@ const defaultConfig = {
         name: "Arbitrum",
         url: "https://arb1.arbitrum.io/rpc"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/arbitrum"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/arbitrum"
       },
       stackup: {
         name: "Stackup",
@@ -1276,6 +1292,10 @@ const defaultConfig = {
       Base: {
         name: "Base",
         url: "https://mainnet.base.org"
+      },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/base"
       },
       stackup: {
         name: "Stackup",
@@ -1364,6 +1384,10 @@ const defaultConfig = {
         name: "Blast",
         url: "https://rpc.blast.io"
       },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/blast"
+      },
       blastApi: {
         name: "BlastApi",
         url: "https://blastl2-mainnet.public.blastapi.io"
@@ -1417,6 +1441,10 @@ const defaultConfig = {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
       },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/gnosis"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/gnosis"
@@ -1464,9 +1492,17 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/ext/bc/C/rpc"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/avax/c"
+      },
+      avalanche: {
+        name: "Avalanche",
+        url: "https://api.avax.network/ext/bc/C/rpc"
       },
       stackup: {
         name: "Stackup",
@@ -1520,13 +1556,13 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/sepolia"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/sepolia"
-      },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/sepolia"
       },
       sepolia: {
         name: "Sepolia RPC",
@@ -2057,13 +2093,10 @@ function getStatusSchema(netId, config, tovarish) {
         properties: {
           instanceAddress: {
             type: "object",
-            properties: amounts.reduce(
-              (acc2, cur) => {
-                acc2[cur] = addressSchemaType;
-                return acc2;
-              },
-              {}
-            ),
+            properties: amounts.reduce((acc2, cur) => {
+              acc2[cur] = addressSchemaType;
+              return acc2;
+            }, {}),
             required: amounts.filter((amount) => !optionalInstances.includes(amount))
           },
           decimals: { enum: [decimals] }
@@ -2652,7 +2685,7 @@ class BaseMultiTornadoService extends BaseEventsService {
   batchBlockService;
   constructor(serviceConstructor) {
     const { instances, provider, optionalTree, merkleTreeService } = serviceConstructor;
-    const contract = merkleTreeService?.Tornado || contracts.Tornado__factory.connect(Object.keys(instances)[0], provider);
+    const contract = merkleTreeService?.Tornado || tornadoContracts.Tornado__factory.connect(Object.keys(instances)[0], provider);
     super({
       ...serviceConstructor,
       contract,
@@ -3378,7 +3411,7 @@ class BaseRevenueService extends BaseEventsService {
       ...new Set(events.map(({ transactionHash }) => transactionHash))
     ]);
     const registeredRelayers = new Set(events.map(({ args }) => args.relayer));
-    const tornadoInterface = contracts.Tornado__factory.createInterface();
+    const tornadoInterface = tornadoContracts.Tornado__factory.createInterface();
     const withdrawHash = tornadoInterface.getEvent("Withdrawal").topicHash;
     const withdrawalLogs = receipts.map(
       (receipt) => receipt.logs.map((log) => {

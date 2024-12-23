@@ -1,5 +1,5 @@
 import { BaseContract, Provider, EventLog } from 'ethers';
-import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from '@tornado/contracts';
+import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from 'tornado-contracts';
 import type { MerkleTree } from 'fixed-merkle-tree';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
@@ -98,16 +98,12 @@ export declare class BaseTornadoService extends BaseEventsService<DepositsEvents
     }): Promise<BaseEvents<DepositsEvents | WithdrawalsEvents>>;
 }
 export interface BaseMultiTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
-    instances: {
-        [key in string]: DepositType;
-    };
+    instances: Record<string, DepositType>;
     optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
 }
 export declare class BaseMultiTornadoService extends BaseEventsService<MultiDepositsEvents | MultiWithdrawalsEvents> {
-    instances: {
-        [key in string]: DepositType;
-    };
+    instances: Record<string, DepositType>;
     optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
     batchTransactionService: BatchTransactionService;
@@ -143,9 +139,7 @@ export declare class BaseEncryptedNotesService extends BaseEventsService<Encrypt
     getTovarishType(): string;
     formatEvents(events: EventLog[]): Promise<EncryptedNotesEvents[]>;
 }
-export declare const proposalState: {
-    [key: string]: string;
-};
+export declare const proposalState: Record<string, string>;
 export interface GovernanceProposals extends GovernanceProposalCreatedEvents {
     title: string;
     proposerName?: string;
@@ -182,9 +176,7 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
         delegatedAccs: string[];
         undelegatedAccs: string[];
         uniq: string[];
-        uniqNames: {
-            [key: string]: string;
-        };
+        uniqNames: Record<string, string>;
         balances: bigint[];
         balance: bigint;
     }>;

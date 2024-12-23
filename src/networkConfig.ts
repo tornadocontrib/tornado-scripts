@@ -23,23 +23,17 @@ export interface RpcUrl {
     url: string;
 }
 
-export interface RpcUrls {
-    [key: string]: RpcUrl;
-}
+export type RpcUrls = Record<string, RpcUrl>;
 
 export interface SubgraphUrl {
     name: string;
     url: string;
 }
 
-export interface SubgraphUrls {
-    [key: string]: SubgraphUrl;
-}
+export type SubgraphUrls = Record<string, SubgraphUrl>;
 
 export interface TornadoInstance {
-    instanceAddress: {
-        [key: string]: string;
-    };
+    instanceAddress: Record<string, string>;
     instanceApproval?: boolean;
     optionalInstances?: string[];
     tokenAddress?: string;
@@ -49,9 +43,7 @@ export interface TornadoInstance {
     gasLimit?: number;
 }
 
-export interface TokenInstances {
-    [key: string]: TornadoInstance;
-}
+export type TokenInstances = Record<string, TornadoInstance>;
 
 export interface Config {
     rpcCallRetryAttempt?: number;
@@ -106,13 +98,9 @@ export interface Config {
     };
 }
 
-export interface networkConfig {
-    [key: NetIdType]: Config;
-}
+export type networkConfig = Record<NetIdType, Config>;
 
-export interface SubdomainMap {
-    [key: NetIdType]: string;
-}
+export type SubdomainMap = Record<NetIdType, string>;
 
 export const defaultConfig: networkConfig = {
     [NetId.MAINNET]: {
@@ -135,9 +123,9 @@ export const defaultConfig: networkConfig = {
                 name: 'MEV Blocker',
                 url: 'https://rpc.mevblocker.io',
             },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com',
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/mainnet',
             },
             keydonix: {
                 name: 'Horswap ( Keydonix )',
@@ -286,9 +274,9 @@ export const defaultConfig: networkConfig = {
                 name: 'BNB Chain 2',
                 url: 'https://bsc-dataseed1.ninicoin.io',
             },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/bsc',
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/bsc',
             },
             nodereal: {
                 name: 'NodeReal',
@@ -374,6 +362,14 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/matic-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/polygon',
+            },
+            polygon: {
+                name: 'Polygon',
+                url: 'https://polygon-rpc.com',
+            },
             oneRpc: {
                 name: '1RPC',
                 url: 'https://1rpc.io/matic',
@@ -426,6 +422,14 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/optimism-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/op',
+            },
+            optimism: {
+                name: 'Optimism',
+                url: 'https://mainnet.optimism.io',
+            },
             oneRpc: {
                 name: '1RPC',
                 url: 'https://1rpc.io/op',
@@ -484,9 +488,9 @@ export const defaultConfig: networkConfig = {
                 name: 'Arbitrum',
                 url: 'https://arb1.arbitrum.io/rpc',
             },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/arbitrum',
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/arbitrum',
             },
             stackup: {
                 name: 'Stackup',
@@ -546,6 +550,10 @@ export const defaultConfig: networkConfig = {
             Base: {
                 name: 'Base',
                 url: 'https://mainnet.base.org',
+            },
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/base',
             },
             stackup: {
                 name: 'Stackup',
@@ -634,6 +642,10 @@ export const defaultConfig: networkConfig = {
                 name: 'Blast',
                 url: 'https://rpc.blast.io',
             },
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/blast',
+            },
             blastApi: {
                 name: 'BlastApi',
                 url: 'https://blastl2-mainnet.public.blastapi.io',
@@ -687,6 +699,10 @@ export const defaultConfig: networkConfig = {
                 name: 'Gnosis',
                 url: 'https://rpc.gnosischain.com',
             },
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/gnosis',
+            },
             oneRpc: {
                 name: '1RPC',
                 url: 'https://1rpc.io/gnosis',
@@ -734,9 +750,17 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/avalanche-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/ext/bc/C/rpc',
+            },
             oneRpc: {
                 name: '1RPC',
                 url: 'https://1rpc.io/avax/c',
+            },
+            avalanche: {
+                name: 'Avalanche',
+                url: 'https://api.avax.network/ext/bc/C/rpc',
             },
             stackup: {
                 name: 'Stackup',
@@ -790,13 +814,13 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
+            tornadoWithdraw: {
+                name: 'Tornado Withdraw',
+                url: 'https://tornadowithdraw.com/sepolia',
+            },
             oneRpc: {
                 name: '1RPC',
                 url: 'https://1rpc.io/sepolia',
-            },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/sepolia',
             },
             sepolia: {
                 name: 'Sepolia RPC',
@@ -949,7 +973,7 @@ export function getRelayerEnsSubdomains() {
     }, {} as SubdomainMap);
 }
 
-export function getMultiInstances(netId: NetIdType, config: Config): { [key in string]: DepositType } {
+export function getMultiInstances(netId: NetIdType, config: Config): Record<string, DepositType> {
     return Object.entries(config.tokens).reduce(
         (acc, [currency, { instanceAddress }]) => {
             Object.entries(instanceAddress).forEach(([amount, contractAddress]) => {
@@ -961,6 +985,6 @@ export function getMultiInstances(netId: NetIdType, config: Config): { [key in s
             });
             return acc;
         },
-        {} as { [key in string]: DepositType },
+        {} as Record<string, DepositType>,
     );
 }

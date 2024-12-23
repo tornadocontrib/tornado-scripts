@@ -2,9 +2,7 @@
 
 <img src="./logo2.png">
 
-# Tornado Core (@tornado/core)
-
-### Notice: Repository migrated to [tornado-scripts](https://github.com/tornadocontrib/tornado-scripts) to avoid naming conflict with legacy tornado-core repository
+# Tornado Scripts (tornado-scripts)
 
 🛠 An SDK for building applications on top of [Privacy Pools](https://www.forbes.com/sites/tomerniv/2023/09/07/privacy-pools-bridging-the-gap-between-blockchain-and-regulatory-compliance)
 
@@ -12,9 +10,9 @@
 
 </div>
 
-### About Tornado Core
+### About Tornado Scripts
 
-Tornado Core is a modern building block for Privacy Pools to build anything from custom UI or CLI tools
+Tornado Scripts is a modern building block for Privacy Pools to build anything from custom UI or CLI tools
 
  + Written in [TypeScript](https://www.typescriptlang.org/)
 

@@ -1,13 +1,13 @@
 # Dockefile from https://notes.ethereum.org/@GW1ZUbNKR5iRjjKYx6_dJQ/Bk8zsJ9xj
-# FROM node:20.18.0-bullseye-slim
-FROM node@sha256:9b558df8f10198fcd1f48cf344c55c4442c3446b8a9a69487523b3d890a4a59e
+# FROM node:22.12.0-bullseye-slim
+FROM node@sha256:9f385b101f66ecdf9ed9218d000cd5a35600722f0aab8112632371765109c065
 
 # install wget, git and necessary certificates
 RUN apt update && apt install --yes --no-install-recommends wget git apt-transport-https ca-certificates && rm -rf /var/lib/apt/lists/*
 
-ENV GIT_REPOSITORY=https://git.tornado.ws/tornadocontrib/tornado-core.git
-# From development branch, double check with tornado.ws
-ENV GIT_COMMIT_HASH=f16bb2ed12464dce4f31aa5a237bb1643989e02d
+ENV GIT_REPOSITORY=https://github.com/tornadocontrib/tornado-scripts.git
+# From main branch, double check with git.tornado.ws and codeberg.org
+ENV GIT_COMMIT_HASH=722c426fcb729fc554c3daed21842fcf8fb3c76e
 
 # clone the repository
 RUN mkdir /app/

@@ -2,14 +2,23 @@ const { BannerPlugin } = require('webpack');
 const path = require('path');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
-const esbuildLoader = {
-    test: /\.ts?$/,
-    loader: 'esbuild-loader',
-    options: {
-        loader: 'ts',
-        target: 'es2022',
+const commonRules = [
+    {
+        test: /\.ts?$/,
+        loader: 'esbuild-loader',
+        options: {
+            loader: 'ts',
+            target: 'es2022',
+        }
+    },
+    // Disable strict dependency resolution for ESM modules, so that polyfill plugin can handle the rest
+    {
+        test: /\.m?js$/,
+        resolve: {
+            fullySpecified: false
+        }
     }
-}
+]
 
 const commonAlias = {
     fs: false,
@@ -26,7 +35,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/index.ts',
         output: {
@@ -51,7 +60,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/index.ts',
         output: {
@@ -73,7 +82,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/merkleTreeWorker.ts',
         output: {
@@ -101,7 +110,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/merkleTreeWorker.ts',
         output: {
@@ -126,7 +135,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/contracts.ts',
         output: {
@@ -151,7 +160,7 @@ module.exports = [
     {
         mode: 'production',
         module: {
-            rules: [esbuildLoader]
+            rules: [...commonRules]
         },
         entry: './src/contracts.ts',
         output: {

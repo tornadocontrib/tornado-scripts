@@ -1,4 +1,4 @@
-import { ERC20Permit, ERC20Mock, TORN } from '@tornado/contracts';
+import { ERC20Permit, ERC20Mock, TORN } from 'tornado-contracts';
 import { Signature, Signer, TypedDataField } from 'ethers';
 export interface PermitValue {
     spender: string;
@@ -18,9 +18,7 @@ export declare const permit2Address = "0x000000000022D473030F116dDEE9F6B43aC78BA
  */
 export interface Witness {
     witnessTypeName: string;
-    witnessType: {
-        [key: string]: TypedDataField[];
-    };
+    witnessType: Record<string, TypedDataField[]>;
     witness: any;
 }
 export declare function getPermitSignature({ Token, signer, spender, value, nonce, deadline, }: PermitValue & {

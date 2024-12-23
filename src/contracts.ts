@@ -1,4 +1,4 @@
-export * from '@tornado/contracts';
+export * from 'tornado-contracts';
 export {
     Multicall,
     Multicall__factory,

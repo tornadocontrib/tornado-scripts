@@ -1,4 +1,4 @@
-import { ERC20Permit, ERC20Mock, TORN } from '@tornado/contracts';
+import { ERC20Permit, ERC20Mock, TORN } from 'tornado-contracts';
 import { MaxUint256, Provider, Signature, Signer, TypedDataField } from 'ethers';
 
 export interface PermitValue {
@@ -22,9 +22,7 @@ export const permit2Address = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
  */
 export interface Witness {
     witnessTypeName: string;
-    witnessType: {
-        [key: string]: TypedDataField[];
-    };
+    witnessType: Record<string, TypedDataField[]>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     witness: any;
 }

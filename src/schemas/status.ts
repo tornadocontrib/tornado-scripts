@@ -6,9 +6,7 @@ export interface statusInstanceType {
     properties: {
         instanceAddress: {
             type: string;
-            properties: {
-                [key in string]: typeof addressSchemaType;
-            };
+            properties: Record<string, typeof addressSchemaType>;
             required: string[];
         };
         tokenAddress?: typeof addressSchemaType;
@@ -20,17 +18,13 @@ export interface statusInstanceType {
 
 export interface statusInstancesType {
     type: string;
-    properties: {
-        [key in string]: statusInstanceType;
-    };
+    properties: Record<string, statusInstanceType>;
     required: string[];
 }
 
 export interface statusEthPricesType {
     type: string;
-    properties: {
-        [key in string]: typeof bnSchemaType;
-    };
+    properties: Record<string, typeof bnSchemaType>;
     required?: string[];
 }
 
@@ -41,11 +35,12 @@ export interface statusSchema {
         instances?: statusInstancesType;
         gasPrices: {
             type: string;
-            properties: {
-                [key in string]: {
+            properties: Record<
+                string,
+                {
                     type: string;
-                };
-            };
+                }
+            >;
             required: string[];
         };
         netId: {
@@ -148,18 +143,10 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
                 properties: {
                     instanceAddress: {
                         type: 'object',
-                        properties: amounts.reduce(
-                            (
-                                acc: {
-                                    [key in string]: typeof addressSchemaType;
-                                },
-                                cur,
-                            ) => {
-                                acc[cur] = addressSchemaType;
-                                return acc;
-                            },
-                            {},
-                        ),
+                        properties: amounts.reduce((acc: Record<string, typeof addressSchemaType>, cur) => {
+                            acc[cur] = addressSchemaType;
+                            return acc;
+                        }, {}),
                         required: amounts.filter((amount) => !optionalInstances.includes(amount)),
                     },
                     decimals: { enum: [decimals] },
@@ -203,7 +190,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
     if (_tokens.length) {
         const ethPrices: statusEthPricesType = {
             type: 'object',
-            properties: _tokens.reduce((acc: { [key in string]: typeof bnSchemaType }, token: string) => {
+            properties: _tokens.reduce((acc: Record<string, typeof bnSchemaType>, token: string) => {
                 acc[token] = bnSchemaType;
                 return acc;
             }, {}),

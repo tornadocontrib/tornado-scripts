@@ -327,7 +327,6 @@ export class TovarishClient extends RelayerClient {
             const events = [];
             let lastSyncBlock = fromBlock;
 
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 // eslint-disable-next-line prefer-const
                 let { events: fetchedEvents, lastSyncBlock: currentBlock } = (await fetchData(url, {

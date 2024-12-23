@@ -1,5 +1,5 @@
 import { isHexString, assertArgument, assert, EventLog, UndecodedEventLog, Log, FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, ZeroAddress } from 'ethers';
-import { Tornado__factory } from '@tornado/contracts';
+import { Tornado__factory } from 'tornado-contracts';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
 import * as contentHashUtils from '@ensdomains/content-hash';
@@ -843,9 +843,9 @@ const defaultConfig = {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/mainnet"
       },
       keydonix: {
         name: "Horswap ( Keydonix )",
@@ -994,9 +994,9 @@ const defaultConfig = {
         name: "BNB Chain 2",
         url: "https://bsc-dataseed1.ninicoin.io"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/bsc"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/bsc"
       },
       nodereal: {
         name: "NodeReal",
@@ -1082,6 +1082,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/matic-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/polygon"
+      },
+      polygon: {
+        name: "Polygon",
+        url: "https://polygon-rpc.com"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/matic"
@@ -1134,6 +1142,14 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/op"
+      },
+      optimism: {
+        name: "Optimism",
+        url: "https://mainnet.optimism.io"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/op"
@@ -1192,9 +1208,9 @@ const defaultConfig = {
         name: "Arbitrum",
         url: "https://arb1.arbitrum.io/rpc"
       },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/arbitrum"
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/arbitrum"
       },
       stackup: {
         name: "Stackup",
@@ -1254,6 +1270,10 @@ const defaultConfig = {
       Base: {
         name: "Base",
         url: "https://mainnet.base.org"
+      },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/base"
       },
       stackup: {
         name: "Stackup",
@@ -1342,6 +1362,10 @@ const defaultConfig = {
         name: "Blast",
         url: "https://rpc.blast.io"
       },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/blast"
+      },
       blastApi: {
         name: "BlastApi",
         url: "https://blastl2-mainnet.public.blastapi.io"
@@ -1395,6 +1419,10 @@ const defaultConfig = {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
       },
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/gnosis"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/gnosis"
@@ -1442,9 +1470,17 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/ext/bc/C/rpc"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/avax/c"
+      },
+      avalanche: {
+        name: "Avalanche",
+        url: "https://api.avax.network/ext/bc/C/rpc"
       },
       stackup: {
         name: "Stackup",
@@ -1498,13 +1534,13 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
+      tornadoWithdraw: {
+        name: "Tornado Withdraw",
+        url: "https://tornadowithdraw.com/sepolia"
+      },
       oneRpc: {
         name: "1RPC",
         url: "https://1rpc.io/sepolia"
-      },
-      tornadoRpc: {
-        name: "Tornado RPC",
-        url: "https://tornadocash-rpc.com/sepolia"
       },
       sepolia: {
         name: "Sepolia RPC",
@@ -2035,13 +2071,10 @@ function getStatusSchema(netId, config, tovarish) {
         properties: {
           instanceAddress: {
             type: "object",
-            properties: amounts.reduce(
-              (acc2, cur) => {
-                acc2[cur] = addressSchemaType;
-                return acc2;
-              },
-              {}
-            ),
+            properties: amounts.reduce((acc2, cur) => {
+              acc2[cur] = addressSchemaType;
+              return acc2;
+            }, {}),
             required: amounts.filter((amount) => !optionalInstances.includes(amount))
           },
           decimals: { enum: [decimals] }

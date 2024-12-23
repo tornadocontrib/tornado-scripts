@@ -122,17 +122,17 @@ export function toFixedHex(numberish: BigNumberish, length = 32) {
     );
 }
 
-export function toFixedLength(string: string, length: number = 32) {
+export function toFixedLength(string: string, length = 32) {
     string = string.replace('0x', '');
     return '0x' + string.padStart(length * 2, '0');
 }
 
 // Random BigInt in a range of bytes
-export function rBigInt(nbytes: number = 31) {
+export function rBigInt(nbytes = 31) {
     return bytesToBN(crypto.getRandomValues(new Uint8Array(nbytes)));
 }
 
-export function rHex(nbytes: number = 32) {
+export function rHex(nbytes = 32) {
     return bytesToHex(crypto.getRandomValues(new Uint8Array(nbytes)));
 }
 
@@ -142,7 +142,7 @@ export function bigIntReplacer(key: any, value: any) {
     return typeof value === 'bigint' ? value.toString() : value;
 }
 
-export function substring(str: string, length: number = 10) {
+export function substring(str: string, length = 10) {
     if (str.length < length * 2) {
         return str;
     }
@@ -150,11 +150,11 @@ export function substring(str: string, length: number = 10) {
     return `${str.substring(0, length)}...${str.substring(str.length - length)}`;
 }
 
-export async function digest(bytes: Uint8Array, algo: string = 'SHA-384') {
+export async function digest(bytes: Uint8Array, algo = 'SHA-384') {
     return new Uint8Array(await crypto.subtle.digest(algo, bytes));
 }
 
-export function numberFormatter(num: string | number | bigint, digits: number = 3): string {
+export function numberFormatter(num: string | number | bigint, digits = 3): string {
     const lookup = [
         { value: 1, symbol: '' },
         { value: 1e3, symbol: 'K' },

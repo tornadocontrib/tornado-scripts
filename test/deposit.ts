@@ -4,7 +4,7 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { formatEther } from 'ethers';
 
-import { ETHTornado__factory, Verifier__factory } from '@tornado/contracts';
+import { ETHTornado__factory, Verifier__factory } from 'tornado-contracts';
 import { Deposit, deployHasher } from '../src';
 
 const { getSigners } = ethers;

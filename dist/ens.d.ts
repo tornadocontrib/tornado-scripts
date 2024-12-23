@@ -8,13 +8,11 @@ export declare function makeLabelNodeAndParent(name: string): {
     labelhash: string;
     parentNode: string;
 };
-export declare const EnsContracts: {
-    [key: NetIdType]: {
-        ensRegistry: string;
-        ensPublicResolver: string;
-        ensNameWrapper: string;
-    };
-};
+export declare const EnsContracts: Record<NetIdType, {
+    ensRegistry: string;
+    ensPublicResolver: string;
+    ensNameWrapper: string;
+}>;
 /**
  * ENSUtils to manage on-chain registered relayers
  */

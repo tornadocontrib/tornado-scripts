@@ -49,9 +49,7 @@ export interface queryGraphParams {
     graphApi: string;
     subgraphName: string;
     query: string;
-    variables?: {
-        [key: string]: string | number;
-    };
+    variables?: Record<string, string | number>;
     fetchDataOptions?: fetchDataOptions;
 }
 
@@ -270,7 +268,6 @@ export async function getAllRegisters({
         const events = [];
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let {
                 relayers: result,
@@ -406,7 +403,6 @@ export async function getAllDeposits({
         const events = [];
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let {
                 deposits: result,
@@ -552,7 +548,6 @@ export async function getAllWithdrawals({
         const events = [];
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let {
                 withdrawals: result,
@@ -756,7 +751,6 @@ export async function getAllGraphEchoEvents({
         const events = [];
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let {
                 noteAccounts: result,
@@ -888,7 +882,6 @@ export async function getAllEncryptedNotes({
         const events = [];
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let {
                 encryptedNotes: result,
@@ -1046,7 +1039,6 @@ export async function getAllGovernanceEvents({
 
         let lastSyncBlock = fromBlock;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const {
                 proposals,

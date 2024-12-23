@@ -20,7 +20,7 @@ import {
     Echoer,
     Aggregator,
     Tornado__factory,
-} from '@tornado/contracts';
+} from 'tornado-contracts';
 
 import type { MerkleTree } from 'fixed-merkle-tree';
 import {
@@ -131,7 +131,6 @@ export class BaseEventsService<EventType extends MinimalEvents> {
     /* eslint-enable @typescript-eslint/no-unused-vars */
 
     async formatEvents(events: EventLog[]): Promise<EventType[]> {
-        // eslint-disable-next-line no-return-await
         return await new Promise((resolve) => resolve(events as unknown as EventType[]));
     }
 
@@ -440,17 +439,13 @@ export class BaseTornadoService extends BaseEventsService<DepositsEvents | Withd
 }
 
 export interface BaseMultiTornadoServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
-    instances: {
-        [key in string]: DepositType;
-    };
+    instances: Record<string, DepositType>;
     optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
 }
 
 export class BaseMultiTornadoService extends BaseEventsService<MultiDepositsEvents | MultiWithdrawalsEvents> {
-    instances: {
-        [key in string]: DepositType;
-    };
+    instances: Record<string, DepositType>;
 
     optionalTree?: boolean;
     merkleTreeService?: MerkleTreeService;
@@ -717,7 +712,7 @@ export class BaseEncryptedNotesService extends BaseEventsService<EncryptedNotesE
 
 const abiCoder = AbiCoder.defaultAbiCoder();
 
-export const proposalState: { [key: string]: string } = {
+export const proposalState: Record<string, string> = {
     0: 'Pending',
     1: 'Active',
     2: 'Defeated',
@@ -966,7 +961,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
                 }
                 return acc;
             },
-            {} as { [key: string]: string },
+            {} as Record<string, string>,
         );
 
         return proposalEvents.map((event, index) => {
@@ -1018,7 +1013,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
                 }
                 return acc;
             },
-            {} as { [key: string]: string },
+            {} as Record<string, string>,
         );
 
         const votes = votedEvents.map((event) => {
@@ -1077,7 +1072,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
                 }
                 return acc;
             },
-            {} as { [key: string]: string },
+            {} as Record<string, string>,
         );
 
         return {

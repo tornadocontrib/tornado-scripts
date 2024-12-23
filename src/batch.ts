@@ -42,7 +42,7 @@ export async function getSubInfo(
     tag: string;
     topics: TopicFilter;
 }> {
-    let topics: Array<null | string | Array<string>>;
+    let topics: (null | string | string[])[];
     let fragment: null | EventFragment = null;
 
     // Convert named events to topicHash and get the fragment for
@@ -242,7 +242,6 @@ export class BatchBlockService {
                 let retries = 0;
                 let err;
 
-                // eslint-disable-next-line no-unmodified-loop-condition
                 while ((!this.shouldRetry && retries === 0) || (this.shouldRetry && retries < this.retryMax)) {
                     try {
                         return await Promise.all(blocks.map((b) => this.getBlock(b)));
@@ -346,7 +345,6 @@ export class BatchTransactionService {
                 let retries = 0;
                 let err;
 
-                // eslint-disable-next-line no-unmodified-loop-condition
                 while ((!this.shouldRetry && retries === 0) || (this.shouldRetry && retries < this.retryMax)) {
                     try {
                         if (!receipt) {
@@ -491,7 +489,6 @@ export class BatchEventsService {
         let err;
         let retries = 0;
 
-        // eslint-disable-next-line no-unmodified-loop-condition
         while ((!this.shouldRetry && retries === 0) || (this.shouldRetry && retries < this.retryMax)) {
             try {
                 if (this.address) {

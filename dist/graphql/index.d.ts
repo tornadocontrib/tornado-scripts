@@ -12,9 +12,7 @@ export interface queryGraphParams {
     graphApi: string;
     subgraphName: string;
     query: string;
-    variables?: {
-        [key: string]: string | number;
-    };
+    variables?: Record<string, string | number>;
     fetchDataOptions?: fetchDataOptions;
 }
 export declare function queryGraph<T>({ graphApi, subgraphName, query, variables, fetchDataOptions, }: queryGraphParams): Promise<T>;

@@ -40,13 +40,14 @@ export function makeLabelNodeAndParent(name: string) {
 }
 
 // https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/contracts/consts.ts
-export const EnsContracts: {
-    [key: NetIdType]: {
+export const EnsContracts: Record<
+    NetIdType,
+    {
         ensRegistry: string;
         ensPublicResolver: string;
         ensNameWrapper: string;
-    };
-} = {
+    }
+> = {
     [NetId.MAINNET]: {
         ensRegistry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e',
         ensPublicResolver: '0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63',

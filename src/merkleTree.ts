@@ -1,6 +1,6 @@
 import { Worker as NodeWorker } from 'worker_threads';
 import { MerkleTree, PartialMerkleTree, Element, TreeEdge } from 'fixed-merkle-tree';
-import type { Tornado } from '@tornado/contracts';
+import type { Tornado } from 'tornado-contracts';
 import { isNode, toFixedHex } from './utils';
 import { mimc } from './mimc';
 import type { DepositType } from './deposits';
