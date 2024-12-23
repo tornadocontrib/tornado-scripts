@@ -10017,7 +10017,7 @@ class IndexedDB {
 }
 async function getIndexedDB(netId) {
   if (!netId) {
-    const idb2 = new IndexedDB({ dbName: "tornado-core" });
+    const idb2 = new IndexedDB({ dbName: "tornado-scripts" });
     await idb2.initDB();
     return idb2;
   }

@@ -317,7 +317,7 @@ export class IndexedDB {
 export async function getIndexedDB(netId?: NetIdType) {
     // key-value db for settings
     if (!netId) {
-        const idb = new IndexedDB({ dbName: 'tornado-core' });
+        const idb = new IndexedDB({ dbName: 'tornado-scripts' });
         await idb.initDB();
         return idb;
     }

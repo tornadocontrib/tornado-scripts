@@ -112,7 +112,7 @@ export function leInt2Buff(bigint: bnInput | bigint) {
     return Uint8Array.from(new BN(bigint as bnInput).toArray('le', 31));
 }
 
-// Inherited from tornado-core and tornado-cli
+// Inherited from tornado-scripts and tornado-cli
 export function toFixedHex(numberish: BigNumberish, length = 32) {
     return (
         '0x' +

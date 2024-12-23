@@ -15,23 +15,29 @@
         "build:web": "webpack",
         "build:hash": "ts-node scripts/hash.ts",
         "build": "yarn types && yarn build:node && yarn build:web && yarn build:hash",
-        "ipfs:build": "docker build -t tornado-core .",
-        "ipfs:hash": "docker container run --rm -it --entrypoint cat tornado-core /app/dist/hashes.json",
+        "docker:build": "docker build -t tornado-scripts .",
+        "docker:hash": "docker container run --rm -it --entrypoint cat tornado-scripts /app/dist/hashes.json",
         "test": "nyc mocha --require ts-node/register --require source-map-support/register --recursive 'test/**/*.ts' --timeout '300000'"
     },
     "author": "Tornado Contrib",
     "license": "MIT",
     "files": [
         "dist",
+        "scripts",
         "src",
-        ".eslintrc.js",
+        "test",
         ".gitattributes",
         ".gitignore",
-        ".npmrc",
+        "Dockerfile",
+        "eslint.config.mjs",
+        "hardhat.config.ts",
+        "LICENSE",
         "logo.png",
         "logo2.png",
         "rollup.config.mjs",
+        "tsconfig.build.json",
         "tsconfig.json",
+        "webpack.config.js",
         "yarn.lock"
     ],
     "dependencies": {
@@ -47,7 +53,7 @@
         "fixed-merkle-tree": "0.7.3",
         "idb": "^8.0.1",
         "snarkjs": "git+https://github.com/tornadocontrib/snarkjs.git#2c964b3fe6019e057acab04cc17705d1f7fdaf9a",
-        "tornado-contracts": "git+https://github.com/tornadocontrib/tornado-contracts.git#4c2fe0b80fa1a0571ffa538a046e234d4e38d140",
+        "tornado-contracts": "git+https://github.com/tornadocontrib/tornado-contracts.git#9be1e1c308ae891e939944b2220d9e2810e579f5",
         "websnark": "git+https://github.com/tornadocontrib/websnark.git#e5a79cca905d1ffb61a69739492be58d438c9f17"
     },
     "devDependencies": {
@@ -90,7 +96,7 @@
         "tsc": "^2.0.4",
         "typechain": "^8.3.2",
         "typescript": "^5.7.2",
-        "typescript-eslint": "^8.18.1",
+        "typescript-eslint": "^8.18.2",
         "webpack": "^5.97.1",
         "webpack-cli": "^6.0.1"
     },
