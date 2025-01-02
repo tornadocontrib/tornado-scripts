@@ -1,4 +1,5 @@
 import { Config, NetIdType } from '../networkConfig';
+import { TornadoNetInfo } from '../info';
 import { addressSchemaType, bnSchemaType } from '.';
 export interface statusInstanceType {
     type: string;
@@ -95,4 +96,4 @@ export interface statusSchema {
     };
     required: string[];
 }
-export declare function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean): statusSchema;
+export declare function getStatusSchema(netId: NetIdType, config: Config | TornadoNetInfo, tovarish: boolean): statusSchema;

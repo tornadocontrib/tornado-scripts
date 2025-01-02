@@ -1,14 +1,12 @@
-import { isHexString, assertArgument, assert, EventLog, UndecodedEventLog, Log, FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, Signature, MaxUint256, ZeroAddress } from 'ethers';
+import { isHexString, assertArgument, assert, EventLog, UndecodedEventLog, Log, FetchUrlFeeDataNetworkPlugin, FeeData, FetchRequest, JsonRpcProvider, Network, EnsPlugin, GasCostPlugin, resolveProperties, Wallet, HDNodeWallet, VoidSigner, JsonRpcSigner, BrowserProvider, isAddress, parseEther, getAddress, AbiCoder, formatEther, namehash, dataSlice, dataLength, Interface, Contract, computeAddress, keccak256, EnsResolver, parseUnits, Transaction, ZeroAddress, formatUnits, Signature, MaxUint256 } from 'ethers';
 import { Tornado__factory } from 'tornado-contracts';
 import { webcrypto } from 'crypto';
 import BN from 'bn.js';
 import * as contentHashUtils from '@ensdomains/content-hash';
-import crossFetch from 'cross-fetch';
 import Ajv from 'ajv';
-import { zip, unzip } from 'fflate';
+import { zip, unzip, zlib, unzlib } from 'fflate';
 import { buildPedersenHash, buildMimcSponge } from 'circomlibjs';
 import { getEncryptionPublicKey, encrypt, decrypt } from '@metamask/eth-sig-util';
-import { openDB, deleteDB } from 'idb';
 import { Worker as Worker$1 } from 'worker_threads';
 import { MerkleTree, PartialMerkleTree } from 'fixed-merkle-tree';
 import * as websnarkUtils from 'websnark/src/utils';
@@ -497,37 +495,10 @@ class BatchEventsService {
 }
 
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
-function getHttpAgent({
-  fetchUrl,
-  proxyUrl,
-  torPort,
-  retry
-}) {
-  const { HttpProxyAgent } = require("http-proxy-agent");
-  const { HttpsProxyAgent } = require("https-proxy-agent");
-  const { SocksProxyAgent } = require("socks-proxy-agent");
-  if (torPort) {
-    return new SocksProxyAgent(`socks5h://tor${retry}@127.0.0.1:${torPort}`);
-  }
-  if (!proxyUrl) {
-    return;
-  }
-  const isHttps = fetchUrl.includes("https://");
-  if (proxyUrl.includes("socks://") || proxyUrl.includes("socks4://") || proxyUrl.includes("socks5://")) {
-    return new SocksProxyAgent(proxyUrl);
-  }
-  if (proxyUrl.includes("http://") || proxyUrl.includes("https://")) {
-    if (isHttps) {
-      return new HttpsProxyAgent(proxyUrl);
-    }
-    return new HttpProxyAgent(proxyUrl);
-  }
-}
 async function fetchData(url, options = {}) {
   const MAX_RETRY = options.maxRetry ?? 3;
   const RETRY_ON = options.retryOn ?? 500;
   const userAgent = options.userAgent ?? defaultUserAgent;
-  const fetch = globalThis.useGlobalFetch ? globalThis.fetch : crossFetch;
   let retry = 0;
   let errorObject;
   if (!options.method) {
@@ -542,6 +513,9 @@ async function fetchData(url, options = {}) {
   }
   if (isNode && !options.headers["User-Agent"]) {
     options.headers["User-Agent"] = userAgent;
+  }
+  if (typeof globalThis.fetch !== "function") {
+    throw new Error("Fetch API is not available, use latest browser or nodejs installation!");
   }
   while (retry < MAX_RETRY + 1) {
     let timeout;
@@ -560,15 +534,7 @@ async function fetchData(url, options = {}) {
         });
       }
     }
-    if (!options.agent && isNode && (options.proxy || options.torPort)) {
-      options.agent = getHttpAgent({
-        fetchUrl: url,
-        proxyUrl: options.proxy,
-        torPort: options.torPort,
-        retry
-      });
-    }
-    if (options.debug && typeof options.debug === "function") {
+    if (typeof options.debug === "function") {
       options.debug("request", {
         url,
         retry,
@@ -577,13 +543,10 @@ async function fetchData(url, options = {}) {
       });
     }
     try {
-      const resp = await fetch(url, {
-        method: options.method,
-        headers: options.headers,
-        body: options.body,
-        redirect: options.redirect,
-        signal: options.signal,
-        agent: options.agent
+      const dispatcher = options.dispatcherFunc ? options.dispatcherFunc(retry) : options.dispatcher;
+      const resp = await globalThis.fetch(url, {
+        ...options,
+        dispatcher
       });
       if (options.debug && typeof options.debug === "function") {
         options.debug("response", resp);
@@ -646,15 +609,25 @@ const fetchGetUrlFunc = (options = {}) => async (req, _signal) => {
     body
   };
 };
+const FeeDataNetworkPluginName = new FetchUrlFeeDataNetworkPlugin(
+  "",
+  () => new Promise((resolve) => resolve(new FeeData()))
+).name;
 async function getProvider(rpcUrl, fetchOptions) {
   const fetchReq = new FetchRequest(rpcUrl);
   fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
-  const staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
-  const chainId = Number(staticNetwork.chainId);
+  const fetchedNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
+  const chainId = Number(fetchedNetwork.chainId);
   if (fetchOptions?.netId && fetchOptions.netId !== chainId) {
     const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
     throw new Error(errMsg);
   }
+  const staticNetwork = new Network(fetchedNetwork.name, fetchedNetwork.chainId);
+  fetchedNetwork.plugins.forEach((plugin) => {
+    if (plugin.name !== FeeDataNetworkPluginName) {
+      staticNetwork.attachPlugin(plugin.clone());
+    }
+  });
   return new JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
     pollingInterval: fetchOptions?.pollingInterval || 1e3
@@ -721,7 +694,7 @@ const populateTransaction = async (signer, tx) => {
       }
     }
   }
-  return tx;
+  return resolveProperties(tx);
 };
 class TornadoWallet extends Wallet {
   nonce;
@@ -744,7 +717,7 @@ class TornadoWallet extends Wallet {
   async populateTransaction(tx) {
     const txObject = await populateTransaction(this, tx);
     this.nonce = Number(txObject.nonce);
-    return super.populateTransaction(txObject);
+    return txObject;
   }
 }
 class TornadoVoidSigner extends VoidSigner {
@@ -763,7 +736,7 @@ class TornadoVoidSigner extends VoidSigner {
   async populateTransaction(tx) {
     const txObject = await populateTransaction(this, tx);
     this.nonce = Number(txObject.nonce);
-    return super.populateTransaction(txObject);
+    return txObject;
   }
 }
 class TornadoRpcSigner extends JsonRpcSigner {
@@ -824,13 +797,6 @@ var NetId = /* @__PURE__ */ ((NetId2) => {
 })(NetId || {});
 const defaultConfig = {
   [1 /* MAINNET */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 80,
-      fast: 50,
-      standard: 25,
-      low: 8
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://etherscan.io",
@@ -874,6 +840,7 @@ const defaultConfig = {
     stakingRewardsContract: "0x5B3f656C80E8ddb9ec01Dd9018815576E9238c29",
     registryContract: "0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2",
     aggregatorContract: "0xE8F47A78A6D52D317D0D2FFFac56739fE14D1b49",
+    balanceAggregatorContract: "0x4eca0bc387a3a5f4af56bea2ce78120971cc11a1",
     reverseRecordsContract: "0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C",
     tornadoSubgraph: "tornadocash/mainnet-tornado-subgraph",
     registrySubgraph: "tornadocash/tornado-relayer-registry",
@@ -954,23 +921,9 @@ const defaultConfig = {
     // Inactive tokens to filter from schema verification and syncing events
     disabledTokens: ["cdai", "usdt", "usdc"],
     relayerEnsSubdomain: "mainnet-tornado",
-    pollInterval: 15,
-    constants: {
-      GOVERNANCE_BLOCK: 11474695,
-      NOTE_ACCOUNT_BLOCK: 11842486,
-      ENCRYPTED_NOTES_BLOCK: 12143762,
-      REGISTRY_BLOCK: 14173129,
-      MINING_BLOCK_TIME: 15
-    }
+    pollInterval: 15
   },
   [56 /* BSC */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 3,
-      fast: 1,
-      standard: 1,
-      low: 1
-    },
     nativeCurrency: "bnb",
     currencyName: "BNB",
     explorerUrl: "https://bscscan.com",
@@ -1053,20 +1006,9 @@ const defaultConfig = {
     },
     optionalTokens: ["usdt", "btcb"],
     relayerEnsSubdomain: "bsc-tornado",
-    pollInterval: 3,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 8159269,
-      ENCRYPTED_NOTES_BLOCK: 8159269
-    }
+    pollInterval: 3
   },
   [137 /* POLYGON */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 60,
-      fast: 30,
-      standard: 30,
-      low: 30
-    },
     nativeCurrency: "matic",
     currencyName: "MATIC",
     explorerUrl: "https://polygonscan.com",
@@ -1112,20 +1054,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "polygon-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 16257996,
-      ENCRYPTED_NOTES_BLOCK: 16257996
-    }
+    pollInterval: 2
   },
   [10 /* OPTIMISM */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 1e-3,
-      fast: 1e-3,
-      standard: 1e-3,
-      low: 1e-3
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://optimistic.etherscan.io",
@@ -1175,20 +1106,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "optimism-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 2243694,
-      ENCRYPTED_NOTES_BLOCK: 2243694
-    }
+    pollInterval: 2
   },
   [42161 /* ARBITRUM */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 0.02,
-      fast: 0.02,
-      standard: 0.02,
-      low: 0.02
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://arbiscan.io",
@@ -1237,20 +1157,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "arbitrum-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 3430605,
-      ENCRYPTED_NOTES_BLOCK: 3430605
-    }
+    pollInterval: 2
   },
   [8453 /* BASE */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 0.1,
-      fast: 0.06,
-      standard: 0.05,
-      low: 0.02
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://basescan.org",
@@ -1329,20 +1238,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "base-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 23149794,
-      ENCRYPTED_NOTES_BLOCK: 23149794
-    }
+    pollInterval: 2
   },
   [81457 /* BLAST */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 1e-3,
-      fast: 1e-3,
-      standard: 1e-3,
-      low: 1e-3
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://blastscan.io",
@@ -1386,20 +1284,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "blast-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 12144065,
-      ENCRYPTED_NOTES_BLOCK: 12144065
-    }
+    pollInterval: 2
   },
   [100 /* GNOSIS */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 6,
-      fast: 5,
-      standard: 4,
-      low: 1
-    },
     nativeCurrency: "xdai",
     currencyName: "xDAI",
     explorerUrl: "https://gnosisscan.io",
@@ -1441,20 +1328,9 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "gnosis-tornado",
-    pollInterval: 5,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 17754564,
-      ENCRYPTED_NOTES_BLOCK: 17754564
-    }
+    pollInterval: 5
   },
   [43114 /* AVALANCHE */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 225,
-      fast: 35,
-      standard: 25,
-      low: 25
-    },
     nativeCurrency: "avax",
     currencyName: "AVAX",
     explorerUrl: "https://snowtrace.io",
@@ -1499,22 +1375,11 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "avalanche-tornado",
-    pollInterval: 2,
-    constants: {
-      NOTE_ACCOUNT_BLOCK: 4429813,
-      ENCRYPTED_NOTES_BLOCK: 4429813
-    }
+    pollInterval: 2
   },
   [11155111 /* SEPOLIA */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 2,
-      fast: 2,
-      standard: 2,
-      low: 2
-    },
     nativeCurrency: "eth",
-    currencyName: "SepoliaETH",
+    currencyName: "ETH",
     explorerUrl: "https://sepolia.etherscan.io",
     merkleTreeHeight: 20,
     emptyElement: "21663839004416932945382355908790599225266501822907911457504978515578255421292",
@@ -1581,14 +1446,7 @@ const defaultConfig = {
       }
     },
     relayerEnsSubdomain: "sepolia-tornado",
-    pollInterval: 15,
-    constants: {
-      GOVERNANCE_BLOCK: 5594395,
-      NOTE_ACCOUNT_BLOCK: 5594395,
-      ENCRYPTED_NOTES_BLOCK: 5594395,
-      REGISTRY_BLOCK: 5594395,
-      MINING_BLOCK_TIME: 15
-    }
+    pollInterval: 15
   }
 };
 const enabledChains = Object.values(NetId).filter((n) => typeof n === "number");
@@ -1624,15 +1482,6 @@ function getConfig(netId) {
 function getActiveTokens(config) {
   const { tokens, disabledTokens } = config;
   return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
-}
-function getActiveTokenInstances(config) {
-  const { tokens, disabledTokens } = config;
-  return Object.entries(tokens).reduce((acc, [token, instances]) => {
-    if (!disabledTokens?.includes(token)) {
-      acc[token] = instances;
-    }
-    return acc;
-  }, {});
 }
 function getInstanceByAddress(config, address) {
   const { tokens, disabledTokens } = config;
@@ -2020,6 +1869,74 @@ function getEventsSchemaValidator(type) {
   throw new Error("Unsupported event type for schema validation");
 }
 
+const jobsSchema = {
+  type: "object",
+  properties: {
+    error: { type: "string" },
+    id: { type: "string" },
+    type: { type: "string" },
+    status: { type: "string" },
+    contract: { type: "string" },
+    proof: { type: "string" },
+    args: {
+      type: "array",
+      items: { type: "string" }
+    },
+    txHash: { type: "string" },
+    confirmations: { type: "number" },
+    failedReason: { type: "string" }
+  },
+  required: ["id", "status"]
+};
+const jobRequestSchema = {
+  ...jobsSchema,
+  required: ["id"]
+};
+
+const netInfoSchemaV0 = {
+  type: "object",
+  properties: {
+    chainId: { type: "number" },
+    name: { type: "string" },
+    symbol: { type: "string" },
+    decimals: { type: "number" },
+    nativeCurrency: { type: "string" },
+    explorer: { type: "string" },
+    homepage: { type: "string" },
+    blockTime: { type: "number" },
+    deployedBlock: { type: "number" },
+    merkleTreeHeight: { type: "number" },
+    emptyElement: { type: "string" },
+    // Contract Address of stablecoin token, used for fiat conversion
+    stablecoin: addressSchemaType,
+    multicallContract: addressSchemaType,
+    routerContract: addressSchemaType,
+    echoContract: addressSchemaType,
+    offchainOracleContract: addressSchemaType,
+    // Contracts required for governance
+    tornContract: addressSchemaType,
+    governanceContract: addressSchemaType,
+    stakingRewardsContract: addressSchemaType,
+    registryContract: addressSchemaType,
+    aggregatorContract: addressSchemaType,
+    balanceAggregatorContract: addressSchemaType,
+    reverseRecordsContract: addressSchemaType,
+    ovmGasPriceOracleContract: addressSchemaType,
+    tornadoSubgraph: { type: "string" },
+    registrySubgraph: { type: "string" },
+    governanceSubgraph: { type: "string" },
+    relayerEnsSubdomain: { type: "string" }
+  },
+  required: ["chainId", "name", "symbol", "explorer", "homepage", "blockTime", "deployedBlock", "stablecoin"],
+  additionalProperties: false
+};
+function getNetInfoSchema(revision = 0) {
+  if (revision === 0) {
+    return ajv.compile(netInfoSchemaV0);
+  }
+  throw new Error("Unsupported net info schema");
+}
+
 const statusSchema = {
   type: "object",
   properties: {
@@ -2060,7 +1977,7 @@ const statusSchema = {
   required: ["rewardAccount", "instances", "netId", "tornadoServiceFee", "version", "health", "currentQueue"]
 };
 function getStatusSchema(netId, config, tovarish) {
-  const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
+  const { tokens, nativeCurrency } = config;
   const schema = JSON.parse(JSON.stringify(statusSchema));
   const instances = Object.keys(tokens).reduce(
     (acc, token) => {
@@ -2091,9 +2008,7 @@ function getStatusSchema(netId, config, tovarish) {
         instanceProperties.properties.symbol = { enum: [symbol] };
       }
       acc.properties[token] = instanceProperties;
-      if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
-        acc.required.push(token);
-      }
+      acc.required.push(token);
       return acc;
     },
     {
@@ -2103,9 +2018,7 @@ function getStatusSchema(netId, config, tovarish) {
     }
   );
   schema.properties.instances = instances;
-  const _tokens = Object.keys(tokens).filter(
-    (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t)
-  );
+  const _tokens = Object.keys(tokens).filter((t) => t !== nativeCurrency);
   if (netId === NetId.MAINNET) {
     _tokens.push("torn");
   }
@@ -2126,30 +2039,6 @@ function getStatusSchema(netId, config, tovarish) {
   }
   return schema;
 }
-
-const jobsSchema = {
-  type: "object",
-  properties: {
-    error: { type: "string" },
-    id: { type: "string" },
-    type: { type: "string" },
-    status: { type: "string" },
-    contract: { type: "string" },
-    proof: { type: "string" },
-    args: {
-      type: "array",
-      items: { type: "string" }
-    },
-    txHash: { type: "string" },
-    confirmations: { type: "number" },
-    failedReason: { type: "string" }
-  },
-  required: ["id", "status"]
-};
-const jobRequestSchema = {
-  ...jobsSchema,
-  required: ["id"]
-};
 
 const MIN_FEE = 0.1;
 const MAX_FEE = 0.9;
@@ -2219,7 +2108,7 @@ class RelayerClient {
         "Content-Type": "application/json, application/x-www-form-urlencoded"
       },
       timeout: 3e4,
-      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
+      maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0
     });
     const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
     if (!statusValidator(rawStatus)) {
@@ -3153,7 +3042,7 @@ async function getTovarishNetworks(registryService, relayers) {
             "Content-Type": "application/json"
           },
           timeout: 3e4,
-          maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0
+          maxRetry: registryService.fetchDataOptions?.dispatcher ? 2 : 0
         });
       } catch {
         relayer.tovarishNetworks = [];
@@ -3474,6 +3363,28 @@ function zipAsync(file, options) {
 function unzipAsync(data) {
   return new Promise((res, rej) => {
     unzip(data, {}, (err, data2) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data2);
+    });
+  });
+}
+function zlibAsync(data, options) {
+  return new Promise((res, rej) => {
+    zlib(data, { ...options || {} }, (err, data2) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data2);
+    });
+  });
+}
+function unzlibAsync(data, options) {
+  return new Promise((res, rej) => {
+    unzlib(data, { ...options || {} }, (err, data2) => {
       if (err) {
         rej(err);
         return;
@@ -9568,7 +9479,7 @@ class ENSUtils {
   }
   async getContracts() {
     const { chainId } = await this.provider.getNetwork();
-    const { ensRegistry, ensPublicResolver, ensNameWrapper } = EnsContracts[Number(chainId)];
+    const { ensRegistry, ensPublicResolver, ensNameWrapper } = EnsContracts[Number(chainId)] || EnsContracts[NetId.MAINNET];
     this.ENSRegistry = ENSRegistry__factory.connect(ensRegistry, this.provider);
     this.ENSResolver = ENSResolver__factory.connect(ensPublicResolver, this.provider);
     this.ENSNameWrapper = ENSNameWrapper__factory.connect(ensNameWrapper, this.provider);
@@ -9812,7 +9723,7 @@ class IndexedDB {
       if (this.dbExists || this.isBlocked) {
         return;
       }
-      this.db = await openDB(this.dbName, this.dbVersion, this.options);
+      this.db = await window?.idb?.openDB(this.dbName, this.dbVersion, this.options);
       this.db.addEventListener("onupgradeneeded", async () => {
         await this._removeExist();
       });
@@ -9832,7 +9743,7 @@ class IndexedDB {
     }
   }
   async _removeExist() {
-    await deleteDB(this.dbName);
+    await window?.idb?.deleteDB(this.dbName);
     this.dbExists = false;
     await this.initDB();
   }
@@ -10138,8 +10049,503 @@ async function getIndexedDB(netId) {
   return idb;
 }
 
-async function fetchIp(ipEcho) {
-  return await fetchData(ipEcho, {
+async function multicall(Multicall2, calls) {
+  const calldata = calls.map((call) => {
+    const target = call.contract?.target || call.address;
+    const callInterface = call.contract?.interface || call.interface;
+    return {
+      target,
+      callData: callInterface.encodeFunctionData(call.name, call.params),
+      allowFailure: call.allowFailure ?? false
+    };
+  });
+  const returnData = await Multicall2.aggregate3.staticCall(calldata);
+  const res = returnData.map((call, i) => {
+    const callInterface = calls[i].contract?.interface || calls[i].interface;
+    const [result, data] = call;
+    const decodeResult = result && data && data !== "0x" ? callInterface.decodeFunctionResult(calls[i].name, data) : null;
+    return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
+  });
+  return res;
+}
+
+const INFO_REVISION = 0;
+const MERKLE_TREE_HEIGHT = 20;
+const EMPTY_ELEMENT = "21663839004416932945382355908790599225266501822907911457504978515578255421292";
+const MULTICALL_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const TORNADO_PROXY_LIGHT_ADDRESS = "0x0D5550d52428E7e3175bfc9550207e4ad3859b17";
+const ECHOER_ADDRESS = "0xa75BF2815618872f155b7C4B0C81bF990f5245E4";
+const INFO_REGISTRY_ADDRESS = "0xeB2219AE55643D2e199024e209e4A58FCC1c46CB";
+const TOVARISH_REGISTRY_ADDRESS = "0x1484Ba55377e4512C8bb58A791F6a4a2aAbbECF6";
+const MULTILOCK_ADDRESS = "0xa9ea50025fd38f698ed09628eb73021773f2fc95";
+const knownSubdomains = {
+  [NetId.MAINNET]: "mainnet-tornado",
+  [NetId.BSC]: "bsc-tornado",
+  [NetId.POLYGON]: "polygon-tornado",
+  [NetId.OPTIMISM]: "optimism-tornado",
+  [NetId.ARBITRUM]: "arbitrum-tornado",
+  [NetId.GNOSIS]: "gnosis-tornado",
+  [NetId.AVALANCHE]: "avalanche-tornado"
+};
+class NetInfo {
+  // EIP-155 chainId
+  chainId;
+  // Static value
+  name;
+  symbol;
+  decimals;
+  // Alternative native currency to resolve pools
+  _nativeCurrency;
+  // EIP-3091 compatible block explorer
+  explorer;
+  // Chain homepage (ex: ethereum.org)
+  homepage;
+  // Average block generation time in seconds
+  blockTime;
+  constructor(netInfo) {
+    this.chainId = netInfo.chainId || 1;
+    this.name = netInfo.name || "Ethereum Mainnet";
+    this.symbol = netInfo.symbol || "ETH";
+    this.decimals = netInfo.decimals || 18;
+    this._nativeCurrency = netInfo.nativeCurrency;
+    this.explorer = netInfo.explorer || "https://etherscan.io";
+    this.homepage = netInfo.homepage || "https://ethereum.org";
+    this.blockTime = netInfo.blockTime || 14;
+  }
+  get netId() {
+    return this.chainId;
+  }
+  get networkId() {
+    return this.chainId;
+  }
+  get nativeCurrency() {
+    return this._nativeCurrency || this.symbol.toLowerCase();
+  }
+  get currencyName() {
+    return this.symbol.toUpperCase();
+  }
+  get explorerUrl() {
+    return this.explorer;
+  }
+  get networkName() {
+    return this.name;
+  }
+  get pollInterval() {
+    return this.blockTime;
+  }
+}
+class TornadoNetInfo extends NetInfo {
+  revision;
+  /**
+   * Network netInfo
+   */
+  deployedBlock;
+  merkleTreeHeight;
+  emptyElement;
+  stablecoin;
+  multicallContract;
+  routerContract;
+  echoContract;
+  offchainOracleContract;
+  tornContract;
+  governanceContract;
+  stakingRewardsContract;
+  registryContract;
+  aggregatorContract;
+  balanceAggregatorContract;
+  reverseRecordsContract;
+  ovmGasPriceOracleContract;
+  tornadoSubgraph;
+  registrySubgraph;
+  governanceSubgraph;
+  relayerEnsSubdomain;
+  /**
+   * RPC list
+   */
+  rpcInfos;
+  /**
+   * Token list
+   */
+  tokenInfos;
+  /**
+   * Instance list
+   */
+  instanceInfos;
+  constructor(netInfo, netInfoRevision, rpcInfos, tokenInfos, instanceInfos) {
+    super(netInfo);
+    this.revision = netInfoRevision || INFO_REVISION;
+    this.deployedBlock = netInfo.deployedBlock || 0;
+    this.merkleTreeHeight = netInfo.merkleTreeHeight;
+    this.emptyElement = netInfo.emptyElement;
+    this.stablecoin = netInfo.stablecoin || ZeroAddress;
+    this.multicallContract = netInfo.multicallContract || MULTICALL_ADDRESS;
+    this.routerContract = netInfo.routerContract || TORNADO_PROXY_LIGHT_ADDRESS;
+    this.echoContract = netInfo.echoContract || ECHOER_ADDRESS;
+    this.offchainOracleContract = netInfo.offchainOracleContract;
+    this.tornContract = netInfo.tornContract;
+    this.governanceContract = netInfo.governanceContract;
+    this.stakingRewardsContract = netInfo.stakingRewardsContract;
+    this.registryContract = netInfo.registryContract;
+    this.aggregatorContract = netInfo.aggregatorContract;
+    this.balanceAggregatorContract = netInfo.balanceAggregatorContract;
+    this.reverseRecordsContract = netInfo.reverseRecordsContract;
+    this.ovmGasPriceOracleContract = netInfo.ovmGasPriceOracleContract;
+    this.tornadoSubgraph = netInfo.tornadoSubgraph;
+    this.registrySubgraph = netInfo.registrySubgraph;
+    this.governanceSubgraph = netInfo.governanceSubgraph;
+    this.relayerEnsSubdomain = netInfo.relayerEnsSubdomain;
+    this.rpcInfos = rpcInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => a.isPrior === b.isPrior ? 0 : a.isPrior ? -1 : 1);
+    this.tokenInfos = tokenInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => a.symbol.localeCompare(b.symbol));
+    this.instanceInfos = instanceInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => {
+      if (a.tokenAddress !== b.tokenAddress) {
+        return tokenInfos.findIndex((t) => t.address === a.tokenAddress) - tokenInfos.findIndex((t) => t.address === b.tokenAddress);
+      }
+      if (a.denomination < b.denomination) {
+        return -1;
+      }
+      if (a.denomination > b.denomination) {
+        return 1;
+      }
+      return 0;
+    });
+    const netInfoValidator = getNetInfoSchema(netInfoRevision);
+    if (!netInfoValidator(netInfo) || !this.rpcInfos.length) {
+      const errMsg = `Net info validation for chain ${netInfo.chainId} failed`;
+      throw new Error(errMsg);
+    }
+  }
+  toJSON() {
+    return {
+      chainId: this.chainId,
+      name: this.name,
+      symbol: this.symbol,
+      decimals: this.decimals,
+      nativeCurrency: this._nativeCurrency,
+      explorer: this.explorer,
+      homepage: this.homepage,
+      blockTime: this.blockTime,
+      deployedBlock: this.deployedBlock,
+      merkleTreeHeight: this.merkleTreeHeight,
+      emptyElement: this.emptyElement,
+      stablecoin: this.stablecoin !== ZeroAddress ? this.stablecoin : void 0,
+      multicallContract: this.multicallContract !== MULTICALL_ADDRESS ? this.multicallContract : void 0,
+      routerContract: this.routerContract !== TORNADO_PROXY_LIGHT_ADDRESS ? this.routerContract : void 0,
+      echoContract: this.echoContract !== ECHOER_ADDRESS ? this.echoContract : void 0,
+      offchainOracleContract: this.offchainOracleContract,
+      tornContract: this.tornContract,
+      governanceContract: this.governanceContract,
+      stakingRewardsContract: this.stakingRewardsContract,
+      registryContract: this.registryContract,
+      aggregatorContract: this.aggregatorContract,
+      balanceAggregatorContract: this.balanceAggregatorContract,
+      reverseRecordsContract: this.reverseRecordsContract,
+      ovmGasPriceOracleContract: this.ovmGasPriceOracleContract,
+      tornadoSubgraph: this.tornadoSubgraph,
+      registrySubgraph: this.registrySubgraph,
+      governanceSubgraph: this.governanceSubgraph,
+      relayerEnsSubdomain: this.relayerEnsSubdomain,
+      revision: this.revision !== INFO_REVISION ? this.revision : void 0,
+      rpcInfos: this.rpcInfos,
+      tokenInfos: this.tokenInfos,
+      instanceInfos: this.instanceInfos
+    };
+  }
+  /**
+   * Legacy format of rpcUrls
+   */
+  get rpcUrls() {
+    return this.rpcInfos.reduce((acc, { url }) => {
+      const { host: name } = new URL(url);
+      acc[name] = {
+        name,
+        url
+      };
+      return acc;
+    }, {});
+  }
+  /**
+   * Legacy format of instances
+   */
+  get tokens() {
+    return this.instanceInfos.reduce(
+      (acc, { address: instanceAddress, denomination, tokenAddress, instanceApproval, isOptional, isDisabled }) => {
+        const { symbol, decimals, transferGas } = tokenAddress ? this.tokenInfos.find(({ address }) => address === tokenAddress) : {
+          symbol: this.symbol,
+          decimals: 18
+        };
+        const symbolKey = symbol.toLowerCase();
+        const amount = Number(formatUnits(denomination, decimals)).toFixed(0);
+        if (isDisabled) {
+          return acc;
+        }
+        if (!acc[symbolKey]) {
+          acc[symbolKey] = {
+            instanceAddress: {},
+            instanceApproval,
+            optionalInstances: [],
+            tokenAddress,
+            tokenGasLimit: transferGas,
+            symbol,
+            decimals
+          };
+        }
+        acc[symbolKey].instanceAddress[amount] = instanceAddress;
+        if (isOptional) {
+          acc[symbolKey].optionalInstances?.push(amount);
+        }
+        return acc;
+      },
+      {}
+    );
+  }
+  get allTokenInfos() {
+    return [
+      {
+        chainId: this.chainId,
+        address: "",
+        name: this.name,
+        symbol: this.symbol,
+        decimals: 18
+      }
+    ].concat(this.tokenInfos);
+  }
+  getInstances(currency) {
+    const tokenInfo = this.allTokenInfos.find(({ symbol: symbol2 }) => currency.toLowerCase() === symbol2.toLowerCase());
+    if (!tokenInfo) {
+      const errMsg = `Token ${currency} not found from chain ${this.chainId}`;
+      throw new Error(errMsg);
+    }
+    const { address: tokenContract, name, symbol, decimals, transferGas } = tokenInfo;
+    const instances = this.instanceInfos.filter(({ tokenAddress }) => {
+      if (!tokenContract) {
+        return !tokenAddress;
+      }
+      return tokenContract === tokenAddress;
+    });
+    return instances.map((i) => ({
+      ...i,
+      name,
+      symbol,
+      decimals,
+      amount: Number(formatUnits(i.denomination, decimals)).toFixed(0),
+      transferGas
+    }));
+  }
+  getInstanceByAmount(currency, amount) {
+    const instanceInfo = this.getInstances(currency).find((i) => i.amount === Number(amount).toFixed(0));
+    if (!instanceInfo) {
+      const errMsg = `Instance ${amount} ${currency} not found from chain ${this.chainId}`;
+      throw new Error(errMsg);
+    }
+    return instanceInfo;
+  }
+  getInstanceByAddress(instanceAddress) {
+    const instanceInfo = this.instanceInfos.find(({ address }) => address === instanceAddress);
+    if (!instanceInfo) {
+      const errMsg = `Instance ${instanceAddress} not found from chain ${this.chainId}`;
+      throw new Error(errMsg);
+    }
+    const { name, symbol, decimals, transferGas } = instanceInfo.tokenAddress ? this.tokenInfos.find(({ address }) => address === instanceInfo.tokenAddress) : {
+      name: this.name,
+      symbol: this.symbol,
+      decimals: 18
+    };
+    return {
+      ...instanceInfo,
+      name,
+      symbol,
+      decimals,
+      amount: Number(formatUnits(instanceInfo.denomination, decimals)).toFixed(0),
+      transferGas
+    };
+  }
+}
+class TornadoInfos {
+  revision;
+  subdomains;
+  multicall;
+  infoRegistry;
+  tovarishRegistry;
+  multilock;
+  /**
+   * Fetched Infos
+   */
+  netInfos;
+  relayerInfos;
+  lastInfoUpdate;
+  constructor(infosConstructor) {
+    this.revision = infosConstructor.revision || INFO_REVISION;
+    this.subdomains = infosConstructor.subdomains;
+    this.multicall = infosConstructor.multicall;
+    this.infoRegistry = infosConstructor.infoRegistry;
+    this.tovarishRegistry = infosConstructor.tovarishRegistry;
+    this.multilock = infosConstructor.multilock;
+    this.netInfos = [];
+    this.relayerInfos = [];
+    this.lastInfoUpdate = 0;
+  }
+  get enabledChains() {
+    return this.netInfos.map((n) => n.chainId);
+  }
+  getInfo(chainId) {
+    const netInfo = this.netInfos.find((n) => n.chainId === chainId);
+    if (!netInfo) {
+      const errMsg = `Info for chain ${chainId} not found`;
+      throw new Error(errMsg);
+    }
+    return netInfo;
+  }
+  /**
+   * Try updating config and if fail use fallback
+   */
+  async updateInfos(fallbackInfos) {
+    try {
+      const { netInfos, relayerInfos, lastInfoUpdate } = await this.getLatestInfos();
+      this.netInfos = netInfos;
+      this.relayerInfos = relayerInfos;
+      this.lastInfoUpdate = lastInfoUpdate;
+      return {
+        netInfos,
+        relayerInfos,
+        lastInfoUpdate
+      };
+    } catch (err) {
+      if (!fallbackInfos) {
+        throw err;
+      }
+      console.log(`Failed to fetch latest tornado configs, falling back: ${err.message}`);
+      console.log(err);
+      return {
+        netInfos: fallbackInfos.netInfos.map(
+          (n) => new TornadoNetInfo(n, n.revision, n.rpcInfos, n.tokenInfos, n.instanceInfos)
+        ),
+        relayerInfos: fallbackInfos.relayerInfos,
+        lastInfoUpdate: fallbackInfos.lastInfoUpdate
+      };
+    }
+  }
+  async getLatestInfos() {
+    const [rawInfos, rawRpcs, rawInstances, rawTokens, rawRelayers, rawExecution] = await multicall(
+      this.multicall,
+      [
+        {
+          contract: this.infoRegistry,
+          name: "getNetInfos",
+          params: [this.revision]
+        },
+        {
+          contract: this.infoRegistry,
+          name: "getRpcs"
+        },
+        {
+          contract: this.infoRegistry,
+          name: "getInstances"
+        },
+        {
+          contract: this.infoRegistry,
+          name: "getTokens"
+        },
+        {
+          contract: this.tovarishRegistry,
+          name: "relayersData",
+          params: [Object.values(this.subdomains || {})]
+        },
+        ...this.multilock ? [
+          {
+            contract: this.multilock,
+            name: "lastExecution"
+          }
+        ] : []
+      ]
+    );
+    const textDecoder = new TextDecoder();
+    const parsedConfigs = await Promise.all(
+      rawInfos.map(async (configBytes) => {
+        const uncompressed = await unzlibAsync(hexToBytes(configBytes));
+        const config = JSON.parse(textDecoder.decode(uncompressed));
+        return config;
+      })
+    );
+    const rpcInfos = rawRpcs.map(({ chainId, url, isPrior }) => ({
+      chainId: Number(chainId),
+      url,
+      isPrior
+    }));
+    const tokenInfos = rawTokens.map(({ chainId, addr: address, name, symbol, decimals, transferGas }) => ({
+      chainId: Number(chainId),
+      address,
+      name,
+      symbol,
+      decimals: Number(decimals),
+      transferGas: transferGas ? Number(transferGas) : void 0
+    }));
+    const instanceInfos = rawInstances.map(
+      ({
+        chainId,
+        addr: address,
+        denomination,
+        tokenAddress,
+        instanceApproval,
+        isOptional,
+        isDisabled
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) => ({
+        chainId: Number(chainId),
+        address,
+        denomination,
+        tokenAddress: tokenAddress !== ZeroAddress ? tokenAddress : void 0,
+        instanceApproval: instanceApproval || void 0,
+        isOptional: isOptional || void 0,
+        isDisabled: isDisabled || void 0
+      })
+    );
+    const netInfos = parsedConfigs.map(
+      (netCfg) => new TornadoNetInfo(netCfg, this.revision, rpcInfos, tokenInfos, instanceInfos)
+    );
+    const relayerInfos = rawRelayers.map(
+      ({
+        ensName,
+        owner: relayerAddress,
+        balance: stakeBalance,
+        isRegistered,
+        tovarishHost,
+        tovarishChains: rawChains,
+        records
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) => {
+        const hostnames = Object.keys(this.subdomains || {}).reduce((acc, curr, i) => {
+          if (records[i]) {
+            acc[Number(curr)] = records[i];
+          }
+          return acc;
+        }, {});
+        const tovarishChains = String(rawChains).split(",").map((c) => parseInt(c)).filter((c) => c);
+        const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+        const precondition = Boolean(isRegistered && hasMinBalance && records.length) || Boolean(tovarishHost.length && tovarishChains.length);
+        if (precondition) {
+          return {
+            ensName,
+            relayerAddress,
+            isRegistered,
+            registeredAddress: relayerAddress,
+            stakeBalance,
+            hostnames,
+            tovarishHost,
+            tovarishChains
+          };
+        }
+      }
+    ).filter((r) => r);
+    return {
+      netInfos,
+      relayerInfos,
+      lastInfoUpdate: Number(rawExecution || 0)
+    };
+  }
+}
+
+function fetchIp(ipEcho) {
+  return fetchData(ipEcho, {
     method: "GET",
     timeout: 3e4
   });
@@ -10319,26 +10725,6 @@ Created ${this.netId} ${this.amount} ${this.currency.toUpperCase()} tree in ${Da
     );
     return tree;
   }
-}
-
-async function multicall(Multicall2, calls) {
-  const calldata = calls.map((call) => {
-    const target = call.contract?.target || call.address;
-    const callInterface = call.contract?.interface || call.interface;
-    return {
-      target,
-      callData: callInterface.encodeFunctionData(call.name, call.params),
-      allowFailure: call.allowFailure ?? false
-    };
-  });
-  const returnData = await Multicall2.aggregate3.staticCall(calldata);
-  const res = returnData.map((call, i) => {
-    const callInterface = calls[i].contract?.interface || calls[i].interface;
-    const [result, data] = call;
-    const decodeResult = result && data && data !== "0x" ? callInterface.decodeFunctionResult(calls[i].name, data) : null;
-    return !decodeResult ? null : decodeResult.length === 1 ? decodeResult[0] : decodeResult;
-  });
-  return res;
 }
 
 const permit2Address = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
@@ -10558,24 +10944,17 @@ class TovarishClient extends RelayerClient {
         "Content-Type": "application/json, application/x-www-form-urlencoded"
       },
       timeout: 3e4,
-      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
+      maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0
     });
     if (!Array.isArray(statusArray)) {
       return [];
     }
     const tovarishStatus = [];
     for (const rawStatus of statusArray) {
-      const netId = rawStatus.netId;
+      const netId = rawStatus?.netId;
       const config = getConfig(netId);
-      const statusValidator = ajv.compile(
-        getStatusSchema(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rawStatus.netId,
-          config,
-          this.tovarish
-        )
-      );
-      if (!statusValidator) {
+      const statusValidator = ajv.compile(getStatusSchema(rawStatus?.netId, config, this.tovarish));
+      if (!statusValidator(rawStatus)) {
         continue;
       }
       const status = {
@@ -10814,4 +11193,4 @@ async function calculateSnarkProof(input, circuit, provingKey) {
   return { proof, args };
 }
 
-export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseMultiTornadoService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BaseTransferService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBMultiTornadoService, DBRegistryService, DBRevenueService, DBTornadoService, Deposit, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, INDEX_DB_ERROR, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MIN_FEE, MIN_STAKE_BALANCE, MerkleTreeService, Mimc, Multicall__factory, NetId, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokenInstances, getActiveTokens, getConfig, getEventsSchemaValidator, getHttpAgent, getIndexedDB, getInstanceByAddress, getMultiInstances, getNetworkConfig, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSubInfo, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multiQueryFilter, multicall, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, tornadoEventsSchema, unpackEncryptedMessage, unzipAsync, validateUrl, withdrawalsEventsSchema, zipAsync };
+export { BaseEchoService, BaseEncryptedNotesService, BaseEventsService, BaseGovernanceService, BaseMultiTornadoService, BaseRegistryService, BaseRevenueService, BaseTornadoService, BaseTransferService, BatchBlockService, BatchEventsService, BatchTransactionService, DBEchoService, DBEncryptedNotesService, DBGovernanceService, DBMultiTornadoService, DBRegistryService, DBRevenueService, DBTornadoService, Deposit, ECHOER_ADDRESS, EMPTY_ELEMENT, ENSNameWrapper__factory, ENSRegistry__factory, ENSResolver__factory, ENSUtils, ENS__factory, ERC20__factory, EnsContracts, FeeDataNetworkPluginName, INDEX_DB_ERROR, INFO_REGISTRY_ADDRESS, INFO_REVISION, IndexedDB, Invoice, MAX_FEE, MAX_TOVARISH_EVENTS, MERKLE_TREE_HEIGHT, MIN_FEE, MIN_STAKE_BALANCE, MULTICALL_ADDRESS, MULTILOCK_ADDRESS, MerkleTreeService, Mimc, Multicall__factory, NetId, NetInfo, NoteAccount, OffchainOracle__factory, OvmGasPriceOracle__factory, Pedersen, RelayerClient, ReverseRecords__factory, TORNADO_PROXY_LIGHT_ADDRESS, TOVARISH_REGISTRY_ADDRESS, TokenPriceOracle, TornadoBrowserProvider, TornadoFeeOracle, TornadoInfos, TornadoNetInfo, TornadoRpcSigner, TornadoVoidSigner, TornadoWallet, TovarishClient, addNetwork, addressSchemaType, ajv, base64ToBytes, bigIntReplacer, bnSchemaType, bnToBytes, buffPedersenHash, bufferToBytes, bytes32BNSchemaType, bytes32SchemaType, bytesToBN, bytesToBase64, bytesToHex, calculateScore, calculateSnarkProof, chunk, concatBytes, convertETHToTokenAmount, createDeposit, crypto, customConfig, defaultConfig, defaultUserAgent, deployHasher, depositsEventsSchema, digest, downloadZip, echoEventsSchema, enabledChains, encodedLabelToLabelhash, encryptedNotesSchema, index as factories, fetchData, fetchGetUrlFunc, fetchIp, fromContentHash, gasZipID, gasZipInbounds, gasZipInput, gasZipMinMax, getActiveTokens, getConfig, getEventsSchemaValidator, getIndexedDB, getInstanceByAddress, getMultiInstances, getNetInfoSchema, getNetworkConfig, getPermitSignature, getProvider, getProviderWithNetId, getRelayerEnsSubdomains, getStatusSchema, getSubInfo, getSupportedInstances, getTokenBalances, getTovarishNetworks, getWeightRandom, governanceEventsSchema, hasherBytecode, hexToBytes, initGroth16, isHex, isNode, jobRequestSchema, jobsSchema, knownSubdomains, labelhash, leBuff2Int, leInt2Buff, loadDBEvents, loadRemoteEvents, makeLabelNodeAndParent, mimc, multiQueryFilter, multicall, netInfoSchemaV0, numberFormatter, packEncryptedMessage, parseInvoice, parseNote, pedersen, permit2Address, pickWeightedRandomRelayer, populateTransaction, proofSchemaType, proposalState, rBigInt, rHex, relayerRegistryEventsSchema, saveDBEvents, sleep, stakeBurnedEventsSchema, substring, toContentHash, toFixedHex, toFixedLength, tornadoEventsSchema, unpackEncryptedMessage, unzipAsync, unzlibAsync, validateUrl, withdrawalsEventsSchema, zipAsync, zlibAsync };

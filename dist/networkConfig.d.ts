@@ -1,6 +1,6 @@
 import type { DepositType } from './deposits';
 /**
- * Type of default supported networks
+ * Type of chainIds used on this library (not essential for new networks)
  */
 export declare enum NetId {
     MAINNET = 1,
@@ -37,14 +37,6 @@ export interface TornadoInstance {
 }
 export type TokenInstances = Record<string, TornadoInstance>;
 export interface Config {
-    rpcCallRetryAttempt?: number;
-    gasPrices: {
-        instant: number;
-        fast?: number;
-        standard?: number;
-        low?: number;
-        maxPriorityFeePerGas?: number;
-    };
     nativeCurrency: string;
     currencyName: string;
     explorerUrl: string;
@@ -63,24 +55,18 @@ export interface Config {
     stakingRewardsContract?: string;
     registryContract?: string;
     aggregatorContract?: string;
+    balanceAggregatorContract?: string;
     reverseRecordsContract?: string;
     ovmGasPriceOracleContract?: string;
-    tornadoSubgraph: string;
+    tornadoSubgraph?: string;
     registrySubgraph?: string;
     governanceSubgraph?: string;
-    subgraphs: SubgraphUrls;
+    subgraphs?: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
     disabledTokens?: string[];
     relayerEnsSubdomain: string;
     pollInterval: number;
-    constants: {
-        GOVERNANCE_BLOCK?: number;
-        NOTE_ACCOUNT_BLOCK?: number;
-        ENCRYPTED_NOTES_BLOCK?: number;
-        REGISTRY_BLOCK?: number;
-        MINING_BLOCK_TIME?: number;
-    };
 }
 export type networkConfig = Record<NetIdType, Config>;
 export type SubdomainMap = Record<NetIdType, string>;
@@ -102,7 +88,6 @@ export declare function addNetwork(newConfig: networkConfig): void;
 export declare function getNetworkConfig(): networkConfig;
 export declare function getConfig(netId: NetIdType): Config;
 export declare function getActiveTokens(config: Config): string[];
-export declare function getActiveTokenInstances(config: Config): TokenInstances;
 export declare function getInstanceByAddress(config: Config, address: string): {
     amount: string;
     currency: string;

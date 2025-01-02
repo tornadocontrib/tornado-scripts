@@ -1,5 +1,5 @@
-import { RelayerClient, RelayerClientConstructor, RelayerError, RelayerInfo, RelayerStatus } from './relayerClient';
-import { CachedRelayerInfo, MinimalEvents } from './events';
+import { RelayerClient, RelayerClientConstructor, RelayerError, RelayerInfo, CachedRelayerInfo, RelayerStatus } from './relayerClient';
+import type { MinimalEvents } from './events';
 export declare const MAX_TOVARISH_EVENTS = 5000;
 export interface EventsStatus {
     events: number;

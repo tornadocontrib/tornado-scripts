@@ -1,13 +1,24 @@
-import { NetIdType, Config } from './networkConfig';
+import { NetIdType, Config, SubdomainMap } from './networkConfig';
 import { fetchDataOptions } from './providers';
 import type { snarkProofs } from './websnark';
-import type { CachedRelayerInfo } from './events';
+import { TornadoNetInfo } from './info';
 export declare const MIN_FEE = 0.1;
 export declare const MAX_FEE = 0.9;
 export declare const MIN_STAKE_BALANCE: bigint;
 export interface RelayerParams {
     ensName: string;
     relayerAddress: string;
+}
+/**
+ * Info from RelayerRegistry contract
+ */
+export interface CachedRelayerInfo extends RelayerParams {
+    isRegistered?: boolean;
+    registeredAddress?: string;
+    stakeBalance?: string;
+    hostnames: SubdomainMap;
+    tovarishHost?: string;
+    tovarishNetworks?: number[];
 }
 /**
  * Info from relayer status
@@ -110,12 +121,12 @@ export declare function getSupportedInstances(instanceList: RelayerInstanceList)
 export declare function pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
 export interface RelayerClientConstructor {
     netId: NetIdType;
-    config: Config;
+    config: Config | TornadoNetInfo;
     fetchDataOptions?: fetchDataOptions;
 }
 export declare class RelayerClient {
     netId: NetIdType;
-    config: Config;
+    config: Config | TornadoNetInfo;
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
     tovarish: boolean;

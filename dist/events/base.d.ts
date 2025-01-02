@@ -4,7 +4,7 @@ import type { MerkleTree } from 'fixed-merkle-tree';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
 import { type NetIdType, type SubdomainMap } from '../networkConfig';
-import { RelayerParams } from '../relayerClient';
+import { CachedRelayerInfo } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { ERC20, ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
@@ -182,19 +182,6 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
     }>;
 }
 export declare function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]): Promise<void>;
-/**
- * Essential params:
- * ensName, relayerAddress, hostnames
- * Other data is for historic purpose from relayer registry
- */
-export interface CachedRelayerInfo extends RelayerParams {
-    isRegistered?: boolean;
-    registeredAddress?: string;
-    stakeBalance?: string;
-    hostnames: SubdomainMap;
-    tovarishHost?: string;
-    tovarishNetworks?: number[];
-}
 export interface CachedRelayers {
     lastBlock: number;
     timestamp: number;
