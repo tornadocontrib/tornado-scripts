@@ -1,4 +1,14 @@
-import { zip, unzip, AsyncZippable, Unzipped, ZipAttributes } from 'fflate';
+import {
+    zip,
+    unzip,
+    AsyncZippable,
+    Unzipped,
+    ZipAttributes,
+    zlib,
+    unzlib,
+    AsyncZlibOptions,
+    AsyncUnzlibOptions,
+} from 'fflate';
 import { fetchData } from './providers';
 import { bytesToBase64, digest } from './utils';
 
@@ -17,6 +27,30 @@ export function zipAsync(file: AsyncZippable, options?: ZipAttributes): Promise<
 export function unzipAsync(data: Uint8Array): Promise<Unzipped> {
     return new Promise((res, rej) => {
         unzip(data, {}, (err, data) => {
+            if (err) {
+                rej(err);
+                return;
+            }
+            res(data);
+        });
+    });
+}
+
+export function zlibAsync(data: Uint8Array, options?: AsyncZlibOptions): Promise<Uint8Array> {
+    return new Promise((res, rej) => {
+        zlib(data, { ...(options || {}) }, (err, data) => {
+            if (err) {
+                rej(err);
+                return;
+            }
+            res(data);
+        });
+    });
+}
+
+export function unzlibAsync(data: Uint8Array, options?: AsyncUnzlibOptions): Promise<Uint8Array> {
+    return new Promise((res, rej) => {
+        unzlib(data, { ...(options || {}) }, (err, data) => {
             if (err) {
                 rej(err);
                 return;

@@ -1,10 +1,10 @@
 import { getAddress, parseEther } from 'ethers';
 import { sleep } from './utils';
-import { NetId, NetIdType, Config } from './networkConfig';
+import { NetId, NetIdType, Config, SubdomainMap } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
 import { ajv, jobsSchema, jobRequestSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
-import type { CachedRelayerInfo } from './events';
+import { TornadoNetInfo } from './info';
 
 export const MIN_FEE = 0.1;
 
@@ -15,6 +15,18 @@ export const MIN_STAKE_BALANCE = parseEther('500');
 export interface RelayerParams {
     ensName: string;
     relayerAddress: string;
+}
+
+/**
+ * Info from RelayerRegistry contract
+ */
+export interface CachedRelayerInfo extends RelayerParams {
+    isRegistered?: boolean;
+    registeredAddress?: string;
+    stakeBalance?: string;
+    hostnames: SubdomainMap;
+    tovarishHost?: string;
+    tovarishNetworks?: number[];
 }
 
 /**
@@ -175,13 +187,13 @@ export function pickWeightedRandomRelayer(relayers: RelayerInfo[]) {
 
 export interface RelayerClientConstructor {
     netId: NetIdType;
-    config: Config;
+    config: Config | TornadoNetInfo;
     fetchDataOptions?: fetchDataOptions;
 }
 
 export class RelayerClient {
     netId: NetIdType;
-    config: Config;
+    config: Config | TornadoNetInfo;
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
     tovarish: boolean;
@@ -212,14 +224,14 @@ export class RelayerClient {
             url = '';
         }
 
-        const rawStatus = (await fetchData(`${url}status`, {
+        const rawStatus = await fetchData<RelayerStatus>(`${url}status`, {
             ...this.fetchDataOptions,
             headers: {
                 'Content-Type': 'application/json, application/x-www-form-urlencoded',
             },
             timeout: 30000,
-            maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
-        })) as object;
+            maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0,
+        });
 
         const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
 
@@ -230,7 +242,7 @@ export class RelayerClient {
         const status = {
             ...rawStatus,
             url,
-        } as RelayerStatus;
+        };
 
         if (status.currentQueue > 5) {
             throw new Error('Withdrawal queue is overloaded');
@@ -366,7 +378,7 @@ export class RelayerClient {
         console.log(`Job submitted: ${jobUrl}\n`);
 
         while (!relayerStatus || !['FAILED', 'CONFIRMED'].includes(relayerStatus)) {
-            const jobResponse = await fetchData(jobUrl, {
+            const jobResponse = await fetchData<RelayerTornadoJobs>(jobUrl, {
                 ...this.fetchDataOptions,
                 method: 'GET',
                 headers: {
@@ -385,7 +397,7 @@ export class RelayerClient {
                 throw new Error(errMsg);
             }
 
-            const { status, txHash, confirmations, failedReason } = jobResponse as unknown as RelayerTornadoJobs;
+            const { status, txHash, confirmations, failedReason } = jobResponse;
 
             if (relayerStatus !== status) {
                 if (status === 'FAILED') {

@@ -5,11 +5,12 @@ import {
     RelayerClientConstructor,
     RelayerError,
     RelayerInfo,
+    CachedRelayerInfo,
     RelayerStatus,
     getSupportedInstances,
 } from './relayerClient';
 import { fetchData } from './providers';
-import { CachedRelayerInfo, MinimalEvents } from './events';
+import type { MinimalEvents } from './events';
 import { ajv, getEventsSchemaValidator, getStatusSchema } from './schemas';
 import { enabledChains, getConfig, NetId, NetIdType } from './networkConfig';
 
@@ -121,14 +122,14 @@ export class TovarishClient extends RelayerClient {
             url = '';
         }
 
-        const statusArray = (await fetchData(`${url}status`, {
+        const statusArray = await fetchData<TovarishStatus[]>(`${url}status`, {
             ...this.fetchDataOptions,
             headers: {
                 'Content-Type': 'application/json, application/x-www-form-urlencoded',
             },
             timeout: 30000,
-            maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
-        })) as object;
+            maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0,
+        });
 
         if (!Array.isArray(statusArray)) {
             return [];
@@ -137,27 +138,19 @@ export class TovarishClient extends RelayerClient {
         const tovarishStatus: TovarishStatus[] = [];
 
         for (const rawStatus of statusArray) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const netId = (rawStatus as any).netId as NetIdType;
+            const netId = rawStatus?.netId as NetIdType;
             const config = getConfig(netId);
 
-            const statusValidator = ajv.compile(
-                getStatusSchema(
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (rawStatus as any).netId,
-                    config,
-                    this.tovarish,
-                ),
-            );
+            const statusValidator = ajv.compile(getStatusSchema(rawStatus?.netId, config, this.tovarish));
 
-            if (!statusValidator) {
+            if (!statusValidator(rawStatus)) {
                 continue;
             }
 
             const status = {
                 ...rawStatus,
                 url: `${url}${netId}/`,
-            } as TovarishStatus;
+            };
 
             if (status.currentQueue > 5) {
                 throw new Error('Withdrawal queue is overloaded');

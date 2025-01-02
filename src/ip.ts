@@ -6,9 +6,9 @@ export interface IPResult {
     tor?: boolean;
 }
 
-export async function fetchIp(ipEcho: string) {
-    return (await fetchData(ipEcho, {
+export function fetchIp(ipEcho: string) {
+    return fetchData<IPResult>(ipEcho, {
         method: 'GET',
         timeout: 30000,
-    })) as IPResult;
+    });
 }

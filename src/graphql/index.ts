@@ -1,6 +1,6 @@
 import { ContractEventName, getAddress } from 'ethers';
-import { fetchData, fetchDataOptions } from '../providers';
 
+import { fetchData, fetchDataOptions } from '../providers';
 import type {
     BaseGraphEvents,
     RegistersEvents,
@@ -25,7 +25,6 @@ import {
     GET_ECHO_EVENTS,
     GET_GOVERNANCE_EVENTS,
 } from './queries';
-
 export * from './queries';
 
 const isEmptyArray = (arr: object) => !Array.isArray(arr) || !arr.length;
@@ -62,7 +61,8 @@ export async function queryGraph<T>({
 }: queryGraphParams): Promise<T> {
     const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
 
-    const { data, errors } = await fetchData(graphUrl, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, errors } = await fetchData<any>(graphUrl, {
         ...fetchDataOptions,
         method: 'POST',
         headers: {

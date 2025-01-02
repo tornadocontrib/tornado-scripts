@@ -1,6 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { openDB, deleteDB, OpenDBCallbacks, IDBPDatabase } from 'idb';
+/* eslint-disable @typescript-eslint/no-explicit-any, import/no-duplicates */
+import type * as idb from 'idb';
+import type { OpenDBCallbacks, IDBPDatabase } from 'idb';
 import { getConfig, NetIdType } from './networkConfig';
+
+declare global {
+    interface Window {
+        idb: typeof idb;
+    }
+}
 
 export const INDEX_DB_ERROR = 'A mutation operation was attempted on a database that did not allow mutations.';
 
@@ -64,7 +71,7 @@ export class IndexedDB {
                 return;
             }
 
-            this.db = await openDB(this.dbName, this.dbVersion, this.options);
+            this.db = await window?.idb?.openDB(this.dbName, this.dbVersion, this.options);
             this.db.addEventListener('onupgradeneeded', async () => {
                 await this._removeExist();
             });
@@ -89,7 +96,7 @@ export class IndexedDB {
     }
 
     async _removeExist() {
-        await deleteDB(this.dbName);
+        await window?.idb?.deleteDB(this.dbName);
         this.dbExists = false;
 
         await this.initDB();

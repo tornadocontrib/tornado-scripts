@@ -1,6 +1,5 @@
 import { downloadZip } from '../zip';
 import { IndexedDB } from '../idb';
-
 import { bytesToBase64, digest } from '../utils';
 import { fetchData } from '../providers';
 import {
@@ -20,7 +19,6 @@ import {
     BaseMultiTornadoService,
     BaseMultiTornadoServiceConstructor,
 } from './base';
-
 import {
     BaseEvents,
     MinimalEvents,
@@ -471,7 +469,7 @@ export class DBRegistryService extends BaseRegistryService {
         const url = `${this.staticUrl}/relayers.json`;
 
         try {
-            const resp = await fetchData(url, {
+            const resp = await fetchData<Response>(url, {
                 method: 'GET',
                 returnResponse: true,
             });

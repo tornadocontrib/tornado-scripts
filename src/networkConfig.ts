@@ -1,7 +1,7 @@
 import type { DepositType } from './deposits';
 
 /**
- * Type of default supported networks
+ * Type of chainIds used on this library (not essential for new networks)
  */
 export enum NetId {
     MAINNET = 1,
@@ -46,17 +46,6 @@ export interface TornadoInstance {
 export type TokenInstances = Record<string, TornadoInstance>;
 
 export interface Config {
-    rpcCallRetryAttempt?: number;
-    // Should be in gwei
-    gasPrices: {
-        // fallback gasPrice / maxFeePerGas value
-        instant: number;
-        fast?: number;
-        standard?: number;
-        low?: number;
-        // fallback EIP-1559 params
-        maxPriorityFeePerGas?: number;
-    };
     nativeCurrency: string;
     currencyName: string;
     explorerUrl: string;
@@ -76,26 +65,19 @@ export interface Config {
     stakingRewardsContract?: string;
     registryContract?: string;
     aggregatorContract?: string;
+    balanceAggregatorContract?: string;
     reverseRecordsContract?: string;
     ovmGasPriceOracleContract?: string;
-    tornadoSubgraph: string;
+    tornadoSubgraph?: string;
     registrySubgraph?: string;
     governanceSubgraph?: string;
-    subgraphs: SubgraphUrls;
+    subgraphs?: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
     disabledTokens?: string[];
     relayerEnsSubdomain: string;
     // Should be in seconds
     pollInterval: number;
-    constants: {
-        GOVERNANCE_BLOCK?: number;
-        NOTE_ACCOUNT_BLOCK?: number;
-        ENCRYPTED_NOTES_BLOCK?: number;
-        REGISTRY_BLOCK?: number;
-        // Should be in seconds
-        MINING_BLOCK_TIME?: number;
-    };
 }
 
 export type networkConfig = Record<NetIdType, Config>;
@@ -104,13 +86,6 @@ export type SubdomainMap = Record<NetIdType, string>;
 
 export const defaultConfig: networkConfig = {
     [NetId.MAINNET]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 80,
-            fast: 50,
-            standard: 25,
-            low: 8,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://etherscan.io',
@@ -154,6 +129,7 @@ export const defaultConfig: networkConfig = {
         stakingRewardsContract: '0x5B3f656C80E8ddb9ec01Dd9018815576E9238c29',
         registryContract: '0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2',
         aggregatorContract: '0xE8F47A78A6D52D317D0D2FFFac56739fE14D1b49',
+        balanceAggregatorContract: '0x4eca0bc387a3a5f4af56bea2ce78120971cc11a1',
         reverseRecordsContract: '0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C',
         tornadoSubgraph: 'tornadocash/mainnet-tornado-subgraph',
         registrySubgraph: 'tornadocash/tornado-relayer-registry',
@@ -235,22 +211,8 @@ export const defaultConfig: networkConfig = {
         disabledTokens: ['cdai', 'usdt', 'usdc'],
         relayerEnsSubdomain: 'mainnet-tornado',
         pollInterval: 15,
-        constants: {
-            GOVERNANCE_BLOCK: 11474695,
-            NOTE_ACCOUNT_BLOCK: 11842486,
-            ENCRYPTED_NOTES_BLOCK: 12143762,
-            REGISTRY_BLOCK: 14173129,
-            MINING_BLOCK_TIME: 15,
-        },
     },
     [NetId.BSC]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 3,
-            fast: 1,
-            standard: 1,
-            low: 1,
-        },
         nativeCurrency: 'bnb',
         currencyName: 'BNB',
         explorerUrl: 'https://bscscan.com',
@@ -334,19 +296,8 @@ export const defaultConfig: networkConfig = {
         optionalTokens: ['usdt', 'btcb'],
         relayerEnsSubdomain: 'bsc-tornado',
         pollInterval: 3,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 8159269,
-            ENCRYPTED_NOTES_BLOCK: 8159269,
-        },
     },
     [NetId.POLYGON]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 60,
-            fast: 30,
-            standard: 30,
-            low: 30,
-        },
         nativeCurrency: 'matic',
         currencyName: 'MATIC',
         explorerUrl: 'https://polygonscan.com',
@@ -393,19 +344,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'polygon-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 16257996,
-            ENCRYPTED_NOTES_BLOCK: 16257996,
-        },
     },
     [NetId.OPTIMISM]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.001,
-            fast: 0.001,
-            standard: 0.001,
-            low: 0.001,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://optimistic.etherscan.io',
@@ -456,19 +396,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'optimism-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 2243694,
-            ENCRYPTED_NOTES_BLOCK: 2243694,
-        },
     },
     [NetId.ARBITRUM]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.02,
-            fast: 0.02,
-            standard: 0.02,
-            low: 0.02,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://arbiscan.io',
@@ -518,19 +447,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'arbitrum-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 3430605,
-            ENCRYPTED_NOTES_BLOCK: 3430605,
-        },
     },
     [NetId.BASE]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.1,
-            fast: 0.06,
-            standard: 0.05,
-            low: 0.02,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://basescan.org',
@@ -610,19 +528,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'base-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 23149794,
-            ENCRYPTED_NOTES_BLOCK: 23149794,
-        },
     },
     [NetId.BLAST]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.001,
-            fast: 0.001,
-            standard: 0.001,
-            low: 0.001,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://blastscan.io',
@@ -667,19 +574,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'blast-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 12144065,
-            ENCRYPTED_NOTES_BLOCK: 12144065,
-        },
     },
     [NetId.GNOSIS]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 6,
-            fast: 5,
-            standard: 4,
-            low: 1,
-        },
         nativeCurrency: 'xdai',
         currencyName: 'xDAI',
         explorerUrl: 'https://gnosisscan.io',
@@ -722,19 +618,8 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'gnosis-tornado',
         pollInterval: 5,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 17754564,
-            ENCRYPTED_NOTES_BLOCK: 17754564,
-        },
     },
     [NetId.AVALANCHE]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 225,
-            fast: 35,
-            standard: 25,
-            low: 25,
-        },
         nativeCurrency: 'avax',
         currencyName: 'AVAX',
         explorerUrl: 'https://snowtrace.io',
@@ -780,21 +665,10 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'avalanche-tornado',
         pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 4429813,
-            ENCRYPTED_NOTES_BLOCK: 4429813,
-        },
     },
     [NetId.SEPOLIA]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 2,
-            fast: 2,
-            standard: 2,
-            low: 2,
-        },
         nativeCurrency: 'eth',
-        currencyName: 'SepoliaETH',
+        currencyName: 'ETH',
         explorerUrl: 'https://sepolia.etherscan.io',
         merkleTreeHeight: 20,
         emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
@@ -862,13 +736,6 @@ export const defaultConfig: networkConfig = {
         },
         relayerEnsSubdomain: 'sepolia-tornado',
         pollInterval: 15,
-        constants: {
-            GOVERNANCE_BLOCK: 5594395,
-            NOTE_ACCOUNT_BLOCK: 5594395,
-            ENCRYPTED_NOTES_BLOCK: 5594395,
-            REGISTRY_BLOCK: 5594395,
-            MINING_BLOCK_TIME: 15,
-        },
     },
 };
 
@@ -930,17 +797,6 @@ export function getActiveTokens(config: Config): string[] {
     const { tokens, disabledTokens } = config;
 
     return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
-}
-
-export function getActiveTokenInstances(config: Config): TokenInstances {
-    const { tokens, disabledTokens } = config;
-
-    return Object.entries(tokens).reduce((acc, [token, instances]) => {
-        if (!disabledTokens?.includes(token)) {
-            acc[token] = instances;
-        }
-        return acc;
-    }, {} as TokenInstances);
 }
 
 export function getInstanceByAddress(config: Config, address: string) {

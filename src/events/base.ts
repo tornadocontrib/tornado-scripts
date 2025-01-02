@@ -10,7 +10,6 @@ import {
     dataLength,
     dataSlice,
 } from 'ethers';
-
 import {
     Tornado,
     TornadoRouter,
@@ -21,8 +20,8 @@ import {
     Aggregator,
     Tornado__factory,
 } from 'tornado-contracts';
-
 import type { MerkleTree } from 'fixed-merkle-tree';
+
 import {
     BatchEventsService,
     BatchBlockService,
@@ -30,12 +29,10 @@ import {
     BatchEventOnProgress,
     BatchBlockOnProgress,
 } from '../batch';
-
 import { fetchData, fetchDataOptions } from '../providers';
 import { enabledChains, type NetIdType, type SubdomainMap } from '../networkConfig';
-import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
+import { CachedRelayerInfo, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
-
 import type { ERC20, ReverseRecords } from '../typechain';
 import type { MerkleTreeService } from '../merkleTree';
 import type { DepositType } from '../deposits';
@@ -1098,7 +1095,7 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
                             'Content-Type': 'application/json',
                         },
                         timeout: 30000,
-                        maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0,
+                        maxRetry: registryService.fetchDataOptions?.dispatcher ? 2 : 0,
                     });
                 } catch {
                     // Ignore error and disable relayer
@@ -1106,20 +1103,6 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
                 }
             }),
     );
-}
-
-/**
- * Essential params:
- * ensName, relayerAddress, hostnames
- * Other data is for historic purpose from relayer registry
- */
-export interface CachedRelayerInfo extends RelayerParams {
-    isRegistered?: boolean;
-    registeredAddress?: string;
-    stakeBalance?: string;
-    hostnames: SubdomainMap;
-    tovarishHost?: string;
-    tovarishNetworks?: number[];
 }
 
 /**

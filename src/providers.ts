@@ -1,6 +1,4 @@
 import type { EventEmitter } from 'stream';
-import type { RequestOptions } from 'http';
-import crossFetch from 'cross-fetch';
 import {
     FetchRequest,
     JsonRpcApiProvider,
@@ -20,12 +18,16 @@ import {
     EnsPlugin,
     GasCostPlugin,
     FetchCancelSignal,
+    resolveProperties,
+    TransactionLike,
+    FetchUrlFeeDataNetworkPlugin,
+    FeeData,
 } from 'ethers';
-import type { RequestInfo, RequestInit, Response, HeadersInit } from 'node-fetch';
-// Temporary workaround until @types/node-fetch is compatible with @types/node
-import type { AbortSignal as FetchAbortSignal } from 'node-fetch/externals';
+import type { Dispatcher, RequestInit, fetch as undiciFetch } from 'undici-types';
+
 import { isNode, sleep } from './utils';
 import type { Config, NetIdType } from './networkConfig';
+import type { TornadoNetInfo } from './info';
 
 declare global {
     interface Window {
@@ -36,72 +38,33 @@ declare global {
 // Update this for every Tor Browser release
 export const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
 
-export type nodeFetch = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
+export type DispatcherFunc = (retry: number) => Dispatcher;
 
-export type fetchDataOptions = RequestInit & {
+export interface fetchDataOptions extends Omit<RequestInit, 'headers'> {
+    /**
+     * Overriding RequestInit params
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     headers?: HeadersInit | any;
+
+    /**
+     * Expanding RequestInit params
+     */
     maxRetry?: number;
     retryOn?: number;
     userAgent?: string;
     timeout?: number;
-    proxy?: string;
-    torPort?: number;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     debug?: Function;
     returnResponse?: boolean;
     cancelSignal?: FetchCancelSignal;
-};
-
-export type NodeAgent = RequestOptions['agent'] | ((parsedUrl: URL) => RequestOptions['agent']);
-
-export function getHttpAgent({
-    fetchUrl,
-    proxyUrl,
-    torPort,
-    retry,
-}: {
-    fetchUrl: string;
-    proxyUrl?: string;
-    torPort?: number;
-    retry: number;
-}): NodeAgent | undefined {
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { HttpProxyAgent } = require('http-proxy-agent');
-    const { HttpsProxyAgent } = require('https-proxy-agent');
-    const { SocksProxyAgent } = require('socks-proxy-agent');
-    /* eslint-enable @typescript-eslint/no-require-imports */
-
-    if (torPort) {
-        return new SocksProxyAgent(`socks5h://tor${retry}@127.0.0.1:${torPort}`);
-    }
-
-    if (!proxyUrl) {
-        return;
-    }
-
-    const isHttps = fetchUrl.includes('https://');
-
-    if (proxyUrl.includes('socks://') || proxyUrl.includes('socks4://') || proxyUrl.includes('socks5://')) {
-        return new SocksProxyAgent(proxyUrl);
-    }
-
-    if (proxyUrl.includes('http://') || proxyUrl.includes('https://')) {
-        if (isHttps) {
-            return new HttpsProxyAgent(proxyUrl);
-        }
-        return new HttpProxyAgent(proxyUrl);
-    }
+    dispatcherFunc?: DispatcherFunc;
 }
 
-export async function fetchData(url: string, options: fetchDataOptions = {}) {
+export async function fetchData<T>(url: string, options: fetchDataOptions = {}): Promise<T> {
     const MAX_RETRY = options.maxRetry ?? 3;
     const RETRY_ON = options.retryOn ?? 500;
     const userAgent = options.userAgent ?? defaultUserAgent;
-
-    const fetch = ((globalThis as unknown as { useGlobalFetch?: boolean }).useGlobalFetch
-        ? globalThis.fetch
-        : crossFetch) as unknown as nodeFetch;
 
     let retry = 0;
     let errorObject;
@@ -122,14 +85,17 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
         options.headers['User-Agent'] = userAgent;
     }
 
+    if (typeof globalThis.fetch !== 'function') {
+        throw new Error('Fetch API is not available, use latest browser or nodejs installation!');
+    }
+
     while (retry < MAX_RETRY + 1) {
         let timeout;
 
         if (!options.signal && options.timeout) {
             const controller = new AbortController();
 
-            // Temporary workaround until @types/node-fetch is compatible with @types/node
-            options.signal = controller.signal as FetchAbortSignal;
+            options.signal = controller.signal;
 
             // Define timeout in seconds
             timeout = setTimeout(() => {
@@ -149,16 +115,7 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
             }
         }
 
-        if (!options.agent && isNode && (options.proxy || options.torPort)) {
-            options.agent = getHttpAgent({
-                fetchUrl: url,
-                proxyUrl: options.proxy,
-                torPort: options.torPort,
-                retry,
-            });
-        }
-
-        if (options.debug && typeof options.debug === 'function') {
+        if (typeof options.debug === 'function') {
             options.debug('request', {
                 url,
                 retry,
@@ -168,13 +125,11 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
         }
 
         try {
-            const resp = await fetch(url, {
-                method: options.method,
-                headers: options.headers,
-                body: options.body,
-                redirect: options.redirect,
-                signal: options.signal,
-                agent: options.agent,
+            const dispatcher = options.dispatcherFunc ? options.dispatcherFunc(retry) : options.dispatcher;
+
+            const resp = await (globalThis.fetch as unknown as typeof undiciFetch)(url, {
+                ...options,
+                dispatcher,
             });
 
             if (options.debug && typeof options.debug === 'function') {
@@ -187,23 +142,23 @@ export async function fetchData(url: string, options: fetchDataOptions = {}) {
             }
 
             if (options.returnResponse) {
-                return resp;
+                return resp as T;
             }
 
             const contentType = resp.headers.get('content-type');
 
             // If server returns JSON object, parse it and return as an object
             if (contentType?.includes('application/json')) {
-                return await resp.json();
+                return (await resp.json()) as T;
             }
 
             // Else if the server returns text parse it as a string
             if (contentType?.includes('text')) {
-                return await resp.text();
+                return (await resp.text()) as T;
             }
 
             // Return as a response object https://developer.mozilla.org/en-US/docs/Web/API/Response
-            return resp;
+            return resp as T;
         } catch (error) {
             if (timeout) {
                 clearTimeout(timeout);
@@ -242,7 +197,7 @@ export const fetchGetUrlFunc =
             returnResponse: true,
         };
 
-        const resp = await fetchData(req.url, init);
+        const resp = await fetchData<Response>(req.url, init);
 
         const headers = {} as Record<string, any>;
         resp.headers.forEach((value: any, key: string) => {
@@ -267,19 +222,35 @@ export type getProviderOptions = fetchDataOptions & {
     pollingInterval?: number;
 };
 
+export const FeeDataNetworkPluginName = new FetchUrlFeeDataNetworkPlugin(
+    '',
+    () => new Promise((resolve) => resolve(new FeeData())),
+).name;
+
 export async function getProvider(rpcUrl: string, fetchOptions?: getProviderOptions): Promise<JsonRpcProvider> {
+    // Use our own fetchGetUrlFunc to support proxies and retries
     const fetchReq = new FetchRequest(rpcUrl);
 
     fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
 
-    const staticNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
+    const fetchedNetwork = await new JsonRpcProvider(fetchReq).getNetwork();
 
-    const chainId = Number(staticNetwork.chainId);
+    // Audit if we are connected to right network
+    const chainId = Number(fetchedNetwork.chainId);
 
     if (fetchOptions?.netId && fetchOptions.netId !== chainId) {
         const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
         throw new Error(errMsg);
     }
+
+    // Clone to new network to exclude polygon gas station plugin
+    const staticNetwork = new Network(fetchedNetwork.name, fetchedNetwork.chainId);
+
+    fetchedNetwork.plugins.forEach((plugin) => {
+        if (plugin.name !== FeeDataNetworkPluginName) {
+            staticNetwork.attachPlugin(plugin.clone());
+        }
+    });
 
     return new JsonRpcProvider(fetchReq, staticNetwork, {
         staticNetwork,
@@ -290,7 +261,7 @@ export async function getProvider(rpcUrl: string, fetchOptions?: getProviderOpti
 export function getProviderWithNetId(
     netId: NetIdType,
     rpcUrl: string,
-    config: Config,
+    config: Config | TornadoNetInfo,
     fetchOptions?: getProviderOptions,
 ): JsonRpcProvider {
     const { networkName, reverseRecordsContract, pollInterval } = config;
@@ -373,7 +344,7 @@ export const populateTransaction = async (
         }
     }
 
-    return tx;
+    return resolveProperties(tx);
 };
 
 export interface TornadoWalletOptions {
@@ -414,8 +385,7 @@ export class TornadoWallet extends Wallet {
     async populateTransaction(tx: TransactionRequest) {
         const txObject = await populateTransaction(this, tx);
         this.nonce = Number(txObject.nonce);
-
-        return super.populateTransaction(txObject);
+        return txObject as Promise<TransactionLike<string>>;
     }
 }
 
@@ -443,8 +413,7 @@ export class TornadoVoidSigner extends VoidSigner {
     async populateTransaction(tx: TransactionRequest) {
         const txObject = await populateTransaction(this, tx);
         this.nonce = Number(txObject.nonce);
-
-        return super.populateTransaction(txObject);
+        return txObject as Promise<TransactionLike<string>>;
     }
 }
 

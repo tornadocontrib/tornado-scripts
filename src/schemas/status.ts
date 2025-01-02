@@ -1,4 +1,5 @@
 import { Config, NetId, NetIdType } from '../networkConfig';
+import { TornadoNetInfo } from '../info';
 import { addressSchemaType, bnSchemaType } from '.';
 
 export interface statusInstanceType {
@@ -127,8 +128,8 @@ const statusSchema: statusSchema = {
     required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health', 'currentQueue'],
 };
 
-export function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean) {
-    const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
+export function getStatusSchema(netId: NetIdType, config: Config | TornadoNetInfo, tovarish: boolean) {
+    const { tokens, nativeCurrency } = config;
 
     // deep copy schema
     const schema = JSON.parse(JSON.stringify(statusSchema)) as statusSchema;
@@ -165,9 +166,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
             }
 
             acc.properties[token] = instanceProperties;
-            if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
-                acc.required.push(token);
-            }
+            acc.required.push(token);
             return acc;
         },
         {
@@ -179,9 +178,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
 
     schema.properties.instances = instances;
 
-    const _tokens = Object.keys(tokens).filter(
-        (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t),
-    );
+    const _tokens = Object.keys(tokens).filter((t) => t !== nativeCurrency);
 
     if (netId === NetId.MAINNET) {
         _tokens.push('torn');
