@@ -3419,10 +3419,12 @@ async function downloadZip({
   staticUrl = "",
   zipName,
   zipDigest,
-  parseJson = true
+  parseJson = true,
+  fetchOptions
 }) {
   const url = `${staticUrl}/${zipName}.zip`;
   const resp = await fetchData(url, {
+    ...fetchOptions || {},
     method: "GET",
     returnResponse: true
   });
@@ -10216,7 +10218,12 @@ class TornadoNetInfo extends NetInfo {
     this.registrySubgraph = netInfo.registrySubgraph;
     this.governanceSubgraph = netInfo.governanceSubgraph;
     this.relayerEnsSubdomain = netInfo.relayerEnsSubdomain;
-    this.rpcInfos = rpcInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => a.isPrior === b.isPrior ? 0 : a.isPrior ? -1 : 1);
+    this.rpcInfos = rpcInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => {
+      if (a.isPrior !== b.isPrior) {
+        return a.isPrior ? -1 : 1;
+      }
+      return a.url.localeCompare(b.url);
+    });
     this.tokenInfos = tokenInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => a.symbol.localeCompare(b.symbol));
     this.instanceInfos = instanceInfos.filter(({ chainId }) => chainId === netInfo.chainId).sort((a, b) => {
       if (a.tokenAddress !== b.tokenAddress) {
@@ -10566,8 +10573,9 @@ class TornadoInfos {
   }
 }
 
-function fetchIp(ipEcho) {
+function fetchIp(ipEcho, fetchOptions) {
   return fetchData(ipEcho, {
+    ...fetchOptions || {},
     method: "GET",
     timeout: 3e4
   });

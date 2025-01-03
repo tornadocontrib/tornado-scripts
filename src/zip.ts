@@ -9,7 +9,7 @@ import {
     AsyncZlibOptions,
     AsyncUnzlibOptions,
 } from 'fflate';
-import { fetchData } from './providers';
+import { fetchData, fetchDataOptions } from './providers';
 import { bytesToBase64, digest } from './utils';
 
 export function zipAsync(file: AsyncZippable, options?: ZipAttributes): Promise<Uint8Array> {
@@ -65,15 +65,18 @@ export async function downloadZip<T>({
     zipName,
     zipDigest,
     parseJson = true,
+    fetchOptions,
 }: {
     staticUrl?: string;
     zipName: string;
     zipDigest?: string;
     parseJson?: boolean;
+    fetchOptions?: fetchDataOptions;
 }): Promise<T> {
     const url = `${staticUrl}/${zipName}.zip`;
 
     const resp = (await fetchData(url, {
+        ...(fetchOptions || {}),
         method: 'GET',
         returnResponse: true,
     })) as Response;

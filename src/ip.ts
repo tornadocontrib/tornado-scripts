@@ -1,4 +1,4 @@
-import { fetchData } from './providers';
+import { fetchData, fetchDataOptions } from './providers';
 
 export interface IPResult {
     ip: string;
@@ -6,8 +6,9 @@ export interface IPResult {
     tor?: boolean;
 }
 
-export function fetchIp(ipEcho: string) {
+export function fetchIp(ipEcho: string, fetchOptions?: fetchDataOptions) {
     return fetchData<IPResult>(ipEcho, {
+        ...(fetchOptions || {}),
         method: 'GET',
         timeout: 30000,
     });

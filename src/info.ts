@@ -256,7 +256,12 @@ export class TornadoNetInfo extends NetInfo {
 
         this.rpcInfos = rpcInfos
             .filter(({ chainId }) => chainId === netInfo.chainId)
-            .sort((a, b) => (a.isPrior === b.isPrior ? 0 : a.isPrior ? -1 : 1));
+            .sort((a, b) => {
+                if (a.isPrior !== b.isPrior) {
+                    return a.isPrior ? -1 : 1;
+                }
+                return a.url.localeCompare(b.url);
+            });
         this.tokenInfos = tokenInfos
             .filter(({ chainId }) => chainId === netInfo.chainId)
             .sort((a, b) => a.symbol.localeCompare(b.symbol));
