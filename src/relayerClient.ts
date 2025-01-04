@@ -22,6 +22,7 @@ export interface RelayerParams {
  */
 export interface CachedRelayerInfo extends RelayerParams {
     isRegistered?: boolean;
+    isPrior?: boolean;
     registeredAddress?: string;
     stakeBalance?: string;
     hostnames: SubdomainMap;

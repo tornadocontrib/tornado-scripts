@@ -1,11 +1,11 @@
 {
-  "dist/index.js": "sha384-2A93bISM6LWb2EBb6nFCgsA35OLGhpz8OXZ8O6U5PjQM82FlA8smB+4WXfQnLAAW",
-  "dist/index.mjs": "sha384-6CYRsmm6j3Z1XtWXJ6rxKYbRF75R+itvrO78v1KETaFSK/h+qSTLuose54U/IawS",
+  "dist/index.js": "sha384-75Atf91fby3YEGREIR4VgKFPA3d8+O+LVnqavaK4AwzpjyHITaEqP+xTlwiE7otX",
+  "dist/index.mjs": "sha384-klKZAfrY3GpYv93wPAmiUV+SPK6JELNrtDCUuW714bnZ3wRZNKPGj4ZSixIAaEp1",
   "dist/merkleTreeWorker.js": "sha384-gib4Z6KDvYxUpNTSc4YA2dX5FxaQe2FiorGkBJJDfm86tXdT+57T2Gt+ti6YXTeX",
   "dist/merkleTreeWorker.umd.js": "sha384-R1mZHDfLUv9Y/WqKUvzOZY+2plbO/Bp51yBEjC/gR1i6s6/Bs2bvL8fUgayQj9tv",
   "dist/merkleTreeWorker.umd.min.js": "sha384-Q+7eHKKDxI6F+EIEM2X0y3WYI8Y/UzQsB7iGjwEVTaqhN1B8cAk7faigdcMA9eZ5",
-  "dist/tornado.umd.js": "sha384-gmhsTxV/miuXXP2cV5Ref+oLSciM76zVjM1njAjX9umGabxGghC2yIvv14thoCaB",
-  "dist/tornado.umd.min.js": "sha384-L4R9SUo9WZ9KpTNq5955KFAWV/JMmdnn+cSzwhxX8MDKVCedQEVEeO0rKrgmLah3",
-  "dist/tornadoContracts.umd.js": "sha384-2qUM4SOjDXCrWpYKkLzmfD5Yzpk0e07grTuNdsZ2sIOPp70+UrVhEhzTR0Lr3Drt",
-  "dist/tornadoContracts.umd.min.js": "sha384-Ed674KwnujvtWVO++WaBv1WZ2qlpGy1fJYx9H39sc/GHvzukjgByfim6qIZWgk/z"
+  "dist/tornado.umd.js": "sha384-0agT0NZPGn+HVnnpiTEPXnu5v5O6Mc240tDAV/d+LETcLcAdC8HLkNyLr+frTw8X",
+  "dist/tornado.umd.min.js": "sha384-HpjW4iLT54OexzJNOdsSlacq5cF5kJPOi0zuPUvL+OvYHy36rUIPtjs/YkJWeFma",
+  "dist/tornadoContracts.umd.js": "sha384-JN75mgwX2u9iz3rQnCrKpieWKhjZTBoPhf7lqFi6MxIo5FHF0NqJcjYrWiGVpR7B",
+  "dist/tornadoContracts.umd.min.js": "sha384-xcmT9Bwxdl0VcQOW9hc/ctxA0ms1alDP1Iii9j3fDDemODAr3agrhbZjq5yTFpIm"
 }

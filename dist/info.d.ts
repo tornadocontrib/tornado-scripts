@@ -1,6 +1,6 @@
 import { InfoRegistry, MultiLock, TovarishRegistry } from 'tornado-contracts';
 import { Multicall } from './typechain';
-import { NetIdType, RpcUrls, SubdomainMap, TokenInstances } from './networkConfig';
+import { NetIdType, RpcUrls, TokenInstances } from './networkConfig';
 import { CachedRelayerInfo } from './relayerClient';
 export declare const INFO_REVISION = 0;
 export declare const MERKLE_TREE_HEIGHT = 20;
@@ -9,17 +9,9 @@ export declare const MULTICALL_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976
 export declare const TORNADO_PROXY_LIGHT_ADDRESS = "0x0D5550d52428E7e3175bfc9550207e4ad3859b17";
 export declare const ECHOER_ADDRESS = "0xa75BF2815618872f155b7C4B0C81bF990f5245E4";
 export declare const INFO_REGISTRY_ADDRESS = "0xeB2219AE55643D2e199024e209e4A58FCC1c46CB";
-export declare const TOVARISH_REGISTRY_ADDRESS = "0x1484Ba55377e4512C8bb58A791F6a4a2aAbbECF6";
+export declare const TOVARISH_REGISTRY_ADDRESS = "0x48Ca4E40f0623F2E17619AEc21dF4Eae58097d5B";
 export declare const MULTILOCK_ADDRESS = "0xa9ea50025fd38f698ed09628eb73021773f2fc95";
-export declare const knownSubdomains: {
-    1: string;
-    56: string;
-    137: string;
-    10: string;
-    42161: string;
-    100: string;
-    43114: string;
-};
+export declare const DONATION_ADDRESS = "0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64";
 export interface RpcInfo {
     chainId: number;
     url: string;
@@ -185,24 +177,36 @@ export declare class TornadoNetInfo extends NetInfo {
 }
 export interface TornadoInfosConstructor {
     revision?: number;
-    subdomains?: SubdomainMap;
+    infoNetwork?: NetIdType;
+    governanceNetwork?: NetIdType;
+    relayerNetwork?: NetIdType;
+    donationAddress?: string;
+    keys?: string[];
     multicall: Multicall;
     infoRegistry: InfoRegistry;
     tovarishRegistry: TovarishRegistry;
-    multilock?: MultiLock;
+    multilock: MultiLock;
 }
 export interface LatestInfos {
+    keyValue: Record<string, string>;
     netInfos: TornadoNetInfo[];
     relayerInfos: CachedRelayerInfo[];
     lastInfoUpdate: number;
 }
+/**
+ * Collection of configuration for Frontend and CLI
+ */
 export declare class TornadoInfos {
     revision: number;
-    subdomains?: SubdomainMap;
+    infoNetwork: NetIdType;
+    governanceNetwork: NetIdType;
+    relayerNetwork: NetIdType;
+    donationAddress: string;
+    keys: string[];
     multicall: Multicall;
     infoRegistry: InfoRegistry;
     tovarishRegistry: TovarishRegistry;
-    multilock?: MultiLock;
+    multilock: MultiLock;
     /**
      * Fetched Infos
      */

@@ -10100,17 +10100,9 @@ const MULTICALL_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
 const TORNADO_PROXY_LIGHT_ADDRESS = "0x0D5550d52428E7e3175bfc9550207e4ad3859b17";
 const ECHOER_ADDRESS = "0xa75BF2815618872f155b7C4B0C81bF990f5245E4";
 const INFO_REGISTRY_ADDRESS = "0xeB2219AE55643D2e199024e209e4A58FCC1c46CB";
-const TOVARISH_REGISTRY_ADDRESS = "0x1484Ba55377e4512C8bb58A791F6a4a2aAbbECF6";
+const TOVARISH_REGISTRY_ADDRESS = "0x48Ca4E40f0623F2E17619AEc21dF4Eae58097d5B";
 const MULTILOCK_ADDRESS = "0xa9ea50025fd38f698ed09628eb73021773f2fc95";
-const knownSubdomains = {
-  [NetId.MAINNET]: "mainnet-tornado",
-  [NetId.BSC]: "bsc-tornado",
-  [NetId.POLYGON]: "polygon-tornado",
-  [NetId.OPTIMISM]: "optimism-tornado",
-  [NetId.ARBITRUM]: "arbitrum-tornado",
-  [NetId.GNOSIS]: "gnosis-tornado",
-  [NetId.AVALANCHE]: "avalanche-tornado"
-};
+const DONATION_ADDRESS = "0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64";
 class NetInfo {
   // EIP-155 chainId
   chainId;
@@ -10391,7 +10383,11 @@ class TornadoNetInfo extends NetInfo {
 }
 class TornadoInfos {
   revision;
-  subdomains;
+  infoNetwork;
+  governanceNetwork;
+  relayerNetwork;
+  donationAddress;
+  keys;
   multicall;
   infoRegistry;
   tovarishRegistry;
@@ -10404,7 +10400,11 @@ class TornadoInfos {
   lastInfoUpdate;
   constructor(infosConstructor) {
     this.revision = infosConstructor.revision || INFO_REVISION;
-    this.subdomains = infosConstructor.subdomains;
+    this.infoNetwork = infosConstructor.infoNetwork || NetId.MAINNET;
+    this.governanceNetwork = infosConstructor.governanceNetwork || this.infoNetwork;
+    this.relayerNetwork = infosConstructor.relayerNetwork || this.infoNetwork;
+    this.donationAddress = infosConstructor.donationAddress || DONATION_ADDRESS;
+    this.keys = [...infosConstructor.keys || []];
     this.multicall = infosConstructor.multicall;
     this.infoRegistry = infosConstructor.infoRegistry;
     this.tovarishRegistry = infosConstructor.tovarishRegistry;
@@ -10429,11 +10429,12 @@ class TornadoInfos {
    */
   async updateInfos(fallbackInfos) {
     try {
-      const { netInfos, relayerInfos, lastInfoUpdate } = await this.getLatestInfos();
+      const { keyValue, netInfos, relayerInfos, lastInfoUpdate } = await this.getLatestInfos();
       this.netInfos = netInfos;
       this.relayerInfos = relayerInfos;
       this.lastInfoUpdate = lastInfoUpdate;
       return {
+        keyValue,
         netInfos,
         relayerInfos,
         lastInfoUpdate
@@ -10445,6 +10446,7 @@ class TornadoInfos {
       console.log(`Failed to fetch latest tornado configs, falling back: ${err.message}`);
       console.log(err);
       return {
+        keyValue: fallbackInfos.keyValue,
         netInfos: fallbackInfos.netInfos.map(
           (n) => new TornadoNetInfo(n, n.revision, n.rpcInfos, n.tokenInfos, n.instanceInfos)
         ),
@@ -10454,40 +10456,77 @@ class TornadoInfos {
     }
   }
   async getLatestInfos() {
-    const [rawInfos, rawRpcs, rawInstances, rawTokens, rawRelayers, rawExecution] = await multicall(
-      this.multicall,
-      [
-        {
-          contract: this.infoRegistry,
-          name: "getNetInfos",
-          params: [this.revision]
-        },
-        {
-          contract: this.infoRegistry,
-          name: "getRpcs"
-        },
-        {
-          contract: this.infoRegistry,
-          name: "getInstances"
-        },
-        {
-          contract: this.infoRegistry,
-          name: "getTokens"
-        },
-        {
-          contract: this.tovarishRegistry,
-          name: "relayersData",
-          params: [Object.values(this.subdomains || {})]
-        },
-        ...this.multilock ? [
-          {
-            contract: this.multilock,
-            name: "lastExecution"
-          }
-        ] : []
-      ]
-    );
+    const textEncoder = new TextEncoder();
     const textDecoder = new TextDecoder();
+    const [
+      chainId,
+      rawExecution,
+      rawInfos,
+      rawRpcs,
+      rawInstances,
+      rawTokens,
+      rawChainIds,
+      rawRelayers,
+      ...rawValues
+    ] = await multicall(this.multicall, [
+      {
+        contract: this.multicall,
+        name: "getChainId"
+      },
+      {
+        contract: this.multilock,
+        name: "lastExecution"
+      },
+      {
+        contract: this.infoRegistry,
+        name: "getNetInfos",
+        params: [this.revision]
+      },
+      {
+        contract: this.infoRegistry,
+        name: "getRpcs"
+      },
+      {
+        contract: this.infoRegistry,
+        name: "getInstances"
+      },
+      {
+        contract: this.infoRegistry,
+        name: "getTokens"
+      },
+      {
+        contract: this.tovarishRegistry,
+        name: "getChainIds"
+      },
+      {
+        contract: this.tovarishRegistry,
+        name: "relayersData"
+      },
+      ...this.keys.map((k) => ({
+        contract: this.tovarishRegistry,
+        name: "bytesStore",
+        params: [ethers.keccak256(textEncoder.encode(k))]
+      }))
+    ]);
+    if (Number(chainId) !== this.infoNetwork) {
+      const errMsg = `Incorrect network for TornadoInfos, want ${this.infoNetwork} has ${chainId}`;
+      throw new Error(errMsg);
+    }
+    const keyValue = (await Promise.all(
+      rawValues.map(async (v) => {
+        if (!v) {
+          return "";
+        }
+        const uncompressed = await unzlibAsync(hexToBytes(v));
+        return textDecoder.decode(uncompressed);
+      })
+    )).reduce(
+      (acc, curr, i) => {
+        acc[this.keys[i]] = curr;
+        return acc;
+      },
+      {}
+    );
     const parsedConfigs = await Promise.all(
       rawInfos.map(async (configBytes) => {
         const uncompressed = await unzlibAsync(hexToBytes(configBytes));
@@ -10495,13 +10534,13 @@ class TornadoInfos {
         return config;
       })
     );
-    const rpcInfos = rawRpcs.map(({ chainId, url, isPrior }) => ({
-      chainId: Number(chainId),
+    const rpcInfos = rawRpcs.map(({ chainId: chainId2, url, isPrior }) => ({
+      chainId: Number(chainId2),
       url,
       isPrior
     }));
-    const tokenInfos = rawTokens.map(({ chainId, addr: address, name, symbol, decimals, transferGas }) => ({
-      chainId: Number(chainId),
+    const tokenInfos = rawTokens.map(({ chainId: chainId2, addr: address, name, symbol, decimals, transferGas }) => ({
+      chainId: Number(chainId2),
       address,
       name,
       symbol,
@@ -10510,7 +10549,7 @@ class TornadoInfos {
     }));
     const instanceInfos = rawInstances.map(
       ({
-        chainId,
+        chainId: chainId2,
         addr: address,
         denomination,
         tokenAddress,
@@ -10519,7 +10558,7 @@ class TornadoInfos {
         isDisabled
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) => ({
-        chainId: Number(chainId),
+        chainId: Number(chainId2),
         address,
         denomination,
         tokenAddress: tokenAddress !== ethers.ZeroAddress ? tokenAddress : void 0,
@@ -10531,6 +10570,7 @@ class TornadoInfos {
     const netInfos = parsedConfigs.map(
       (netCfg) => new TornadoNetInfo(netCfg, this.revision, rpcInfos, tokenInfos, instanceInfos)
     );
+    const enabledChains = netInfos.map((n) => n.chainId);
     const relayerInfos = rawRelayers.map(
       ({
         ensName,
@@ -10538,34 +10578,48 @@ class TornadoInfos {
         balance: stakeBalance,
         isRegistered,
         tovarishHost,
-        tovarishChains: rawChains,
+        tovarishChains,
+        isPrior,
         records
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) => {
-        const hostnames = Object.keys(this.subdomains || {}).reduce((acc, curr, i) => {
-          if (records[i]) {
+        const hostnames = rawChainIds.reduce((acc, curr, i) => {
+          if (records[i] && enabledChains.includes(Number(curr))) {
             acc[Number(curr)] = records[i];
           }
           return acc;
         }, {});
-        const tovarishChains = String(rawChains).split(",").map((c) => parseInt(c)).filter((c) => c);
+        const tovarishNetworks = String(tovarishChains).split(",").map((c) => parseInt(c)).filter((c) => enabledChains.includes(c));
         const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
-        const precondition = Boolean(isRegistered && hasMinBalance && records.length) || Boolean(tovarishHost.length && tovarishChains.length);
+        const precondition = Boolean(isRegistered && hasMinBalance && records.length) || Boolean(tovarishHost.length && tovarishNetworks.length);
         if (precondition) {
           return {
             ensName,
             relayerAddress,
             isRegistered,
+            isPrior,
             registeredAddress: relayerAddress,
-            stakeBalance,
+            stakeBalance: String(stakeBalance || 0),
             hostnames,
-            tovarishHost,
-            tovarishChains
+            tovarishHost: tovarishHost.length ? tovarishHost : void 0,
+            tovarishNetworks: tovarishHost.length && tovarishNetworks.length ? tovarishNetworks : void 0
           };
         }
       }
-    ).filter((r) => r);
+    ).filter((r) => r).sort((a, b) => {
+      const getPriorityScore = (i) => (i.tovarishHost?.length || 0) + (i.isPrior ? 1 : 0);
+      const [aScore, bScore] = [getPriorityScore(a), getPriorityScore(b)];
+      if (aScore === bScore) {
+        const [aBalance, bBalance] = [BigInt(a.stakeBalance || 0), BigInt(b.stakeBalance || 0)];
+        return aBalance > bBalance ? -1 : aBalance < bBalance ? 1 : 0;
+      }
+      return bScore - aScore;
+    });
+    this.netInfos = netInfos;
+    this.relayerInfos = relayerInfos;
+    this.lastInfoUpdate = Number(rawExecution || 0);
     return {
+      keyValue,
       netInfos,
       relayerInfos,
       lastInfoUpdate: Number(rawExecution || 0)
@@ -11242,6 +11296,7 @@ exports.DBMultiTornadoService = DBMultiTornadoService;
 exports.DBRegistryService = DBRegistryService;
 exports.DBRevenueService = DBRevenueService;
 exports.DBTornadoService = DBTornadoService;
+exports.DONATION_ADDRESS = DONATION_ADDRESS;
 exports.Deposit = Deposit;
 exports.ECHOER_ADDRESS = ECHOER_ADDRESS;
 exports.EMPTY_ELEMENT = EMPTY_ELEMENT;
@@ -11353,7 +11408,6 @@ exports.isHex = isHex;
 exports.isNode = isNode;
 exports.jobRequestSchema = jobRequestSchema;
 exports.jobsSchema = jobsSchema;
-exports.knownSubdomains = knownSubdomains;
 exports.labelhash = labelhash;
 exports.leBuff2Int = leBuff2Int;
 exports.leInt2Buff = leInt2Buff;

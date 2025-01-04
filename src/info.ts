@@ -1,4 +1,4 @@
-import { formatUnits, ZeroAddress } from 'ethers';
+import { formatUnits, keccak256, ZeroAddress } from 'ethers';
 import { InfoRegistry, MultiLock, TovarishRegistry } from 'tornado-contracts';
 
 import { Multicall } from './typechain';
@@ -24,20 +24,11 @@ export const ECHOER_ADDRESS = '0xa75BF2815618872f155b7C4B0C81bF990f5245E4';
 // info-registry.tornadowithdraw.eth
 export const INFO_REGISTRY_ADDRESS = '0xeB2219AE55643D2e199024e209e4A58FCC1c46CB';
 // tovarish-registry.tornadowithdraw.eth
-export const TOVARISH_REGISTRY_ADDRESS = '0x1484Ba55377e4512C8bb58A791F6a4a2aAbbECF6';
+export const TOVARISH_REGISTRY_ADDRESS = '0x48Ca4E40f0623F2E17619AEc21dF4Eae58097d5B';
 // multilock.tornadowithdraw.eth
 export const MULTILOCK_ADDRESS = '0xa9ea50025fd38f698ed09628eb73021773f2fc95';
-
-// legacy ENS subdomains (not required for new networks or tornado forks)
-export const knownSubdomains = {
-    [NetId.MAINNET]: 'mainnet-tornado',
-    [NetId.BSC]: 'bsc-tornado',
-    [NetId.POLYGON]: 'polygon-tornado',
-    [NetId.OPTIMISM]: 'optimism-tornado',
-    [NetId.ARBITRUM]: 'arbitrum-tornado',
-    [NetId.GNOSIS]: 'gnosis-tornado',
-    [NetId.AVALANCHE]: 'avalanche-tornado',
-};
+// tornadowithdraw.eth
+export const DONATION_ADDRESS = '0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64';
 
 export interface RpcInfo {
     chainId: number;
@@ -476,30 +467,42 @@ export class TornadoNetInfo extends NetInfo {
 
 export interface TornadoInfosConstructor {
     revision?: number;
-    subdomains?: SubdomainMap;
+
+    infoNetwork?: NetIdType;
+    governanceNetwork?: NetIdType;
+    relayerNetwork?: NetIdType;
+    donationAddress?: string;
+    keys?: string[];
 
     multicall: Multicall;
     infoRegistry: InfoRegistry;
     tovarishRegistry: TovarishRegistry;
-
-    multilock?: MultiLock;
+    multilock: MultiLock;
 }
 
 export interface LatestInfos {
+    keyValue: Record<string, string>;
     netInfos: TornadoNetInfo[];
     relayerInfos: CachedRelayerInfo[];
     lastInfoUpdate: number;
 }
 
+/**
+ * Collection of configuration for Frontend and CLI
+ */
 export class TornadoInfos {
     revision: number;
-    subdomains?: SubdomainMap;
+
+    infoNetwork: NetIdType;
+    governanceNetwork: NetIdType;
+    relayerNetwork: NetIdType;
+    donationAddress: string;
+    keys: string[];
 
     multicall: Multicall;
     infoRegistry: InfoRegistry;
     tovarishRegistry: TovarishRegistry;
-
-    multilock?: MultiLock;
+    multilock: MultiLock;
 
     /**
      * Fetched Infos
@@ -510,12 +513,16 @@ export class TornadoInfos {
 
     constructor(infosConstructor: TornadoInfosConstructor) {
         this.revision = infosConstructor.revision || INFO_REVISION;
-        this.subdomains = infosConstructor.subdomains;
+
+        this.infoNetwork = infosConstructor.infoNetwork || NetId.MAINNET;
+        this.governanceNetwork = infosConstructor.governanceNetwork || this.infoNetwork;
+        this.relayerNetwork = infosConstructor.relayerNetwork || this.infoNetwork;
+        this.donationAddress = infosConstructor.donationAddress || DONATION_ADDRESS;
+        this.keys = [...(infosConstructor.keys || [])];
 
         this.multicall = infosConstructor.multicall;
         this.infoRegistry = infosConstructor.infoRegistry;
         this.tovarishRegistry = infosConstructor.tovarishRegistry;
-
         this.multilock = infosConstructor.multilock;
 
         this.netInfos = [];
@@ -543,13 +550,14 @@ export class TornadoInfos {
      */
     async updateInfos(fallbackInfos?: LatestInfos): Promise<LatestInfos> {
         try {
-            const { netInfos, relayerInfos, lastInfoUpdate } = await this.getLatestInfos();
+            const { keyValue, netInfos, relayerInfos, lastInfoUpdate } = await this.getLatestInfos();
 
             this.netInfos = netInfos;
             this.relayerInfos = relayerInfos;
             this.lastInfoUpdate = lastInfoUpdate;
 
             return {
+                keyValue,
                 netInfos,
                 relayerInfos,
                 lastInfoUpdate,
@@ -565,6 +573,7 @@ export class TornadoInfos {
             console.log(err);
 
             return {
+                keyValue: fallbackInfos.keyValue,
                 netInfos: fallbackInfos.netInfos.map(
                     (n) => new TornadoNetInfo(n, n.revision, n.rpcInfos, n.tokenInfos, n.instanceInfos),
                 ),
@@ -575,43 +584,84 @@ export class TornadoInfos {
     }
 
     async getLatestInfos(): Promise<LatestInfos> {
-        const [rawInfos, rawRpcs, rawInstances, rawTokens, rawRelayers, rawExecution] = await multicall(
-            this.multicall,
-            [
-                {
-                    contract: this.infoRegistry,
-                    name: 'getNetInfos',
-                    params: [this.revision],
-                },
-                {
-                    contract: this.infoRegistry,
-                    name: 'getRpcs',
-                },
-                {
-                    contract: this.infoRegistry,
-                    name: 'getInstances',
-                },
-                {
-                    contract: this.infoRegistry,
-                    name: 'getTokens',
-                },
-                {
-                    contract: this.tovarishRegistry,
-                    name: 'relayersData',
-                    params: [Object.values(this.subdomains || {})],
-                },
-                ...(this.multilock
-                    ? [
-                          {
-                              contract: this.multilock,
-                              name: 'lastExecution',
-                          },
-                      ]
-                    : []),
-            ],
-        );
-
+        const textEncoder = new TextEncoder();
         const textDecoder = new TextDecoder();
+
+        const [
+            chainId,
+            rawExecution,
+            rawInfos,
+            rawRpcs,
+            rawInstances,
+            rawTokens,
+            rawChainIds,
+            rawRelayers,
+            ...rawValues
+        ] = await multicall(this.multicall, [
+            {
+                contract: this.multicall,
+                name: 'getChainId',
+            },
+            {
+                contract: this.multilock,
+                name: 'lastExecution',
+            },
+            {
+                contract: this.infoRegistry,
+                name: 'getNetInfos',
+                params: [this.revision],
+            },
+            {
+                contract: this.infoRegistry,
+                name: 'getRpcs',
+            },
+            {
+                contract: this.infoRegistry,
+                name: 'getInstances',
+            },
+            {
+                contract: this.infoRegistry,
+                name: 'getTokens',
+            },
+            {
+                contract: this.tovarishRegistry,
+                name: 'getChainIds',
+            },
+            {
+                contract: this.tovarishRegistry,
+                name: 'relayersData',
+            },
+            ...this.keys.map((k) => ({
+                contract: this.tovarishRegistry,
+                name: 'bytesStore',
+                params: [keccak256(textEncoder.encode(k))],
+            })),
+        ]);
+
+        if (Number(chainId) !== this.infoNetwork) {
+            const errMsg = `Incorrect network for TornadoInfos, want ${this.infoNetwork} has ${chainId}`;
+            throw new Error(errMsg);
+        }
+
+        const keyValue = (
+            await Promise.all(
+                rawValues.map(async (v: string) => {
+                    if (!v) {
+                        return '';
+                    }
+
+                    const uncompressed = await unzlibAsync(hexToBytes(v));
+
+                    return textDecoder.decode(uncompressed);
+                }),
+            )
+        ).reduce(
+            (acc, curr, i) => {
+                acc[this.keys[i]] = curr;
+                return acc;
+            },
+            {} as Record<string, string>,
+        );
 
         const parsedConfigs = await Promise.all(
             rawInfos.map(async (configBytes: string) => {
@@ -665,53 +715,80 @@ export class TornadoInfos {
             (netCfg) => new TornadoNetInfo(netCfg, this.revision, rpcInfos, tokenInfos, instanceInfos),
         );
 
-        const relayerInfos = rawRelayers
-            .map(
-                ({
-                    ensName,
-                    owner: relayerAddress,
-                    balance: stakeBalance,
-                    isRegistered,
-                    tovarishHost,
-                    tovarishChains: rawChains,
-                    records,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                }: any) => {
-                    const hostnames = Object.keys(this.subdomains || {}).reduce((acc, curr, i) => {
-                        if (records[i]) {
-                            acc[Number(curr)] = records[i];
+        const enabledChains = netInfos.map((n) => n.chainId);
+
+        const relayerInfos = (
+            rawRelayers
+                .map(
+                    ({
+                        ensName,
+                        owner: relayerAddress,
+                        balance: stakeBalance,
+                        isRegistered,
+                        tovarishHost,
+                        tovarishChains,
+                        isPrior,
+                        records,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    }: any) => {
+                        const hostnames = (rawChainIds as bigint[]).reduce((acc, curr, i) => {
+                            if (records[i] && enabledChains.includes(Number(curr))) {
+                                acc[Number(curr)] = records[i];
+                            }
+                            return acc;
+                        }, {} as SubdomainMap);
+
+                        const tovarishNetworks = String(tovarishChains)
+                            .split(',')
+                            .map((c) => parseInt(c))
+                            .filter((c) => enabledChains.includes(c));
+
+                        const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+
+                        const precondition =
+                            Boolean(isRegistered && hasMinBalance && (records as string[]).length) ||
+                            Boolean(tovarishHost.length && tovarishNetworks.length);
+
+                        if (precondition) {
+                            return {
+                                ensName,
+                                relayerAddress,
+                                isRegistered,
+                                isPrior,
+                                registeredAddress: relayerAddress,
+                                stakeBalance: String(stakeBalance || 0),
+                                hostnames,
+                                tovarishHost: tovarishHost.length ? tovarishHost : undefined,
+                                tovarishNetworks:
+                                    tovarishHost.length && tovarishNetworks.length ? tovarishNetworks : undefined,
+                            } as CachedRelayerInfo;
                         }
-                        return acc;
-                    }, {} as SubdomainMap);
+                    },
+                )
+                .filter((r: CachedRelayerInfo | undefined) => r) as CachedRelayerInfo[]
+        ).sort((a, b) => {
+            // Scoring => isTovarishRelayer => hasMoreStakedBalance
+            // When it is tovarish relayer, it will compare with staked balance as well
+            const getPriorityScore = (i: CachedRelayerInfo) => (i.tovarishHost?.length || 0) + (i.isPrior ? 1 : 0);
 
-                    const tovarishChains = String(rawChains)
-                        .split(',')
-                        .map((c) => parseInt(c))
-                        .filter((c) => c);
+            const [aScore, bScore] = [getPriorityScore(a), getPriorityScore(b)];
 
-                    const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+            if (aScore === bScore) {
+                // Sort by staked balance
+                const [aBalance, bBalance] = [BigInt(a.stakeBalance || 0), BigInt(b.stakeBalance || 0)];
 
-                    const precondition =
-                        Boolean(isRegistered && hasMinBalance && (records as string[]).length) ||
-                        Boolean(tovarishHost.length && tovarishChains.length);
+                return aBalance > bBalance ? -1 : aBalance < bBalance ? 1 : 0;
+            }
 
-                    if (precondition) {
-                        return {
-                            ensName,
-                            relayerAddress,
-                            isRegistered,
-                            registeredAddress: relayerAddress,
-                            stakeBalance,
-                            hostnames,
-                            tovarishHost,
-                            tovarishChains,
-                        } as CachedRelayerInfo;
-                    }
-                },
-            )
-            .filter((r: CachedRelayerInfo | undefined) => r) as CachedRelayerInfo[];
+            return bScore - aScore;
+        });
+
+        this.netInfos = netInfos;
+        this.relayerInfos = relayerInfos;
+        this.lastInfoUpdate = Number(rawExecution || 0);
 
         return {
+            keyValue,
             netInfos,
             relayerInfos,
             lastInfoUpdate: Number(rawExecution || 0),
