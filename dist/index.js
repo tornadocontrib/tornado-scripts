@@ -10076,6 +10076,13 @@ function fetchIp(ipEcho, fetchOptions) {
     timeout: 3e4
   });
 }
+function fetchFuckingIp(ipFuck = "https://myip.wtf/json", fetchOptions) {
+  return fetchData(ipFuck, {
+    ...fetchOptions || {},
+    method: "GET",
+    timeout: 3e4
+  });
+}
 
 class Mimc {
   sponge;
@@ -10822,6 +10829,7 @@ exports.encodedLabelToLabelhash = encodedLabelToLabelhash;
 exports.encryptedNotesSchema = encryptedNotesSchema;
 exports.factories = index;
 exports.fetchData = fetchData;
+exports.fetchFuckingIp = fetchFuckingIp;
 exports.fetchGetUrlFunc = fetchGetUrlFunc;
 exports.fetchIp = fetchIp;
 exports.fromContentHash = fromContentHash;
