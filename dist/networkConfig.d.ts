@@ -37,14 +37,6 @@ export interface TornadoInstance {
 }
 export type TokenInstances = Record<string, TornadoInstance>;
 export interface Config {
-    rpcCallRetryAttempt?: number;
-    gasPrices: {
-        instant: number;
-        fast?: number;
-        standard?: number;
-        low?: number;
-        maxPriorityFeePerGas?: number;
-    };
     nativeCurrency: string;
     currencyName: string;
     explorerUrl: string;
@@ -65,16 +57,16 @@ export interface Config {
     aggregatorContract?: string;
     reverseRecordsContract?: string;
     ovmGasPriceOracleContract?: string;
-    tornadoSubgraph: string;
+    tornadoSubgraph?: string;
     registrySubgraph?: string;
     governanceSubgraph?: string;
-    subgraphs: SubgraphUrls;
+    subgraphs?: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
     disabledTokens?: string[];
     relayerEnsSubdomain: string;
     pollInterval: number;
-    constants: {
+    constants?: {
         GOVERNANCE_BLOCK?: number;
         NOTE_ACCOUNT_BLOCK?: number;
         ENCRYPTED_NOTES_BLOCK?: number;
@@ -102,7 +94,6 @@ export declare function addNetwork(newConfig: networkConfig): void;
 export declare function getNetworkConfig(): networkConfig;
 export declare function getConfig(netId: NetIdType): Config;
 export declare function getActiveTokens(config: Config): string[];
-export declare function getActiveTokenInstances(config: Config): TokenInstances;
 export declare function getInstanceByAddress(config: Config, address: string): {
     amount: string;
     currency: string;

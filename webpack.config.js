@@ -1,4 +1,4 @@
-const { BannerPlugin } = require('webpack');
+const { BannerPlugin, ProvidePlugin } = require('webpack');
 const path = require('path');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
@@ -46,11 +46,18 @@ module.exports = [
         },
         plugins: [
             new NodePolyfillPlugin(),
+            new ProvidePlugin({
+                process: 'process/browser',
+                Buffer: ['buffer', 'Buffer']
+            }),
         ],
         resolve: {
             extensions: ['.tsx', '.ts', '.js'],
             alias: {
                 ...commonAlias,
+            },
+            fallback: {
+                'process/browser': require.resolve('process/browser'),
             }
         },
         optimization: {
@@ -71,11 +78,18 @@ module.exports = [
         },
         plugins: [
             new NodePolyfillPlugin(),
+            new ProvidePlugin({
+                process: 'process/browser',
+                Buffer: ['buffer', 'Buffer']
+            }),
         ],
         resolve: {
             extensions: ['.tsx', '.ts', '.js'],
             alias: {
                 ...commonAlias,
+            },
+            fallback: {
+                'process/browser': require.resolve('process/browser'),
             }
         },
     },
@@ -92,6 +106,10 @@ module.exports = [
         },
         plugins: [
             new NodePolyfillPlugin(),
+            new ProvidePlugin({
+                process: 'process/browser',
+                Buffer: ['buffer', 'Buffer']
+            }),
             new BannerPlugin({
                 banner: 'globalThis.process = { browser: true, env: {}, };\n',
                 raw: true,
@@ -101,6 +119,9 @@ module.exports = [
             extensions: ['.tsx', '.ts', '.js'],
             alias: {
                 ...commonAlias,
+            },
+            fallback: {
+                'process/browser': require.resolve('process/browser'),
             }
         },
         optimization: {
@@ -120,6 +141,10 @@ module.exports = [
         },
         plugins: [
             new NodePolyfillPlugin(),
+            new ProvidePlugin({
+                process: 'process/browser',
+                Buffer: ['buffer', 'Buffer']
+            }),
             new BannerPlugin({
                 banner: 'globalThis.process = { browser: true, env: {}, };',
                 raw: true,
@@ -129,6 +154,9 @@ module.exports = [
             extensions: ['.tsx', '.ts', '.js'],
             alias: {
                 ...commonAlias,
+            },
+            fallback: {
+                'process/browser': require.resolve('process/browser'),
             }
         },
     },

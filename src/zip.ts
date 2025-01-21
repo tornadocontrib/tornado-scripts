@@ -1,5 +1,15 @@
-import { zip, unzip, AsyncZippable, Unzipped, ZipAttributes } from 'fflate';
-import { fetchData } from './providers';
+import {
+    zip,
+    unzip,
+    AsyncZippable,
+    Unzipped,
+    ZipAttributes,
+    zlib,
+    unzlib,
+    AsyncZlibOptions,
+    AsyncUnzlibOptions,
+} from 'fflate';
+import { fetchData, fetchDataOptions } from './providers';
 import { bytesToBase64, digest } from './utils';
 
 export function zipAsync(file: AsyncZippable, options?: ZipAttributes): Promise<Uint8Array> {
@@ -26,20 +36,47 @@ export function unzipAsync(data: Uint8Array): Promise<Unzipped> {
     });
 }
 
+export function zlibAsync(data: Uint8Array, options?: AsyncZlibOptions): Promise<Uint8Array> {
+    return new Promise((res, rej) => {
+        zlib(data, { ...(options || {}) }, (err, data) => {
+            if (err) {
+                rej(err);
+                return;
+            }
+            res(data);
+        });
+    });
+}
+
+export function unzlibAsync(data: Uint8Array, options?: AsyncUnzlibOptions): Promise<Uint8Array> {
+    return new Promise((res, rej) => {
+        unzlib(data, { ...(options || {}) }, (err, data) => {
+            if (err) {
+                rej(err);
+                return;
+            }
+            res(data);
+        });
+    });
+}
+
 export async function downloadZip<T>({
     staticUrl = '',
     zipName,
     zipDigest,
     parseJson = true,
+    fetchOptions,
 }: {
     staticUrl?: string;
     zipName: string;
     zipDigest?: string;
     parseJson?: boolean;
+    fetchOptions?: fetchDataOptions;
 }): Promise<T> {
     const url = `${staticUrl}/${zipName}.zip`;
 
     const resp = (await fetchData(url, {
+        ...(fetchOptions || {}),
         method: 'GET',
         returnResponse: true,
     })) as Response;

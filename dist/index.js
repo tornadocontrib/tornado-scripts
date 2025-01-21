@@ -5,12 +5,10 @@ var tornadoContracts = require('tornado-contracts');
 var crypto$1 = require('crypto');
 var BN = require('bn.js');
 var contentHashUtils = require('@ensdomains/content-hash');
-var crossFetch = require('cross-fetch');
 var Ajv = require('ajv');
 var fflate = require('fflate');
 var circomlibjs = require('circomlibjs');
 var ethSigUtil = require('@metamask/eth-sig-util');
-var idb = require('idb');
 var worker_threads = require('worker_threads');
 var fixedMerkleTree = require('fixed-merkle-tree');
 var websnarkUtils = require('websnark/src/utils');
@@ -519,37 +517,10 @@ class BatchEventsService {
 }
 
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
-function getHttpAgent({
-  fetchUrl,
-  proxyUrl,
-  torPort,
-  retry
-}) {
-  const { HttpProxyAgent } = require("http-proxy-agent");
-  const { HttpsProxyAgent } = require("https-proxy-agent");
-  const { SocksProxyAgent } = require("socks-proxy-agent");
-  if (torPort) {
-    return new SocksProxyAgent(`socks5h://tor${retry}@127.0.0.1:${torPort}`);
-  }
-  if (!proxyUrl) {
-    return;
-  }
-  const isHttps = fetchUrl.includes("https://");
-  if (proxyUrl.includes("socks://") || proxyUrl.includes("socks4://") || proxyUrl.includes("socks5://")) {
-    return new SocksProxyAgent(proxyUrl);
-  }
-  if (proxyUrl.includes("http://") || proxyUrl.includes("https://")) {
-    if (isHttps) {
-      return new HttpsProxyAgent(proxyUrl);
-    }
-    return new HttpProxyAgent(proxyUrl);
-  }
-}
 async function fetchData(url, options = {}) {
   const MAX_RETRY = options.maxRetry ?? 3;
   const RETRY_ON = options.retryOn ?? 500;
   const userAgent = options.userAgent ?? defaultUserAgent;
-  const fetch = globalThis.useGlobalFetch ? globalThis.fetch : crossFetch;
   let retry = 0;
   let errorObject;
   if (!options.method) {
@@ -564,6 +535,9 @@ async function fetchData(url, options = {}) {
   }
   if (isNode && !options.headers["User-Agent"]) {
     options.headers["User-Agent"] = userAgent;
+  }
+  if (typeof globalThis.fetch !== "function") {
+    throw new Error("Fetch API is not available, use latest browser or nodejs installation!");
   }
   while (retry < MAX_RETRY + 1) {
     let timeout;
@@ -582,15 +556,7 @@ async function fetchData(url, options = {}) {
         });
       }
     }
-    if (!options.agent && isNode && (options.proxy || options.torPort)) {
-      options.agent = getHttpAgent({
-        fetchUrl: url,
-        proxyUrl: options.proxy,
-        torPort: options.torPort,
-        retry
-      });
-    }
-    if (options.debug && typeof options.debug === "function") {
+    if (typeof options.debug === "function") {
       options.debug("request", {
         url,
         retry,
@@ -599,13 +565,10 @@ async function fetchData(url, options = {}) {
       });
     }
     try {
-      const resp = await fetch(url, {
-        method: options.method,
-        headers: options.headers,
-        body: options.body,
-        redirect: options.redirect,
-        signal: options.signal,
-        agent: options.agent
+      const dispatcher = options.dispatcherFunc ? options.dispatcherFunc(retry) : options.dispatcher;
+      const resp = await globalThis.fetch(url, {
+        ...options,
+        dispatcher
       });
       if (options.debug && typeof options.debug === "function") {
         options.debug("response", resp);
@@ -668,15 +631,25 @@ const fetchGetUrlFunc = (options = {}) => async (req, _signal) => {
     body
   };
 };
+const FeeDataNetworkPluginName = new ethers.FetchUrlFeeDataNetworkPlugin(
+  "",
+  () => new Promise((resolve) => resolve(new ethers.FeeData()))
+).name;
 async function getProvider(rpcUrl, fetchOptions) {
   const fetchReq = new ethers.FetchRequest(rpcUrl);
   fetchReq.getUrlFunc = fetchGetUrlFunc(fetchOptions);
-  const staticNetwork = await new ethers.JsonRpcProvider(fetchReq).getNetwork();
-  const chainId = Number(staticNetwork.chainId);
+  const fetchedNetwork = await new ethers.JsonRpcProvider(fetchReq).getNetwork();
+  const chainId = Number(fetchedNetwork.chainId);
   if (fetchOptions?.netId && fetchOptions.netId !== chainId) {
     const errMsg = `Wrong network for ${rpcUrl}, wants ${fetchOptions.netId} got ${chainId}`;
     throw new Error(errMsg);
   }
+  const staticNetwork = new ethers.Network(fetchedNetwork.name, fetchedNetwork.chainId);
+  fetchedNetwork.plugins.forEach((plugin) => {
+    if (plugin.name !== FeeDataNetworkPluginName) {
+      staticNetwork.attachPlugin(plugin.clone());
+    }
+  });
   return new ethers.JsonRpcProvider(fetchReq, staticNetwork, {
     staticNetwork,
     pollingInterval: fetchOptions?.pollingInterval || 1e3
@@ -708,7 +681,7 @@ const populateTransaction = async (signer, tx) => {
   }
   const [feeData, nonce] = await Promise.all([
     tx.maxFeePerGas || tx.gasPrice ? void 0 : provider.getFeeData(),
-    tx.nonce ? void 0 : provider.getTransactionCount(signer.address, "pending")
+    tx.nonce || tx.nonce === 0 ? void 0 : provider.getTransactionCount(signer.address, "pending")
   ]);
   if (feeData) {
     if (feeData.maxFeePerGas) {
@@ -727,7 +700,7 @@ const populateTransaction = async (signer, tx) => {
       delete tx.maxPriorityFeePerGas;
     }
   }
-  if (nonce) {
+  if (nonce || nonce === 0) {
     tx.nonce = nonce;
   }
   if (!tx.gasLimit) {
@@ -743,7 +716,7 @@ const populateTransaction = async (signer, tx) => {
       }
     }
   }
-  return tx;
+  return ethers.resolveProperties(tx);
 };
 class TornadoWallet extends ethers.Wallet {
   nonce;
@@ -766,7 +739,7 @@ class TornadoWallet extends ethers.Wallet {
   async populateTransaction(tx) {
     const txObject = await populateTransaction(this, tx);
     this.nonce = Number(txObject.nonce);
-    return super.populateTransaction(txObject);
+    return txObject;
   }
 }
 class TornadoVoidSigner extends ethers.VoidSigner {
@@ -785,7 +758,7 @@ class TornadoVoidSigner extends ethers.VoidSigner {
   async populateTransaction(tx) {
     const txObject = await populateTransaction(this, tx);
     this.nonce = Number(txObject.nonce);
-    return super.populateTransaction(txObject);
+    return txObject;
   }
 }
 class TornadoRpcSigner extends ethers.JsonRpcSigner {
@@ -846,13 +819,6 @@ var NetId = /* @__PURE__ */ ((NetId2) => {
 })(NetId || {});
 const defaultConfig = {
   [1 /* MAINNET */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 80,
-      fast: 50,
-      standard: 25,
-      low: 8
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://etherscan.io",
@@ -865,9 +831,9 @@ const defaultConfig = {
         name: "MEV Blocker",
         url: "https://rpc.mevblocker.io"
       },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/mainnet"
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/mainnet"
       },
       keydonix: {
         name: "Horswap ( Keydonix )",
@@ -986,13 +952,6 @@ const defaultConfig = {
     }
   },
   [56 /* BSC */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 3,
-      fast: 1,
-      standard: 1,
-      low: 1
-    },
     nativeCurrency: "bnb",
     currencyName: "BNB",
     explorerUrl: "https://bscscan.com",
@@ -1016,9 +975,9 @@ const defaultConfig = {
         name: "BNB Chain 2",
         url: "https://bsc-dataseed1.ninicoin.io"
       },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/bsc"
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/bsc"
       },
       nodereal: {
         name: "NodeReal",
@@ -1082,13 +1041,6 @@ const defaultConfig = {
     }
   },
   [137 /* POLYGON */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 60,
-      fast: 30,
-      standard: 30,
-      low: 30
-    },
     nativeCurrency: "matic",
     currencyName: "MATIC",
     explorerUrl: "https://polygonscan.com",
@@ -1104,9 +1056,9 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/matic-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/polygon"
+      lavaBuild: {
+        name: "polygon.lava.build",
+        url: "https://polygon.lava.build"
       },
       polygon: {
         name: "Polygon",
@@ -1141,13 +1093,6 @@ const defaultConfig = {
     }
   },
   [10 /* OPTIMISM */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 1e-3,
-      fast: 1e-3,
-      standard: 1e-3,
-      low: 1e-3
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://optimistic.etherscan.io",
@@ -1164,9 +1109,9 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/op"
+      lavaBuild: {
+        name: "optimism.lava.build",
+        url: "https://optimism.lava.build"
       },
       optimism: {
         name: "Optimism",
@@ -1204,13 +1149,6 @@ const defaultConfig = {
     }
   },
   [42161 /* ARBITRUM */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 0.02,
-      fast: 0.02,
-      standard: 0.02,
-      low: 0.02
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://arbiscan.io",
@@ -1229,10 +1167,6 @@ const defaultConfig = {
       Arbitrum: {
         name: "Arbitrum",
         url: "https://arb1.arbitrum.io/rpc"
-      },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/arbitrum"
       },
       stackup: {
         name: "Stackup",
@@ -1266,13 +1200,6 @@ const defaultConfig = {
     }
   },
   [8453 /* BASE */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 0.1,
-      fast: 0.06,
-      standard: 0.05,
-      low: 0.02
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://basescan.org",
@@ -1292,10 +1219,6 @@ const defaultConfig = {
       Base: {
         name: "Base",
         url: "https://mainnet.base.org"
-      },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/base"
       },
       stackup: {
         name: "Stackup",
@@ -1358,13 +1281,6 @@ const defaultConfig = {
     }
   },
   [81457 /* BLAST */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 1e-3,
-      fast: 1e-3,
-      standard: 1e-3,
-      low: 1e-3
-    },
     nativeCurrency: "eth",
     currencyName: "ETH",
     explorerUrl: "https://blastscan.io",
@@ -1383,10 +1299,6 @@ const defaultConfig = {
       Blast: {
         name: "Blast",
         url: "https://rpc.blast.io"
-      },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/blast"
       },
       blastApi: {
         name: "BlastApi",
@@ -1415,13 +1327,6 @@ const defaultConfig = {
     }
   },
   [100 /* GNOSIS */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 6,
-      fast: 5,
-      standard: 4,
-      low: 1
-    },
     nativeCurrency: "xdai",
     currencyName: "xDAI",
     explorerUrl: "https://gnosisscan.io",
@@ -1441,9 +1346,13 @@ const defaultConfig = {
         name: "Gnosis",
         url: "https://rpc.gnosischain.com"
       },
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/gnosis"
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/gnosis"
+      },
+      blastApi: {
+        name: "BlastApi",
+        url: "https://gnosis-mainnet.public.blastapi.io"
       },
       oneRpc: {
         name: "1RPC",
@@ -1470,13 +1379,6 @@ const defaultConfig = {
     }
   },
   [43114 /* AVALANCHE */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 225,
-      fast: 35,
-      standard: 25,
-      low: 25
-    },
     nativeCurrency: "avax",
     currencyName: "AVAX",
     explorerUrl: "https://snowtrace.io",
@@ -1492,9 +1394,9 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/ext/bc/C/rpc"
+      blastApi: {
+        name: "BlastApi",
+        url: "https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc"
       },
       oneRpc: {
         name: "1RPC",
@@ -1528,13 +1430,6 @@ const defaultConfig = {
     }
   },
   [11155111 /* SEPOLIA */]: {
-    rpcCallRetryAttempt: 15,
-    gasPrices: {
-      instant: 2,
-      fast: 2,
-      standard: 2,
-      low: 2
-    },
     nativeCurrency: "eth",
     currencyName: "SepoliaETH",
     explorerUrl: "https://sepolia.etherscan.io",
@@ -1556,9 +1451,13 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     subgraphs: {},
     rpcUrls: {
-      tornadoWithdraw: {
-        name: "Tornado Withdraw",
-        url: "https://tornadowithdraw.com/sepolia"
+      blastApi: {
+        name: "BlastApi",
+        url: "https://eth-sepolia.public.blastapi.io"
+      },
+      tornadoRpc: {
+        name: "Tornado RPC",
+        url: "https://tornadocash-rpc.com/sepolia"
       },
       oneRpc: {
         name: "1RPC",
@@ -1646,15 +1545,6 @@ function getConfig(netId) {
 function getActiveTokens(config) {
   const { tokens, disabledTokens } = config;
   return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
-}
-function getActiveTokenInstances(config) {
-  const { tokens, disabledTokens } = config;
-  return Object.entries(tokens).reduce((acc, [token, instances]) => {
-    if (!disabledTokens?.includes(token)) {
-      acc[token] = instances;
-    }
-    return acc;
-  }, {});
 }
 function getInstanceByAddress(config, address) {
   const { tokens, disabledTokens } = config;
@@ -2225,8 +2115,7 @@ class RelayerClient {
   }
   async askRelayerStatus({
     hostname,
-    url,
-    relayerAddress
+    url
   }) {
     if (!url && hostname) {
       url = `https://${!hostname.endsWith("/") ? hostname + "/" : hostname}`;
@@ -2241,7 +2130,7 @@ class RelayerClient {
         "Content-Type": "application/json, application/x-www-form-urlencoded"
       },
       timeout: 3e4,
-      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
+      maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0
     });
     const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
     if (!statusValidator(rawStatus)) {
@@ -2257,9 +2146,6 @@ class RelayerClient {
     if (status.netId !== this.netId) {
       throw new Error("This relayer serves a different network");
     }
-    if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
-      throw new Error("The Relayer reward address must match registered address");
-    }
     return status;
   }
   async filterRelayer(relayer) {
@@ -2270,8 +2156,7 @@ class RelayerClient {
     }
     try {
       const status = await this.askRelayerStatus({
-        hostname,
-        relayerAddress
+        hostname
       });
       return {
         netId: status.netId,
@@ -3175,7 +3060,7 @@ async function getTovarishNetworks(registryService, relayers) {
             "Content-Type": "application/json"
           },
           timeout: 3e4,
-          maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0
+          maxRetry: registryService.fetchDataOptions?.dispatcher ? 2 : 0
         });
       } catch {
         relayer.tovarishNetworks = [];
@@ -3504,14 +3389,38 @@ function unzipAsync(data) {
     });
   });
 }
+function zlibAsync(data, options) {
+  return new Promise((res, rej) => {
+    fflate.zlib(data, { ...options || {} }, (err, data2) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data2);
+    });
+  });
+}
+function unzlibAsync(data, options) {
+  return new Promise((res, rej) => {
+    fflate.unzlib(data, { ...options || {} }, (err, data2) => {
+      if (err) {
+        rej(err);
+        return;
+      }
+      res(data2);
+    });
+  });
+}
 async function downloadZip({
   staticUrl = "",
   zipName,
   zipDigest,
-  parseJson = true
+  parseJson = true,
+  fetchOptions
 }) {
   const url = `${staticUrl}/${zipName}.zip`;
   const resp = await fetchData(url, {
+    ...fetchOptions || {},
     method: "GET",
     returnResponse: true
   });
@@ -9590,7 +9499,7 @@ class ENSUtils {
   }
   async getContracts() {
     const { chainId } = await this.provider.getNetwork();
-    const { ensRegistry, ensPublicResolver, ensNameWrapper } = EnsContracts[Number(chainId)];
+    const { ensRegistry, ensPublicResolver, ensNameWrapper } = EnsContracts[Number(chainId)] || EnsContracts[NetId.MAINNET];
     this.ENSRegistry = ENSRegistry__factory.connect(ensRegistry, this.provider);
     this.ENSResolver = ENSResolver__factory.connect(ensPublicResolver, this.provider);
     this.ENSNameWrapper = ENSNameWrapper__factory.connect(ensNameWrapper, this.provider);
@@ -9834,7 +9743,7 @@ class IndexedDB {
       if (this.dbExists || this.isBlocked) {
         return;
       }
-      this.db = await idb.openDB(this.dbName, this.dbVersion, this.options);
+      this.db = await window?.idb?.openDB(this.dbName, this.dbVersion, this.options);
       this.db.addEventListener("onupgradeneeded", async () => {
         await this._removeExist();
       });
@@ -9854,7 +9763,7 @@ class IndexedDB {
     }
   }
   async _removeExist() {
-    await idb.deleteDB(this.dbName);
+    await window?.idb?.deleteDB(this.dbName);
     this.dbExists = false;
     await this.initDB();
   }
@@ -10160,8 +10069,9 @@ async function getIndexedDB(netId) {
   return idb;
 }
 
-async function fetchIp(ipEcho) {
-  return await fetchData(ipEcho, {
+function fetchIp(ipEcho, fetchOptions) {
+  return fetchData(ipEcho, {
+    ...fetchOptions || {},
     method: "GET",
     timeout: 3e4
   });
@@ -10546,13 +10456,11 @@ class TovarishClient extends RelayerClient {
   }
   async askRelayerStatus({
     hostname,
-    url,
-    relayerAddress
+    url
   }) {
     const status = await super.askRelayerStatus({
       hostname,
-      url,
-      relayerAddress
+      url
     });
     if (!status.version.includes("tovarish")) {
       throw new Error("Not a tovarish relayer!");
@@ -10580,24 +10488,17 @@ class TovarishClient extends RelayerClient {
         "Content-Type": "application/json, application/x-www-form-urlencoded"
       },
       timeout: 3e4,
-      maxRetry: this.fetchDataOptions?.torPort ? 2 : 0
+      maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0
     });
     if (!Array.isArray(statusArray)) {
       return [];
     }
     const tovarishStatus = [];
     for (const rawStatus of statusArray) {
-      const netId = rawStatus.netId;
+      const netId = rawStatus?.netId;
       const config = getConfig(netId);
-      const statusValidator = ajv.compile(
-        getStatusSchema(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rawStatus.netId,
-          config,
-          this.tovarish
-        )
-      );
-      if (!statusValidator) {
+      const statusValidator = ajv.compile(getStatusSchema(rawStatus?.netId, config, this.tovarish));
+      if (!statusValidator(rawStatus)) {
         continue;
       }
       const status = {
@@ -10863,6 +10764,7 @@ exports.ENSUtils = ENSUtils;
 exports.ENS__factory = ENS__factory;
 exports.ERC20__factory = ERC20__factory;
 exports.EnsContracts = EnsContracts;
+exports.FeeDataNetworkPluginName = FeeDataNetworkPluginName;
 exports.INDEX_DB_ERROR = INDEX_DB_ERROR;
 exports.IndexedDB = IndexedDB;
 exports.Invoice = Invoice;
@@ -10927,11 +10829,9 @@ exports.gasZipID = gasZipID;
 exports.gasZipInbounds = gasZipInbounds;
 exports.gasZipInput = gasZipInput;
 exports.gasZipMinMax = gasZipMinMax;
-exports.getActiveTokenInstances = getActiveTokenInstances;
 exports.getActiveTokens = getActiveTokens;
 exports.getConfig = getConfig;
 exports.getEventsSchemaValidator = getEventsSchemaValidator;
-exports.getHttpAgent = getHttpAgent;
 exports.getIndexedDB = getIndexedDB;
 exports.getInstanceByAddress = getInstanceByAddress;
 exports.getMultiInstances = getMultiInstances;
@@ -10986,6 +10886,8 @@ exports.toFixedLength = toFixedLength;
 exports.tornadoEventsSchema = tornadoEventsSchema;
 exports.unpackEncryptedMessage = unpackEncryptedMessage;
 exports.unzipAsync = unzipAsync;
+exports.unzlibAsync = unzlibAsync;
 exports.validateUrl = validateUrl;
 exports.withdrawalsEventsSchema = withdrawalsEventsSchema;
 exports.zipAsync = zipAsync;
+exports.zlibAsync = zlibAsync;

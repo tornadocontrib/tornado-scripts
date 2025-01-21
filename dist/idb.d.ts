@@ -1,5 +1,11 @@
-import { OpenDBCallbacks, IDBPDatabase } from 'idb';
+import type * as idb from 'idb';
+import type { OpenDBCallbacks, IDBPDatabase } from 'idb';
 import { NetIdType } from './networkConfig';
+declare global {
+    interface Window {
+        idb: typeof idb;
+    }
+}
 export declare const INDEX_DB_ERROR = "A mutation operation was attempted on a database that did not allow mutations.";
 export interface IDBIndex {
     name: string;

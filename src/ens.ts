@@ -76,7 +76,8 @@ export class ENSUtils {
     async getContracts() {
         const { chainId } = await this.provider.getNetwork();
 
-        const { ensRegistry, ensPublicResolver, ensNameWrapper } = EnsContracts[Number(chainId)];
+        const { ensRegistry, ensPublicResolver, ensNameWrapper } =
+            EnsContracts[Number(chainId)] || EnsContracts[NetId.MAINNET];
 
         this.ENSRegistry = ENSRegistry__factory.connect(ensRegistry, this.provider);
         this.ENSResolver = ENSResolver__factory.connect(ensPublicResolver, this.provider);

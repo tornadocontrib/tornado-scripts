@@ -1,6 +1,6 @@
 import { getAddress, parseEther } from 'ethers';
 import { sleep } from './utils';
-import { NetId, NetIdType, Config } from './networkConfig';
+import { NetIdType, Config } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
 import { ajv, jobsSchema, jobRequestSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
@@ -196,13 +196,10 @@ export class RelayerClient {
     async askRelayerStatus({
         hostname,
         url,
-        relayerAddress,
     }: {
         hostname?: string;
         // optional url if entered manually
         url?: string;
-        // relayerAddress from registry contract to prevent cheating
-        relayerAddress?: string;
     }): Promise<RelayerStatus> {
         if (!url && hostname) {
             url = `https://${!hostname.endsWith('/') ? hostname + '/' : hostname}`;
@@ -212,14 +209,14 @@ export class RelayerClient {
             url = '';
         }
 
-        const rawStatus = (await fetchData(`${url}status`, {
+        const rawStatus = await fetchData<RelayerStatus>(`${url}status`, {
             ...this.fetchDataOptions,
             headers: {
                 'Content-Type': 'application/json, application/x-www-form-urlencoded',
             },
             timeout: 30000,
-            maxRetry: this.fetchDataOptions?.torPort ? 2 : 0,
-        })) as object;
+            maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0,
+        });
 
         const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
 
@@ -240,9 +237,11 @@ export class RelayerClient {
             throw new Error('This relayer serves a different network');
         }
 
+        /**
         if (relayerAddress && this.netId === NetId.MAINNET && status.rewardAccount !== relayerAddress) {
             throw new Error('The Relayer reward address must match registered address');
         }
+        **/
 
         return status;
     }
@@ -258,7 +257,6 @@ export class RelayerClient {
         try {
             const status = await this.askRelayerStatus({
                 hostname,
-                relayerAddress,
             });
 
             return {
@@ -325,7 +323,7 @@ export class RelayerClient {
          * Request new job
          */
 
-        const withdrawResponse = (await fetchData(`${url}v1/tornadoWithdraw`, {
+        const withdrawResponse = await fetchData<RelayerTornadoWithdraw>(`${url}v1/tornadoWithdraw`, {
             ...this.fetchDataOptions,
             method: 'POST',
             headers: {
@@ -336,7 +334,7 @@ export class RelayerClient {
                 proof,
                 args,
             }),
-        })) as RelayerTornadoWithdraw;
+        });
 
         const { id, error } = withdrawResponse;
 
@@ -366,7 +364,7 @@ export class RelayerClient {
         console.log(`Job submitted: ${jobUrl}\n`);
 
         while (!relayerStatus || !['FAILED', 'CONFIRMED'].includes(relayerStatus)) {
-            const jobResponse = await fetchData(jobUrl, {
+            const jobResponse = await fetchData<RelayerTornadoJobs>(jobUrl, {
                 ...this.fetchDataOptions,
                 method: 'GET',
                 headers: {
@@ -385,7 +383,7 @@ export class RelayerClient {
                 throw new Error(errMsg);
             }
 
-            const { status, txHash, confirmations, failedReason } = jobResponse as unknown as RelayerTornadoJobs;
+            const { status, txHash, confirmations, failedReason } = jobResponse;
 
             if (relayerStatus !== status) {
                 if (status === 'FAILED') {

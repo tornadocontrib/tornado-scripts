@@ -471,7 +471,7 @@ export class DBRegistryService extends BaseRegistryService {
         const url = `${this.staticUrl}/relayers.json`;
 
         try {
-            const resp = await fetchData(url, {
+            const resp = await fetchData<Response>(url, {
                 method: 'GET',
                 returnResponse: true,
             });

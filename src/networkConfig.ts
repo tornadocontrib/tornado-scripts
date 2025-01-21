@@ -46,17 +46,6 @@ export interface TornadoInstance {
 export type TokenInstances = Record<string, TornadoInstance>;
 
 export interface Config {
-    rpcCallRetryAttempt?: number;
-    // Should be in gwei
-    gasPrices: {
-        // fallback gasPrice / maxFeePerGas value
-        instant: number;
-        fast?: number;
-        standard?: number;
-        low?: number;
-        // fallback EIP-1559 params
-        maxPriorityFeePerGas?: number;
-    };
     nativeCurrency: string;
     currencyName: string;
     explorerUrl: string;
@@ -78,17 +67,17 @@ export interface Config {
     aggregatorContract?: string;
     reverseRecordsContract?: string;
     ovmGasPriceOracleContract?: string;
-    tornadoSubgraph: string;
+    tornadoSubgraph?: string;
     registrySubgraph?: string;
     governanceSubgraph?: string;
-    subgraphs: SubgraphUrls;
+    subgraphs?: SubgraphUrls;
     tokens: TokenInstances;
     optionalTokens?: string[];
     disabledTokens?: string[];
     relayerEnsSubdomain: string;
     // Should be in seconds
     pollInterval: number;
-    constants: {
+    constants?: {
         GOVERNANCE_BLOCK?: number;
         NOTE_ACCOUNT_BLOCK?: number;
         ENCRYPTED_NOTES_BLOCK?: number;
@@ -104,13 +93,6 @@ export type SubdomainMap = Record<NetIdType, string>;
 
 export const defaultConfig: networkConfig = {
     [NetId.MAINNET]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 80,
-            fast: 50,
-            standard: 25,
-            low: 8,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://etherscan.io',
@@ -123,9 +105,9 @@ export const defaultConfig: networkConfig = {
                 name: 'MEV Blocker',
                 url: 'https://rpc.mevblocker.io',
             },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/mainnet',
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/mainnet',
             },
             keydonix: {
                 name: 'Horswap ( Keydonix )',
@@ -244,13 +226,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.BSC]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 3,
-            fast: 1,
-            standard: 1,
-            low: 1,
-        },
         nativeCurrency: 'bnb',
         currencyName: 'BNB',
         explorerUrl: 'https://bscscan.com',
@@ -274,9 +249,9 @@ export const defaultConfig: networkConfig = {
                 name: 'BNB Chain 2',
                 url: 'https://bsc-dataseed1.ninicoin.io',
             },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/bsc',
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/bsc',
             },
             nodereal: {
                 name: 'NodeReal',
@@ -340,13 +315,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.POLYGON]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 60,
-            fast: 30,
-            standard: 30,
-            low: 30,
-        },
         nativeCurrency: 'matic',
         currencyName: 'MATIC',
         explorerUrl: 'https://polygonscan.com',
@@ -362,9 +330,9 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/matic-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/polygon',
+            lavaBuild: {
+                name: 'polygon.lava.build',
+                url: 'https://polygon.lava.build',
             },
             polygon: {
                 name: 'Polygon',
@@ -399,13 +367,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.OPTIMISM]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.001,
-            fast: 0.001,
-            standard: 0.001,
-            low: 0.001,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://optimistic.etherscan.io',
@@ -422,9 +383,9 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/optimism-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/op',
+            lavaBuild: {
+                name: 'optimism.lava.build',
+                url: 'https://optimism.lava.build',
             },
             optimism: {
                 name: 'Optimism',
@@ -462,13 +423,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.ARBITRUM]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.02,
-            fast: 0.02,
-            standard: 0.02,
-            low: 0.02,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://arbiscan.io',
@@ -487,10 +441,6 @@ export const defaultConfig: networkConfig = {
             Arbitrum: {
                 name: 'Arbitrum',
                 url: 'https://arb1.arbitrum.io/rpc',
-            },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/arbitrum',
             },
             stackup: {
                 name: 'Stackup',
@@ -524,13 +474,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.BASE]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.1,
-            fast: 0.06,
-            standard: 0.05,
-            low: 0.02,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://basescan.org',
@@ -550,10 +493,6 @@ export const defaultConfig: networkConfig = {
             Base: {
                 name: 'Base',
                 url: 'https://mainnet.base.org',
-            },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/base',
             },
             stackup: {
                 name: 'Stackup',
@@ -616,13 +555,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.BLAST]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 0.001,
-            fast: 0.001,
-            standard: 0.001,
-            low: 0.001,
-        },
         nativeCurrency: 'eth',
         currencyName: 'ETH',
         explorerUrl: 'https://blastscan.io',
@@ -641,10 +573,6 @@ export const defaultConfig: networkConfig = {
             Blast: {
                 name: 'Blast',
                 url: 'https://rpc.blast.io',
-            },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/blast',
             },
             blastApi: {
                 name: 'BlastApi',
@@ -673,13 +601,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.GNOSIS]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 6,
-            fast: 5,
-            standard: 4,
-            low: 1,
-        },
         nativeCurrency: 'xdai',
         currencyName: 'xDAI',
         explorerUrl: 'https://gnosisscan.io',
@@ -699,9 +620,13 @@ export const defaultConfig: networkConfig = {
                 name: 'Gnosis',
                 url: 'https://rpc.gnosischain.com',
             },
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/gnosis',
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/gnosis',
+            },
+            blastApi: {
+                name: 'BlastApi',
+                url: 'https://gnosis-mainnet.public.blastapi.io',
             },
             oneRpc: {
                 name: '1RPC',
@@ -728,13 +653,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.AVALANCHE]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 225,
-            fast: 35,
-            standard: 25,
-            low: 25,
-        },
         nativeCurrency: 'avax',
         currencyName: 'AVAX',
         explorerUrl: 'https://snowtrace.io',
@@ -750,9 +668,9 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/avalanche-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/ext/bc/C/rpc',
+            blastApi: {
+                name: 'BlastApi',
+                url: 'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc',
             },
             oneRpc: {
                 name: '1RPC',
@@ -786,13 +704,6 @@ export const defaultConfig: networkConfig = {
         },
     },
     [NetId.SEPOLIA]: {
-        rpcCallRetryAttempt: 15,
-        gasPrices: {
-            instant: 2,
-            fast: 2,
-            standard: 2,
-            low: 2,
-        },
         nativeCurrency: 'eth',
         currencyName: 'SepoliaETH',
         explorerUrl: 'https://sepolia.etherscan.io',
@@ -814,9 +725,13 @@ export const defaultConfig: networkConfig = {
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
         subgraphs: {},
         rpcUrls: {
-            tornadoWithdraw: {
-                name: 'Tornado Withdraw',
-                url: 'https://tornadowithdraw.com/sepolia',
+            blastApi: {
+                name: 'BlastApi',
+                url: 'https://eth-sepolia.public.blastapi.io',
+            },
+            tornadoRpc: {
+                name: 'Tornado RPC',
+                url: 'https://tornadocash-rpc.com/sepolia',
             },
             oneRpc: {
                 name: '1RPC',
@@ -930,17 +845,6 @@ export function getActiveTokens(config: Config): string[] {
     const { tokens, disabledTokens } = config;
 
     return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
-}
-
-export function getActiveTokenInstances(config: Config): TokenInstances {
-    const { tokens, disabledTokens } = config;
-
-    return Object.entries(tokens).reduce((acc, [token, instances]) => {
-        if (!disabledTokens?.includes(token)) {
-            acc[token] = instances;
-        }
-        return acc;
-    }, {} as TokenInstances);
 }
 
 export function getInstanceByAddress(config: Config, address: string) {

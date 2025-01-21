@@ -120,10 +120,9 @@ export declare class RelayerClient {
     fetchDataOptions?: fetchDataOptions;
     tovarish: boolean;
     constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
-    askRelayerStatus({ hostname, url, relayerAddress, }: {
+    askRelayerStatus({ hostname, url, }: {
         hostname?: string;
         url?: string;
-        relayerAddress?: string;
     }): Promise<RelayerStatus>;
     filterRelayer(relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined>;
     getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{

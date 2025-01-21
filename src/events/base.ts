@@ -1098,7 +1098,7 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
                             'Content-Type': 'application/json',
                         },
                         timeout: 30000,
-                        maxRetry: registryService.fetchDataOptions?.torPort ? 2 : 0,
+                        maxRetry: registryService.fetchDataOptions?.dispatcher ? 2 : 0,
                     });
                 } catch {
                     // Ignore error and disable relayer

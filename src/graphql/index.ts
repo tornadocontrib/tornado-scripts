@@ -62,7 +62,8 @@ export async function queryGraph<T>({
 }: queryGraphParams): Promise<T> {
     const graphUrl = `${graphApi}/subgraphs/name/${subgraphName}`;
 
-    const { data, errors } = await fetchData(graphUrl, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, errors } = await fetchData<{ data: T & { _meta: any }; errors: any }>(graphUrl, {
         ...fetchDataOptions,
         method: 'POST',
         headers: {
