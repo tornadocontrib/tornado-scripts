@@ -1,6 +1,6 @@
 import type * as idb from 'idb';
 import type { OpenDBCallbacks, IDBPDatabase } from 'idb';
-import { NetIdType } from './networkConfig';
+import type { NetIdType, TornadoConfig } from './networkConfig';
 declare global {
     interface Window {
         idb: typeof idb;
@@ -87,4 +87,4 @@ export declare class IndexedDB {
 /**
  * Should check if DB is initialized well
  */
-export declare function getIndexedDB(netId?: NetIdType): Promise<IndexedDB>;
+export declare function getIndexedDB(netId?: NetIdType, tornadoConfig?: TornadoConfig): Promise<IndexedDB>;

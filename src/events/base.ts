@@ -4,7 +4,6 @@ import {
     EventLog,
     TransactionResponse,
     getAddress,
-    namehash,
     formatEther,
     AbiCoder,
     dataLength,
@@ -18,8 +17,8 @@ import {
     Governance,
     RelayerRegistry,
     Echoer,
-    Aggregator,
     Tornado__factory,
+    TovarishAggregator,
 } from 'tornado-contracts';
 
 import type { MerkleTree } from 'fixed-merkle-tree';
@@ -31,8 +30,8 @@ import {
     BatchBlockOnProgress,
 } from '../batch';
 
-import { fetchData, fetchDataOptions } from '../providers';
-import { enabledChains, type NetIdType, type SubdomainMap } from '../networkConfig';
+import { fetchDataOptions } from '../providers';
+import { TornadoConfig, type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams, MIN_STAKE_BALANCE } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 
@@ -816,13 +815,13 @@ export interface GovernanceVotes extends GovernanceVotedEvents {
 
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Governance: Governance;
-    Aggregator: Aggregator;
+    Aggregator: TovarishAggregator;
     ReverseRecords: ReverseRecords;
 }
 
 export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
     Governance: Governance;
-    Aggregator: Aggregator;
+    Aggregator: TovarishAggregator;
     ReverseRecords: ReverseRecords;
 
     batchTransactionService: BatchTransactionService;
@@ -950,7 +949,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
 
         const [QUORUM_VOTES, proposalStatus, proposerNameRecords] = await Promise.all([
             this.Governance.QUORUM_VOTES(),
-            this.Aggregator.getAllProposals(this.Governance.target),
+            this.Aggregator.getAllProposals(),
             this.ReverseRecords.getNames(allProposers),
         ]);
 
@@ -1061,7 +1060,7 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
         });
 
         const [balances, uniqNameRecords] = await Promise.all([
-            this.Aggregator.getGovernanceBalances(this.Governance.target, uniq),
+            this.Aggregator.getGovernanceBalances(uniq),
             this.ReverseRecords.getNames(uniq),
         ]);
 
@@ -1086,28 +1085,6 @@ export class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents
     }
 }
 
-export async function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]) {
-    await Promise.all(
-        relayers
-            .filter((r) => r.tovarishHost)
-            .map(async (relayer) => {
-                try {
-                    relayer.tovarishNetworks = await fetchData(relayer.tovarishHost as string, {
-                        ...registryService.fetchDataOptions,
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        timeout: 30000,
-                        maxRetry: registryService.fetchDataOptions?.dispatcher ? 2 : 0,
-                    });
-                } catch {
-                    // Ignore error and disable relayer
-                    relayer.tovarishNetworks = [];
-                }
-            }),
-    );
-}
-
 /**
  * Essential params:
  * ensName, relayerAddress, hostnames
@@ -1115,55 +1092,26 @@ export async function getTovarishNetworks(registryService: BaseRegistryService, 
  */
 export interface CachedRelayerInfo extends RelayerParams {
     isRegistered?: boolean;
-    registeredAddress?: string;
+    isPrior?: boolean;
     stakeBalance?: string;
     hostnames: SubdomainMap;
     tovarishHost?: string;
     tovarishNetworks?: number[];
 }
 
-/**
- * Static relayer provided by tornadowithdraw.eth
- * This relayer isn't compatible with the current UI (tornadocash.eth) and only works as experimental mode
- * Once DAO approves changes to UI to support new Tovarish Relayer software register relayer and remove static list
- */
-const staticRelayers: CachedRelayerInfo[] = [
-    {
-        ensName: 'tornadowithdraw.eth',
-        relayerAddress: '0x40c3d1656a26C9266f4A10fed0D87EFf79F54E64',
-        hostnames: {},
-        tovarishHost: 'tornadowithdraw.com',
-        tovarishNetworks: enabledChains,
-    },
-    {
-        ensName: 'rpc.tornadowithdraw.eth',
-        relayerAddress: '0xFF787B7A5cd8a88508361E3B7bcE791Aa2796526',
-        hostnames: {},
-        tovarishHost: 'tornadocash-rpc.com',
-        tovarishNetworks: enabledChains,
-    },
-];
-
-export interface CachedRelayers {
-    lastBlock: number;
-    timestamp: number;
-    relayers: CachedRelayerInfo[];
-    fromCache?: boolean;
-}
-
 export interface BaseRegistryServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    tornadoConfig: TornadoConfig;
     RelayerRegistry: RelayerRegistry;
-    Aggregator: Aggregator;
-    relayerEnsSubdomains: SubdomainMap;
+    Aggregator: TovarishAggregator;
 }
 
 export class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEvents> {
-    Aggregator: Aggregator;
-    relayerEnsSubdomains: SubdomainMap;
+    tornadoConfig: TornadoConfig;
+    Aggregator: TovarishAggregator;
     updateInterval: number;
 
     constructor(serviceConstructor: BaseRegistryServiceConstructor) {
-        const { RelayerRegistry: contract, Aggregator, relayerEnsSubdomains } = serviceConstructor;
+        const { RelayerRegistry: contract, tornadoConfig, Aggregator } = serviceConstructor;
 
         super({
             ...serviceConstructor,
@@ -1171,8 +1119,8 @@ export class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEve
             type: '*',
         });
 
+        this.tornadoConfig = tornadoConfig;
         this.Aggregator = Aggregator;
-        this.relayerEnsSubdomains = relayerEnsSubdomains;
 
         this.updateInterval = 86400;
     }
@@ -1249,141 +1197,100 @@ export class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEve
         ];
     }
 
-    /**
-     * Get saved or cached relayers
-     */
-    async getRelayersFromDB(): Promise<CachedRelayers> {
-        return {
-            lastBlock: 0,
-            timestamp: 0,
-            relayers: [],
-        };
-    }
+    async getLatestRelayers(knownRelayers?: string[]): Promise<CachedRelayerInfo[]> {
+        const newRelayers: string[] = [];
 
-    /**
-     * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
-     */
-    async getRelayersFromCache(): Promise<CachedRelayers> {
-        return {
-            lastBlock: 0,
-            timestamp: 0,
-            relayers: [],
-            fromCache: true,
-        };
-    }
+        if (knownRelayers?.length) {
+            const { events: allEvents } = await this.updateEvents();
 
-    async getSavedRelayers(): Promise<CachedRelayers> {
-        let cachedRelayers = await this.getRelayersFromDB();
+            const events = allEvents.filter((e) => e.event === 'RelayerRegistered') as RelayerRegisteredEvents[];
 
-        if (!cachedRelayers || !cachedRelayers.relayers.length) {
-            cachedRelayers = await this.getRelayersFromCache();
+            for (const { ensName } of events) {
+                if (!newRelayers.includes(ensName) && !knownRelayers?.includes(ensName)) {
+                    newRelayers.push(ensName);
+                }
+            }
         }
 
-        return cachedRelayers;
-    }
-
-    async getLatestRelayers(): Promise<CachedRelayers> {
-        const { events: allEvents, lastBlock } = await this.updateEvents();
-
-        const events = allEvents.filter((e) => e.event === 'RelayerRegistered') as RelayerRegisteredEvents[];
-
-        const subdomains = Object.values(this.relayerEnsSubdomains);
-
-        const registerSet = new Set();
-
-        const uniqueRegisters = events.filter(({ ensName }) => {
-            if (!registerSet.has(ensName)) {
-                registerSet.add(ensName);
-                return true;
-            }
-            return false;
-        });
-
-        const relayerNameHashes = uniqueRegisters.map((r) => namehash(r.ensName));
-
-        const [relayersData, timestamp] = await Promise.all([
-            this.Aggregator.relayersData.staticCall(relayerNameHashes, subdomains.concat('tovarish-relayer')),
-            this.provider.getBlock(lastBlock).then((b) => Number(b?.timestamp)),
+        const [chains, relayersData] = await Promise.all([
+            this.Aggregator.getChainIds.staticCall(),
+            this.Aggregator.relayersData.staticCall(newRelayers),
         ]);
 
         const relayers = relayersData
-            .map(({ owner, balance: stakeBalance, records, isRegistered }, index) => {
-                const { ensName, relayerAddress } = uniqueRegisters[index];
+            .map(
+                ({
+                    ensName,
+                    owner,
+                    balance: stakeBalance,
+                    isRegistered,
+                    isPrior,
+                    tovarishHost,
+                    tovarishChains,
+                    records,
+                }) => {
+                    const hostnames = records.reduce((acc, record, recordIndex) => {
+                        if (record) {
+                            // tovarish-relayer.relayer.eth
+                            if (recordIndex === records.length - 1) {
+                                tovarishHost = record;
+                                return acc;
+                            }
 
-                let tovarishHost = undefined;
-
-                const hostnames = records.reduce((acc, record, recordIndex) => {
-                    if (record) {
-                        // tovarish-relayer.relayer.eth
-                        if (recordIndex === records.length - 1) {
-                            tovarishHost = record;
-                            return acc;
+                            acc[Number(chains[recordIndex])] = record;
                         }
+                        return acc;
+                    }, {} as SubdomainMap);
 
-                        acc[Number(Object.keys(this.relayerEnsSubdomains)[recordIndex])] = record;
+                    const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
+
+                    const tovarishNetworks = [
+                        ...new Set(
+                            tovarishChains
+                                .split(',')
+                                .map((c) => Number(c))
+                                .filter((c) => c && this.tornadoConfig.chains.includes(c)),
+                        ),
+                    ];
+
+                    const preCondition =
+                        (isRegistered && hasMinBalance && Object.keys(hostnames).length) ||
+                        (tovarishHost.length && tovarishNetworks.length);
+
+                    if (preCondition) {
+                        return {
+                            ensName,
+                            relayerAddress: owner,
+                            isPrior,
+                            isRegistered,
+                            stakeBalance: formatEther(stakeBalance),
+                            hostnames,
+                            tovarishHost,
+                            tovarishNetworks,
+                        } as CachedRelayerInfo;
                     }
-                    return acc;
-                }, {} as SubdomainMap);
-
-                const hasMinBalance = stakeBalance >= MIN_STAKE_BALANCE;
-
-                const preCondition = Object.keys(hostnames).length && isRegistered && hasMinBalance;
-
-                if (preCondition) {
-                    return {
-                        ensName,
-                        relayerAddress: owner,
-                        registeredAddress: owner !== relayerAddress ? relayerAddress : undefined,
-                        isRegistered,
-                        stakeBalance: formatEther(stakeBalance),
-                        hostnames,
-                        tovarishHost,
-                    } as CachedRelayerInfo;
-                }
-            })
+                },
+            )
             .filter((r) => r) as CachedRelayerInfo[];
 
-        await getTovarishNetworks(this, relayers);
+        const sortedRelayers = relayers.sort((a, b) => {
+            // Scoring => isTovarishRelayer => hasMoreStakedBalance
+            // When it is tovarish relayer, it will compare with staked balance as well
+            const getPriorityScore = (i: CachedRelayerInfo) => (i.tovarishHost?.length || 0) + (i.isPrior ? 1 : 0);
 
-        const allRelayers = [...staticRelayers, ...relayers];
-        const tovarishRelayers = allRelayers.filter((r) => r.tovarishHost);
-        const classicRelayers = allRelayers.filter((r) => !r.tovarishHost);
+            const [aScore, bScore] = [getPriorityScore(a), getPriorityScore(b)];
 
-        return {
-            lastBlock,
-            timestamp,
-            relayers: [...tovarishRelayers, ...classicRelayers],
-        };
-    }
+            if (aScore === bScore) {
+                // Sort by staked balance
+                const [aBalance, bBalance] = [Number(a.stakeBalance || 0), Number(b.stakeBalance || 0)];
 
-    /**
-     * Handle saving relayers
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async saveRelayers({ lastBlock, timestamp, relayers }: CachedRelayers) {}
+                return bBalance - aBalance;
+            }
 
-    /**
-     * Get cached or latest relayer and save to local
-     */
-    async updateRelayers(): Promise<CachedRelayers> {
-        // eslint-disable-next-line prefer-const
-        let { lastBlock, timestamp, relayers, fromCache } = await this.getSavedRelayers();
+            return bScore - aScore;
+        });
 
-        let shouldSave = fromCache ?? false;
-
-        if (!relayers.length || timestamp + this.updateInterval < Math.floor(Date.now() / 1000)) {
-            console.log('\nUpdating relayers from registry\n');
-
-            ({ lastBlock, timestamp, relayers } = await this.getLatestRelayers());
-
-            shouldSave = true;
-        }
-
-        if (shouldSave) {
-            await this.saveRelayers({ lastBlock, timestamp, relayers });
-        }
-
-        return { lastBlock, timestamp, relayers };
+        return sortedRelayers;
     }
 }
 

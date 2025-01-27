@@ -1,4 +1,4 @@
-import { NetIdType, Config } from './networkConfig';
+import type { NetIdType, TornadoConfig } from './networkConfig';
 import { fetchDataOptions } from './providers';
 import type { snarkProofs } from './websnark';
 import type { CachedRelayerInfo } from './events';
@@ -109,23 +109,22 @@ export type RelayerInstanceList = Record<string, {
 export declare function getSupportedInstances(instanceList: RelayerInstanceList): string[];
 export declare function pickWeightedRandomRelayer(relayers: RelayerInfo[]): RelayerInfo;
 export interface RelayerClientConstructor {
-    netId: NetIdType;
-    config: Config;
+    tornadoConfig: TornadoConfig;
     fetchDataOptions?: fetchDataOptions;
 }
 export declare class RelayerClient {
-    netId: NetIdType;
-    config: Config;
+    tornadoConfig: TornadoConfig;
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
     tovarish: boolean;
-    constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor);
-    askRelayerStatus({ hostname, url, }: {
+    constructor({ tornadoConfig, fetchDataOptions }: RelayerClientConstructor);
+    askRelayerStatus({ netId, hostname, url, }: {
+        netId: NetIdType;
         hostname?: string;
         url?: string;
     }): Promise<RelayerStatus>;
-    filterRelayer(relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined>;
-    getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
+    filterRelayer(netId: NetIdType, relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined>;
+    getValidRelayers(netId: NetIdType, relayers: CachedRelayerInfo[]): Promise<{
         validRelayers: RelayerInfo[];
         invalidRelayers: RelayerError[];
     }>;

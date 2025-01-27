@@ -263,7 +263,7 @@ export function getProviderWithNetId(
     config: Config,
     fetchOptions?: getProviderOptions,
 ): JsonRpcProvider {
-    const { networkName, reverseRecordsContract, pollInterval } = config;
+    const { networkName, reverseRecordsContract, blockTime } = config;
     const hasEns = Boolean(reverseRecordsContract);
 
     const fetchReq = new FetchRequest(rpcUrl);
@@ -276,7 +276,7 @@ export function getProviderWithNetId(
 
     const provider = new JsonRpcProvider(fetchReq, staticNetwork, {
         staticNetwork,
-        pollingInterval: fetchOptions?.pollingInterval || pollInterval * 1000,
+        pollingInterval: fetchOptions?.pollingInterval || blockTime * 1000,
     });
 
     return provider;

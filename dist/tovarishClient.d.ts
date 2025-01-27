@@ -1,5 +1,6 @@
 import { RelayerClient, RelayerClientConstructor, RelayerError, RelayerInfo, RelayerStatus } from './relayerClient';
 import { CachedRelayerInfo, MinimalEvents } from './events';
+import { NetIdType } from './networkConfig';
 export declare const MAX_TOVARISH_EVENTS = 5000;
 export interface EventsStatus {
     events: number;
@@ -45,7 +46,8 @@ export interface BaseTovarishEvents<T> {
 export declare class TovarishClient extends RelayerClient {
     selectedRelayer?: TovarishInfo;
     constructor(clientConstructor: RelayerClientConstructor);
-    askRelayerStatus({ hostname, url, }: {
+    askRelayerStatus({ netId, hostname, url, }: {
+        netId: NetIdType;
         hostname?: string;
         url?: string;
         relayerAddress?: string;
@@ -58,8 +60,8 @@ export declare class TovarishClient extends RelayerClient {
         url?: string;
         relayerAddress?: string;
     }): Promise<TovarishStatus[]>;
-    filterRelayer(relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined>;
-    getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
+    filterRelayer(netId: NetIdType, relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined>;
+    getValidRelayers(netId: NetIdType, relayers: CachedRelayerInfo[]): Promise<{
         validRelayers: TovarishInfo[];
         invalidRelayers: RelayerError[];
     }>;

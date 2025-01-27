@@ -1,8 +1,6 @@
 import { downloadZip } from '../zip';
 import { IndexedDB } from '../idb';
 
-import { bytesToBase64, digest } from '../utils';
-import { fetchData } from '../providers';
 import {
     BaseTornadoService,
     BaseTornadoServiceConstructor,
@@ -16,7 +14,6 @@ import {
     BaseRegistryServiceConstructor,
     BaseRevenueService,
     BaseRevenueServiceConstructor,
-    CachedRelayers,
     BaseMultiTornadoService,
     BaseMultiTornadoServiceConstructor,
 } from './base';
@@ -403,7 +400,6 @@ export class DBRegistryService extends BaseRegistryService {
     idb: IndexedDB;
 
     zipDigest?: string;
-    relayerJsonDigest?: string;
 
     constructor(params: DBRegistryServiceConstructor) {
         super(params);
@@ -438,78 +434,6 @@ export class DBRegistryService extends BaseRegistryService {
             newEvents,
             lastBlock,
         });
-    }
-
-    async getRelayersFromDB(): Promise<CachedRelayers> {
-        try {
-            const allCachedRelayers = await this.idb.getAll<CachedRelayers[]>({
-                storeName: `relayers_${this.netId}`,
-            });
-
-            if (!allCachedRelayers?.length) {
-                return {
-                    lastBlock: 0,
-                    timestamp: 0,
-                    relayers: [],
-                };
-            }
-
-            return allCachedRelayers.slice(-1)[0];
-        } catch (err) {
-            console.log('Method getRelayersFromDB has error');
-            console.log(err);
-
-            return {
-                lastBlock: 0,
-                timestamp: 0,
-                relayers: [],
-            };
-        }
-    }
-
-    async getRelayersFromCache(): Promise<CachedRelayers> {
-        const url = `${this.staticUrl}/relayers.json`;
-
-        try {
-            const resp = await fetchData<Response>(url, {
-                method: 'GET',
-                returnResponse: true,
-            });
-
-            const data = new Uint8Array(await resp.arrayBuffer());
-
-            if (this.relayerJsonDigest) {
-                const hash = 'sha384-' + bytesToBase64(await digest(data));
-
-                if (hash !== this.relayerJsonDigest) {
-                    const errMsg = `Invalid digest hash for ${url}, wants ${this.relayerJsonDigest} has ${hash}`;
-                    throw new Error(errMsg);
-                }
-            }
-
-            return JSON.parse(new TextDecoder().decode(data)) as CachedRelayers;
-        } catch (err) {
-            console.log('Method getRelayersFromCache has error');
-            console.log(err);
-
-            return {
-                lastBlock: 0,
-                timestamp: 0,
-                relayers: [],
-            };
-        }
-    }
-
-    async saveRelayers(cachedRelayers: CachedRelayers): Promise<void> {
-        try {
-            await this.idb.putItem({
-                data: cachedRelayers,
-                storeName: `relayers_${this.netId}`,
-            });
-        } catch (err) {
-            console.log('Method saveRelayers has error');
-            console.log(err);
-        }
     }
 }
 

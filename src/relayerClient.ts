@@ -1,6 +1,6 @@
 import { getAddress, parseEther } from 'ethers';
 import { sleep } from './utils';
-import { NetIdType, Config } from './networkConfig';
+import type { NetIdType, TornadoConfig } from './networkConfig';
 import { fetchData, fetchDataOptions } from './providers';
 import { ajv, jobsSchema, jobRequestSchema, getStatusSchema } from './schemas';
 import type { snarkProofs } from './websnark';
@@ -174,29 +174,28 @@ export function pickWeightedRandomRelayer(relayers: RelayerInfo[]) {
 }
 
 export interface RelayerClientConstructor {
-    netId: NetIdType;
-    config: Config;
+    tornadoConfig: TornadoConfig;
     fetchDataOptions?: fetchDataOptions;
 }
 
 export class RelayerClient {
-    netId: NetIdType;
-    config: Config;
+    tornadoConfig: TornadoConfig;
     selectedRelayer?: RelayerInfo;
     fetchDataOptions?: fetchDataOptions;
     tovarish: boolean;
 
-    constructor({ netId, config, fetchDataOptions }: RelayerClientConstructor) {
-        this.netId = netId;
-        this.config = config;
+    constructor({ tornadoConfig, fetchDataOptions }: RelayerClientConstructor) {
+        this.tornadoConfig = tornadoConfig;
         this.fetchDataOptions = fetchDataOptions;
         this.tovarish = false;
     }
 
     async askRelayerStatus({
+        netId,
         hostname,
         url,
     }: {
+        netId: NetIdType;
         hostname?: string;
         // optional url if entered manually
         url?: string;
@@ -218,7 +217,9 @@ export class RelayerClient {
             maxRetry: this.fetchDataOptions?.dispatcher ? 2 : 0,
         });
 
-        const statusValidator = ajv.compile(getStatusSchema(this.netId, this.config, this.tovarish));
+        const config = this.tornadoConfig.getConfig(netId);
+
+        const statusValidator = ajv.compile(getStatusSchema(config, this.tovarish));
 
         if (!statusValidator(rawStatus)) {
             throw new Error('Invalid status schema');
@@ -233,7 +234,7 @@ export class RelayerClient {
             throw new Error('Withdrawal queue is overloaded');
         }
 
-        if (status.netId !== this.netId) {
+        if (status.netId !== netId) {
             throw new Error('This relayer serves a different network');
         }
 
@@ -246,8 +247,8 @@ export class RelayerClient {
         return status;
     }
 
-    async filterRelayer(relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined> {
-        const hostname = relayer.hostnames[this.netId];
+    async filterRelayer(netId: NetIdType, relayer: CachedRelayerInfo): Promise<RelayerInfo | RelayerError | undefined> {
+        const hostname = relayer.hostnames[netId];
         const { ensName, relayerAddress } = relayer;
 
         if (!hostname) {
@@ -256,6 +257,7 @@ export class RelayerClient {
 
         try {
             const status = await this.askRelayerStatus({
+                netId,
                 hostname,
             });
 
@@ -284,13 +286,16 @@ export class RelayerClient {
         }
     }
 
-    async getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
+    async getValidRelayers(
+        netId: NetIdType,
+        relayers: CachedRelayerInfo[],
+    ): Promise<{
         validRelayers: RelayerInfo[];
         invalidRelayers: RelayerError[];
     }> {
         const invalidRelayers: RelayerError[] = [];
 
-        const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter(
+        const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(netId, relayer)))).filter(
             (r) => {
                 if (!r) {
                     return false;

@@ -1,4 +1,4 @@
-import { Config, NetId, NetIdType } from '../networkConfig';
+import { Config } from '../networkConfig';
 import { addressSchemaType, bnSchemaType } from '.';
 
 export interface statusInstanceType {
@@ -10,7 +10,8 @@ export interface statusInstanceType {
             required: string[];
         };
         tokenAddress?: typeof addressSchemaType;
-        symbol?: { enum: string[] };
+        //symbol?: { enum: string[] };
+        symbol?: { type: string };
         decimals: { enum: number[] };
     };
     required: string[];
@@ -127,15 +128,23 @@ const statusSchema: statusSchema = {
     required: ['rewardAccount', 'instances', 'netId', 'tornadoServiceFee', 'version', 'health', 'currentQueue'],
 };
 
-export function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean) {
-    const { tokens, optionalTokens, disabledTokens, nativeCurrency } = config;
+export function getStatusSchema(config: Config, tovarish: boolean) {
+    const { tokens, nativeCurrency } = config;
 
     // deep copy schema
     const schema = JSON.parse(JSON.stringify(statusSchema)) as statusSchema;
 
     const instances = Object.keys(tokens).reduce(
         (acc: statusInstancesType, token) => {
-            const { instanceAddress, tokenAddress, symbol, decimals, optionalInstances = [] } = tokens[token];
+            const {
+                isOptional,
+                isDisabled,
+                instanceAddress,
+                tokenAddress,
+                symbol,
+                decimals,
+                optionalInstances = [],
+            } = tokens[token];
             const amounts = Object.keys(instanceAddress);
 
             const instanceProperties: statusInstanceType = {
@@ -160,12 +169,14 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
             if (tokenAddress) {
                 instanceProperties.properties.tokenAddress = addressSchemaType;
             }
+
             if (symbol) {
-                instanceProperties.properties.symbol = { enum: [symbol] };
+                // instanceProperties.properties.symbol = { enum: [symbol] };
+                instanceProperties.properties.symbol = { type: 'string' };
             }
 
             acc.properties[token] = instanceProperties;
-            if (!optionalTokens?.includes(token) && !disabledTokens?.includes(token)) {
+            if (!isOptional && !isDisabled) {
                 acc.required.push(token);
             }
             return acc;
@@ -179,13 +190,7 @@ export function getStatusSchema(netId: NetIdType, config: Config, tovarish: bool
 
     schema.properties.instances = instances;
 
-    const _tokens = Object.keys(tokens).filter(
-        (t) => t !== nativeCurrency && !config.optionalTokens?.includes(t) && !config.disabledTokens?.includes(t),
-    );
-
-    if (netId === NetId.MAINNET) {
-        _tokens.push('torn');
-    }
+    const _tokens = instances.required.filter((t) => t !== nativeCurrency);
 
     if (_tokens.length) {
         const ethPrices: statusEthPricesType = {

@@ -1,5 +1,23 @@
 import type { DepositType } from './deposits';
 
+export const MERKLE_TREE_HEIGHT = 20;
+
+export const EMPTY_ELEMENT = '21663839004416932945382355908790599225266501822907911457504978515578255421292';
+
+// multicall3.eth
+export const MULTICALL_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11';
+// https://github.com/1inch/spot-price-aggregator
+export const ONEINCH_ORACLE_ADDRESS = '0x00000000000D6FFc74A8feb35aF5827bf57f6786';
+
+// tornado-proxy-light.contract.tornadocash.eth
+export const TORNADO_PROXY_LIGHT_ADDRESS = '0x0D5550d52428E7e3175bfc9550207e4ad3859b17';
+// echoer.contract.tornadocash.eth
+export const ECHOER_ADDRESS = '0xa75BF2815618872f155b7C4B0C81bF990f5245E4';
+// tovarish-registry.tornadowithdraw.eth
+export const TOVARISH_REGISTRY_ADDRESS = '0xc9D5C487c10bC755d34029b1135FA1c190d80f9b';
+// tovarish-aggregator.tornadowithdraw.eth
+export const TOVARISH_AGGREGATOR_ADDRESS = '0x7A51f64A277d3597475Ea28283d0423764613231';
+
 /**
  * Type of default supported networks
  */
@@ -18,24 +36,12 @@ export enum NetId {
 
 export type NetIdType = NetId | number;
 
-export interface RpcUrl {
-    name: string;
-    url: string;
-}
-
-export type RpcUrls = Record<string, RpcUrl>;
-
-export interface SubgraphUrl {
-    name: string;
-    url: string;
-}
-
-export type SubgraphUrls = Record<string, SubgraphUrl>;
-
-export interface TornadoInstance {
+export interface TornadoInstances {
     instanceAddress: Record<string, string>;
     instanceApproval?: boolean;
     optionalInstances?: string[];
+    isOptional?: boolean;
+    isDisabled?: boolean;
     tokenAddress?: string;
     tokenGasLimit?: number;
     symbol: string;
@@ -43,17 +49,74 @@ export interface TornadoInstance {
     gasLimit?: number;
 }
 
-export type TokenInstances = Record<string, TornadoInstance>;
+export interface TornadoSingleInstance {
+    netId: NetId;
+    instanceAddress: string;
+    instanceApproval?: boolean;
+    isOptional?: boolean;
+    isDisabled?: boolean;
+    tokenAddress?: string;
+    tokenGasLimit?: number;
+    currency: string;
+    amount: string;
+    decimals: number;
+    gasLimit?: number;
+}
 
-export interface Config {
-    nativeCurrency: string;
-    currencyName: string;
-    explorerUrl: string;
-    merkleTreeHeight: number;
-    emptyElement: string;
+export type TokenInstances = Record<string, TornadoInstances>;
+
+export type SubdomainMap = Record<NetIdType, string>;
+
+export interface ConfigParams {
+    netId: NetIdType;
     networkName: string;
+    currencyName: string;
+    nativeCurrency?: string; // can differ with currencyName, should only be used with tornado instances
+    explorerUrl: string;
+    homepageUrl: string;
+    blockTime: number;
+
     deployedBlock: number;
-    rpcUrls: RpcUrls;
+    merkleTreeHeight?: number;
+    emptyElement?: string;
+    // Contract Address of stablecoin token, used for fiat conversion
+    stablecoin: string;
+    multicallContract?: string;
+    routerContract?: string;
+    echoContract?: string;
+    offchainOracleContract?: string;
+    tornContract?: string;
+    governanceContract?: string;
+    stakingRewardsContract?: string;
+    registryContract?: string;
+    tovarishRegistryContract?: string;
+    aggregatorContract?: string;
+    reverseRecordsContract?: string;
+    ovmGasPriceOracleContract?: string;
+    relayerEnsSubdomain: string;
+
+    tornadoSubgraph?: string;
+    registrySubgraph?: string;
+    governanceSubgraph?: string;
+    subgraphs?: string[];
+
+    rpcUrls: string[];
+
+    tokens: TokenInstances;
+}
+
+export class Config {
+    netId: NetIdType;
+    networkName: string;
+    currencyName: string;
+    nativeCurrency: string; // can differ with currencyName, should only be used with tornado instances
+    explorerUrl: string;
+    homepageUrl: string;
+    blockTime: number;
+
+    deployedBlock: number;
+    merkleTreeHeight?: number;
+    emptyElement?: string;
     // Contract Address of stablecoin token, used for fiat conversion
     stablecoin: string;
     multicallContract: string;
@@ -64,83 +127,264 @@ export interface Config {
     governanceContract?: string;
     stakingRewardsContract?: string;
     registryContract?: string;
+    tovarishRegistryContract?: string;
     aggregatorContract?: string;
     reverseRecordsContract?: string;
     ovmGasPriceOracleContract?: string;
+    relayerEnsSubdomain: string;
+
     tornadoSubgraph?: string;
     registrySubgraph?: string;
     governanceSubgraph?: string;
-    subgraphs?: SubgraphUrls;
+    subgraphs?: string[];
+
+    rpcUrls: string[];
+
     tokens: TokenInstances;
-    optionalTokens?: string[];
-    disabledTokens?: string[];
-    relayerEnsSubdomain: string;
-    // Should be in seconds
-    pollInterval: number;
-    constants?: {
-        GOVERNANCE_BLOCK?: number;
-        NOTE_ACCOUNT_BLOCK?: number;
-        ENCRYPTED_NOTES_BLOCK?: number;
-        REGISTRY_BLOCK?: number;
-        // Should be in seconds
-        MINING_BLOCK_TIME?: number;
-    };
+
+    constructor(configParams: ConfigParams) {
+        this.netId = configParams.netId;
+        this.networkName = configParams.networkName;
+        this.currencyName = configParams.currencyName;
+        this.nativeCurrency = configParams.nativeCurrency || configParams.currencyName.toLowerCase();
+        this.explorerUrl = configParams.explorerUrl;
+        this.homepageUrl = configParams.homepageUrl;
+        this.blockTime = configParams.blockTime;
+
+        this.deployedBlock = configParams.deployedBlock;
+        this.merkleTreeHeight = configParams.merkleTreeHeight;
+        this.emptyElement = configParams.emptyElement;
+        this.stablecoin = configParams.stablecoin;
+        this.multicallContract = configParams.multicallContract || MULTICALL_ADDRESS;
+        this.routerContract = configParams.routerContract || TORNADO_PROXY_LIGHT_ADDRESS;
+        this.echoContract = configParams.echoContract || ECHOER_ADDRESS;
+        this.offchainOracleContract = configParams.offchainOracleContract;
+        this.tornContract = configParams.tornContract;
+        this.governanceContract = configParams.governanceContract;
+        this.stakingRewardsContract = configParams.stakingRewardsContract;
+        this.registryContract = configParams.registryContract;
+        this.tovarishRegistryContract = configParams.tovarishRegistryContract;
+        this.aggregatorContract = configParams.aggregatorContract;
+        this.reverseRecordsContract = configParams.reverseRecordsContract;
+        this.ovmGasPriceOracleContract = configParams.ovmGasPriceOracleContract;
+        this.relayerEnsSubdomain = configParams.relayerEnsSubdomain;
+
+        this.tornadoSubgraph = configParams.tornadoSubgraph;
+        this.registrySubgraph = configParams.registrySubgraph;
+        this.governanceSubgraph = configParams.governanceSubgraph;
+        this.subgraphs = configParams.subgraphs;
+
+        this.rpcUrls = configParams.rpcUrls;
+
+        this.tokens = configParams.tokens;
+    }
+
+    toJSON(): ConfigParams {
+        return {
+            netId: this.netId,
+            networkName: this.networkName,
+            currencyName: this.currencyName,
+            nativeCurrency: this.nativeCurrency !== this.currencyName.toLowerCase() ? this.nativeCurrency : undefined,
+            explorerUrl: this.explorerUrl,
+            homepageUrl: this.homepageUrl,
+            blockTime: this.blockTime,
+
+            deployedBlock: this.deployedBlock,
+            merkleTreeHeight: this.merkleTreeHeight,
+            emptyElement: this.emptyElement,
+            stablecoin: this.stablecoin,
+            multicallContract: this.multicallContract !== MULTICALL_ADDRESS ? this.multicallContract : undefined,
+            routerContract: this.routerContract !== TORNADO_PROXY_LIGHT_ADDRESS ? this.routerContract : undefined,
+            echoContract: this.echoContract !== ECHOER_ADDRESS ? this.echoContract : undefined,
+            offchainOracleContract: this.offchainOracleContract,
+            tornContract: this.tornContract,
+            governanceContract: this.governanceContract,
+            stakingRewardsContract: this.stakingRewardsContract,
+            registryContract: this.registryContract,
+            tovarishRegistryContract: this.tovarishRegistryContract,
+            aggregatorContract: this.aggregatorContract,
+            reverseRecordsContract: this.reverseRecordsContract,
+            ovmGasPriceOracleContract: this.ovmGasPriceOracleContract,
+            relayerEnsSubdomain: this.relayerEnsSubdomain,
+
+            tornadoSubgraph: this.tornadoSubgraph,
+            registrySubgraph: this.registrySubgraph,
+            governanceSubgraph: this.governanceSubgraph,
+            subgraphs: this.subgraphs,
+
+            rpcUrls: this.rpcUrls,
+
+            tokens: this.tokens,
+        };
+    }
+
+    get allTokens(): string[] {
+        const { tokens } = this;
+
+        return Object.entries(tokens)
+            .filter(([, { isDisabled }]) => !isDisabled)
+            .map(([token]) => token);
+    }
+
+    get allSymbols(): string[] {
+        const { tokens } = this;
+
+        return Object.entries(tokens)
+            .filter(([, { isDisabled }]) => !isDisabled)
+            .map(([, { symbol }]) => symbol);
+    }
+
+    getInstance(currency: string, amount: string): TornadoSingleInstance {
+        const instance = this.tokens[currency];
+        const instanceAddress = instance?.instanceAddress?.[amount];
+
+        if (!instance || !instanceAddress) {
+            const errMsg = `Instance ${amount} ${currency} not found from ${this.netId}`;
+            throw new Error(errMsg);
+        }
+
+        return {
+            netId: this.netId,
+            instanceAddress,
+            instanceApproval: instance.instanceApproval,
+            isOptional: Boolean(instance.isOptional || instance.optionalInstances?.includes(amount)),
+            isDisabled: instance.isDisabled,
+            tokenAddress: instance.tokenAddress,
+            tokenGasLimit: instance.tokenGasLimit,
+            currency,
+            amount,
+            decimals: instance.decimals,
+            gasLimit: instance.gasLimit,
+        };
+    }
+
+    getInstanceByAddress(instanceAddress: string): TornadoSingleInstance {
+        let instance: TornadoInstances | undefined;
+        let currency: string | undefined;
+        let amount: string | undefined;
+
+        for (const [cur, inst] of Object.entries(this.tokens)) {
+            for (const [amt, addr] of Object.entries(inst.instanceAddress)) {
+                if (addr === instanceAddress) {
+                    instance = inst;
+                    currency = cur;
+                    amount = amt;
+                }
+            }
+        }
+
+        if (!instance || !currency || !amount) {
+            const errMsg = `Instance ${instanceAddress} not found from ${this.netId}`;
+            throw new Error(errMsg);
+        }
+
+        return {
+            netId: this.netId,
+            instanceAddress,
+            instanceApproval: instance.instanceApproval,
+            isOptional: Boolean(instance.isOptional || instance.optionalInstances?.includes(amount)),
+            isDisabled: instance.isDisabled,
+            tokenAddress: instance.tokenAddress,
+            tokenGasLimit: instance.tokenGasLimit,
+            currency,
+            amount,
+            decimals: instance.decimals,
+            gasLimit: instance.gasLimit,
+        };
+    }
+
+    get depositTypes(): Record<string, DepositType> {
+        return Object.entries(this.tokens).reduce(
+            (acc, [currency, { instanceAddress }]) => {
+                Object.entries(instanceAddress).forEach(([amount, contractAddress]) => {
+                    acc[contractAddress] = {
+                        currency,
+                        amount,
+                        netId: this.netId,
+                    };
+                });
+                return acc;
+            },
+            {} as Record<string, DepositType>,
+        );
+    }
 }
 
-export type networkConfig = Record<NetIdType, Config>;
+export interface TornadoConfigParams {
+    configs?: Record<NetIdType, ConfigParams>;
 
-export type SubdomainMap = Record<NetIdType, string>;
+    governanceNetwork?: NetIdType;
+    relayerNetwork?: NetIdType;
+}
 
-export const defaultConfig: networkConfig = {
+export class TornadoConfig {
+    configs: Record<NetIdType, Config>;
+
+    governanceNetwork: NetIdType;
+    relayerNetwork: NetIdType;
+
+    constructor(configParams?: TornadoConfigParams) {
+        this.configs = Object.values(configParams?.configs || defaultConfig).reduce(
+            (acc, curr) => {
+                acc[curr.netId] = new Config(curr);
+                return acc;
+            },
+            {} as Record<NetIdType, Config>,
+        );
+
+        this.governanceNetwork = configParams?.governanceNetwork || NetId.MAINNET;
+        this.relayerNetwork = configParams?.relayerNetwork || NetId.MAINNET;
+    }
+
+    get chains(): NetIdType[] {
+        return Object.keys(this.configs).map((n) => Number(n));
+    }
+
+    getConfig(netId: NetIdType): Config {
+        const config = this.configs[netId];
+
+        if (!config) {
+            const errMsg = `No config found for network ${netId}!`;
+            throw new Error(errMsg);
+        }
+
+        return config;
+    }
+}
+
+export const defaultConfig: Record<NetIdType, ConfigParams> = {
     [NetId.MAINNET]: {
-        nativeCurrency: 'eth',
+        netId: NetId.MAINNET,
+        networkName: 'Ethereum Mainnet',
         currencyName: 'ETH',
         explorerUrl: 'https://etherscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Ethereum Mainnet',
+        homepageUrl: 'https://ethereum.org',
+        blockTime: 12,
         deployedBlock: 9116966,
-        rpcUrls: {
-            mevblockerRPC: {
-                name: 'MEV Blocker',
-                url: 'https://rpc.mevblocker.io',
-            },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/mainnet',
-            },
-            keydonix: {
-                name: 'Horswap ( Keydonix )',
-                url: 'https://ethereum.keydonix.com/v1/mainnet',
-            },
-            SecureRpc: {
-                name: 'SecureRpc',
-                url: 'https://api.securerpc.com/v1',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/eth',
-            },
-        },
         stablecoin: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
         routerContract: '0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b',
         echoContract: '0x9B27DD5Bb15d42DC224FCD0B7caEbBe16161Df42',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
         tornContract: '0x77777FeDdddFfC19Ff86DB637967013e6C6A116C',
         governanceContract: '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce',
         stakingRewardsContract: '0x5B3f656C80E8ddb9ec01Dd9018815576E9238c29',
         registryContract: '0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2',
-        aggregatorContract: '0xE8F47A78A6D52D317D0D2FFFac56739fE14D1b49',
+        tovarishRegistryContract: TOVARISH_REGISTRY_ADDRESS,
+        aggregatorContract: TOVARISH_AGGREGATOR_ADDRESS,
         reverseRecordsContract: '0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C',
+        relayerEnsSubdomain: 'mainnet-tornado',
         tornadoSubgraph: 'tornadocash/mainnet-tornado-subgraph',
         registrySubgraph: 'tornadocash/tornado-relayer-registry',
         governanceSubgraph: 'tornadocash/tornado-governance',
-        subgraphs: {},
+        rpcUrls: [
+            'https://rpc.mevblocker.io',
+            'https://eth.public-rpc.com',
+            'https://ethereum.keydonix.com/v1/mainnet',
+            'https://api.securerpc.com/v1',
+            'https://1rpc.io/eth',
+            'https://rpc.ankr.com/eth',
+            'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -172,6 +416,7 @@ export const defaultConfig: networkConfig = {
                     '500000': '0x2717c5e28cf931547B621a5dddb772Ab6A35B701',
                     '5000000': '0xD21be7248e0197Ee08E0c20D4a96DEBdaC3D20Af',
                 },
+                isDisabled: true,
                 tokenAddress: '0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643',
                 tokenGasLimit: 200_000,
                 symbol: 'cDAI',
@@ -183,6 +428,7 @@ export const defaultConfig: networkConfig = {
                     '100': '0xd96f2B1c14Db8458374d9Aca76E26c3D18364307',
                     '1000': '0x4736dCf1b7A3d580672CcE6E7c65cd5cc9cFBa9D',
                 },
+                isDisabled: true,
                 tokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
                 tokenGasLimit: 70_000,
                 symbol: 'USDC',
@@ -194,6 +440,7 @@ export const defaultConfig: networkConfig = {
                     '100': '0x169AD27A470D064DEDE56a2D3ff727986b15D52B',
                     '1000': '0x0836222F2B2B24A3F36f98668Ed8F0B38D1a872f',
                 },
+                isDisabled: true,
                 tokenAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
                 tokenGasLimit: 70_000,
                 symbol: 'USDT',
@@ -213,59 +460,28 @@ export const defaultConfig: networkConfig = {
                 gasLimit: 700_000,
             },
         },
-        // Inactive tokens to filter from schema verification and syncing events
-        disabledTokens: ['cdai', 'usdt', 'usdc'],
-        relayerEnsSubdomain: 'mainnet-tornado',
-        pollInterval: 15,
-        constants: {
-            GOVERNANCE_BLOCK: 11474695,
-            NOTE_ACCOUNT_BLOCK: 11842486,
-            ENCRYPTED_NOTES_BLOCK: 12143762,
-            REGISTRY_BLOCK: 14173129,
-            MINING_BLOCK_TIME: 15,
-        },
     },
     [NetId.BSC]: {
-        nativeCurrency: 'bnb',
+        netId: NetId.BSC,
+        networkName: 'Binance Smart Chain',
         currencyName: 'BNB',
         explorerUrl: 'https://bscscan.com',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Binance Smart Chain',
+        homepageUrl: 'https://www.bnbchain.org',
+        blockTime: 3,
         deployedBlock: 8158799,
         stablecoin: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
+        relayerEnsSubdomain: 'bsc-tornado',
         tornadoSubgraph: 'tornadocash/bsc-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            bnbchain: {
-                name: 'BNB Chain',
-                url: 'https://bsc-dataseed.bnbchain.org',
-            },
-            ninicoin: {
-                name: 'BNB Chain 2',
-                url: 'https://bsc-dataseed1.ninicoin.io',
-            },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/bsc',
-            },
-            nodereal: {
-                name: 'NodeReal',
-                url: 'https://binance.nodereal.io',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/bsc-mainnet',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/bnb',
-            },
-        },
+        rpcUrls: [
+            'https://bsc-dataseed.bnbchain.org',
+            'https://bsc-dataseed1.ninicoin.io',
+            'https://bscrpc.com',
+            'https://1rpc.io/bnb',
+            'https://binance.nodereal.io',
+            'https://rpc.ankr.com/bsc',
+            'https://public.stackup.sh/api/v1/node/bsc-mainnet',
+        ],
         tokens: {
             bnb: {
                 instanceAddress: {
@@ -284,6 +500,7 @@ export const defaultConfig: networkConfig = {
                     '1000': '0x6D180403AdFb39F70983eB51A033C5e52eb9BB69',
                     '10000': '0x3722662D8AaB07B216B14C02eF0ee940d14A4200',
                 },
+                isOptional: true,
                 instanceApproval: true,
                 tokenAddress: '0x55d398326f99059fF775485246999027B3197955',
                 tokenGasLimit: 70_000,
@@ -298,6 +515,7 @@ export const defaultConfig: networkConfig = {
                     '0.01': '0x8284c96679037d8081E498d8F767cA5a140BFAAf',
                     '0.1': '0x2bcD128Ce23ee30Ee945E613ff129c4DE1102C79',
                 },
+                isOptional: true,
                 instanceApproval: true,
                 tokenAddress: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
                 tokenGasLimit: 70_000,
@@ -306,47 +524,27 @@ export const defaultConfig: networkConfig = {
                 gasLimit: 700_000,
             },
         },
-        optionalTokens: ['usdt', 'btcb'],
-        relayerEnsSubdomain: 'bsc-tornado',
-        pollInterval: 3,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 8159269,
-            ENCRYPTED_NOTES_BLOCK: 8159269,
-        },
     },
     [NetId.POLYGON]: {
+        netId: NetId.POLYGON,
+        networkName: 'Polygon Mainnet',
+        currencyName: 'POL',
         nativeCurrency: 'matic',
-        currencyName: 'MATIC',
         explorerUrl: 'https://polygonscan.com',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Polygon (Matic) Network',
+        homepageUrl: 'https://polygon.technology',
+        blockTime: 2,
         deployedBlock: 16257962,
         stablecoin: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
+        relayerEnsSubdomain: 'polygon-tornado',
         tornadoSubgraph: 'tornadocash/matic-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            lavaBuild: {
-                name: 'polygon.lava.build',
-                url: 'https://polygon.lava.build',
-            },
-            polygon: {
-                name: 'Polygon',
-                url: 'https://polygon-rpc.com',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/matic',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/polygon-mainnet',
-            },
-        },
+        rpcUrls: [
+            'https://polygon-rpc.com',
+            'https://polygon.lava.build',
+            'https://1rpc.io/matic',
+            'https://rpc.ankr.com/polygon',
+            'https://public.stackup.sh/api/v1/node/polygon-mainnet',
+        ],
         tokens: {
             matic: {
                 instanceAddress: {
@@ -355,51 +553,31 @@ export const defaultConfig: networkConfig = {
                     '10000': '0xaf4c0B70B2Ea9FB7487C7CbB37aDa259579fe040',
                     '100000': '0xa5C2254e4253490C54cef0a4347fddb8f75A4998',
                 },
-                symbol: 'MATIC',
+                symbol: 'POL',
                 decimals: 18,
             },
-        },
-        relayerEnsSubdomain: 'polygon-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 16257996,
-            ENCRYPTED_NOTES_BLOCK: 16257996,
         },
     },
     [NetId.OPTIMISM]: {
-        nativeCurrency: 'eth',
+        netId: NetId.OPTIMISM,
+        networkName: 'Optimism Mainnet',
         currencyName: 'ETH',
         explorerUrl: 'https://optimistic.etherscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Optimism',
+        homepageUrl: 'https://www.optimism.io',
+        blockTime: 2,
         deployedBlock: 2243689,
         stablecoin: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
         ovmGasPriceOracleContract: '0x420000000000000000000000000000000000000F',
+        relayerEnsSubdomain: 'optimism-tornado',
         tornadoSubgraph: 'tornadocash/optimism-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            lavaBuild: {
-                name: 'optimism.lava.build',
-                url: 'https://optimism.lava.build',
-            },
-            optimism: {
-                name: 'Optimism',
-                url: 'https://mainnet.optimism.io',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/op',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/optimism-mainnet',
-            },
-        },
+        rpcUrls: [
+            'https://rpc.ankr.com/optimism',
+            'https://mainnet.optimism.io',
+            'https://1rpc.io/op',
+            'https://optimism.lava.build',
+            'https://public.stackup.sh/api/v1/node/optimism-mainnet',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -414,43 +592,26 @@ export const defaultConfig: networkConfig = {
                 symbol: 'ETH',
                 decimals: 18,
             },
-        },
-        relayerEnsSubdomain: 'optimism-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 2243694,
-            ENCRYPTED_NOTES_BLOCK: 2243694,
         },
     },
     [NetId.ARBITRUM]: {
-        nativeCurrency: 'eth',
+        netId: NetId.ARBITRUM,
+        networkName: 'Arbitrum One',
         currencyName: 'ETH',
         explorerUrl: 'https://arbiscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Arbitrum One',
+        homepageUrl: 'https://arbitrum.io',
+        blockTime: 0.25,
         deployedBlock: 3430648,
         stablecoin: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
+        relayerEnsSubdomain: 'arbitrum-tornado',
         tornadoSubgraph: 'tornadocash/arbitrum-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            Arbitrum: {
-                name: 'Arbitrum',
-                url: 'https://arb1.arbitrum.io/rpc',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/arbitrum-one',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/arb',
-            },
-        },
+        rpcUrls: [
+            'https://arb1.arbitrum.io/rpc',
+            'https://rpc.ankr.com/arbitrum',
+            'https://1rpc.io/arb',
+            'https://public.stackup.sh/api/v1/node/arbitrum-one',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -466,43 +627,26 @@ export const defaultConfig: networkConfig = {
                 decimals: 18,
             },
         },
-        relayerEnsSubdomain: 'arbitrum-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 3430605,
-            ENCRYPTED_NOTES_BLOCK: 3430605,
-        },
     },
     [NetId.BASE]: {
-        nativeCurrency: 'eth',
+        netId: NetId.BASE,
+        networkName: 'Base Mainnet',
         currencyName: 'ETH',
         explorerUrl: 'https://basescan.org',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Base',
+        homepageUrl: 'https://www.base.org',
+        blockTime: 2,
         deployedBlock: 23149794,
         stablecoin: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
         ovmGasPriceOracleContract: '0x420000000000000000000000000000000000000F',
+        relayerEnsSubdomain: 'base-tornado',
         tornadoSubgraph: 'tornadocash/base-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            Base: {
-                name: 'Base',
-                url: 'https://mainnet.base.org',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/base-mainnet',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/base',
-            },
-        },
+        rpcUrls: [
+            'https://mainnet.base.org',
+            'https://rpc.ankr.com/base',
+            'https://1rpc.io/base',
+            'https://public.stackup.sh/api/v1/node/base-mainnet',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -547,38 +691,25 @@ export const defaultConfig: networkConfig = {
                 gasLimit: 700_000,
             },
         },
-        relayerEnsSubdomain: 'base-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 23149794,
-            ENCRYPTED_NOTES_BLOCK: 23149794,
-        },
     },
     [NetId.BLAST]: {
-        nativeCurrency: 'eth',
+        netId: NetId.BLAST,
+        networkName: 'Blast Mainnet',
         currencyName: 'ETH',
         explorerUrl: 'https://blastscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Blast',
+        homepageUrl: 'https://blast.io',
+        blockTime: 2,
         deployedBlock: 12144065,
         stablecoin: '0x4300000000000000000000000000000000000003',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
         ovmGasPriceOracleContract: '0x420000000000000000000000000000000000000F',
+        relayerEnsSubdomain: 'blast-tornado',
         tornadoSubgraph: 'tornadocash/blast-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            Blast: {
-                name: 'Blast',
-                url: 'https://rpc.blast.io',
-            },
-            blastApi: {
-                name: 'BlastApi',
-                url: 'https://blastl2-mainnet.public.blastapi.io',
-            },
-        },
+        rpcUrls: [
+            'https://rpc.blast.io',
+            'https://rpc.ankr.com/blast',
+            'https://blast-rpc.publicnode.com',
+            'https://blastl2-mainnet.public.blastapi.io',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -593,46 +724,26 @@ export const defaultConfig: networkConfig = {
                 decimals: 18,
             },
         },
-        relayerEnsSubdomain: 'blast-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 12144065,
-            ENCRYPTED_NOTES_BLOCK: 12144065,
-        },
     },
     [NetId.GNOSIS]: {
-        nativeCurrency: 'xdai',
+        netId: NetId.GNOSIS,
+        networkName: 'Gnosis Mainnet',
         currencyName: 'xDAI',
         explorerUrl: 'https://gnosisscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Gnosis Chain',
+        homepageUrl: 'https://www.gnosischain.com',
+        blockTime: 5,
         deployedBlock: 17754561,
         stablecoin: '0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
+        relayerEnsSubdomain: 'gnosis-tornado',
         tornadoSubgraph: 'tornadocash/xdai-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            gnosis: {
-                name: 'Gnosis',
-                url: 'https://rpc.gnosischain.com',
-            },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/gnosis',
-            },
-            blastApi: {
-                name: 'BlastApi',
-                url: 'https://gnosis-mainnet.public.blastapi.io',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/gnosis',
-            },
-        },
+        rpcUrls: [
+            'https://rpc.gnosischain.com',
+            'https://rpc.ankr.com/gnosis',
+            'https://gnosis-mainnet.public.blastapi.io',
+            'https://1rpc.io/gnosis',
+            'https://gnosis-rpc.publicnode.com',
+        ],
         tokens: {
             xdai: {
                 instanceAddress: {
@@ -645,46 +756,26 @@ export const defaultConfig: networkConfig = {
                 decimals: 18,
             },
         },
-        relayerEnsSubdomain: 'gnosis-tornado',
-        pollInterval: 5,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 17754564,
-            ENCRYPTED_NOTES_BLOCK: 17754564,
-        },
     },
     [NetId.AVALANCHE]: {
-        nativeCurrency: 'avax',
+        netId: NetId.AVALANCHE,
+        networkName: 'Avalanche Mainnet',
         currencyName: 'AVAX',
         explorerUrl: 'https://snowtrace.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Avalanche Mainnet',
+        homepageUrl: 'https://www.avax.network',
+        blockTime: 2,
         deployedBlock: 4429818,
         stablecoin: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
-        routerContract: '0x0D5550d52428E7e3175bfc9550207e4ad3859b17',
-        echoContract: '0xa75BF2815618872f155b7C4B0C81bF990f5245E4',
-        offchainOracleContract: '0x00000000000D6FFc74A8feb35aF5827bf57f6786',
+        offchainOracleContract: ONEINCH_ORACLE_ADDRESS,
+        relayerEnsSubdomain: 'avalanche-tornado',
         tornadoSubgraph: 'tornadocash/avalanche-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            blastApi: {
-                name: 'BlastApi',
-                url: 'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/avax/c',
-            },
-            avalanche: {
-                name: 'Avalanche',
-                url: 'https://api.avax.network/ext/bc/C/rpc',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/avalanche-mainnet',
-            },
-        },
+        rpcUrls: [
+            'https://rpc.ankr.com/avalanche',
+            'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc',
+            'https://1rpc.io/avax/c',
+            'https://api.avax.network/ext/bc/C/rpc',
+            'https://public.stackup.sh/api/v1/node/avalanche-mainnet',
+        ],
         tokens: {
             avax: {
                 instanceAddress: {
@@ -696,23 +787,17 @@ export const defaultConfig: networkConfig = {
                 decimals: 18,
             },
         },
-        relayerEnsSubdomain: 'avalanche-tornado',
-        pollInterval: 2,
-        constants: {
-            NOTE_ACCOUNT_BLOCK: 4429813,
-            ENCRYPTED_NOTES_BLOCK: 4429813,
-        },
     },
     [NetId.SEPOLIA]: {
-        nativeCurrency: 'eth',
-        currencyName: 'SepoliaETH',
+        netId: NetId.SEPOLIA,
+        networkName: 'Sepolia Testnet',
+        currencyName: 'ETH',
         explorerUrl: 'https://sepolia.etherscan.io',
-        merkleTreeHeight: 20,
-        emptyElement: '21663839004416932945382355908790599225266501822907911457504978515578255421292',
-        networkName: 'Ethereum Sepolia',
+        homepageUrl: 'https://github.com/eth-clients/sepolia',
+        blockTime: 12,
         deployedBlock: 5594395,
         stablecoin: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-        multicallContract: '0xcA11bde05977b3631167028862bE2a173976CA11',
+        multicallContract: MULTICALL_ADDRESS,
         routerContract: '0x1572AFE6949fdF51Cb3E0856216670ae9Ee160Ee',
         echoContract: '0xcDD1fc3F5ac2782D83449d3AbE80D6b7B273B0e5',
         offchainOracleContract: '0x1f89EAF03E5b260Bc6D4Ae3c3334b1B750F3e127',
@@ -722,34 +807,16 @@ export const defaultConfig: networkConfig = {
         registryContract: '0x1428e5d2356b13778A13108b10c440C83011dfB8',
         aggregatorContract: '0x4088712AC9fad39ea133cdb9130E465d235e9642',
         reverseRecordsContract: '0xEc29700C0283e5Be64AcdFe8077d6cC95dE23C23',
+        relayerEnsSubdomain: 'sepolia-tornado',
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
-        subgraphs: {},
-        rpcUrls: {
-            blastApi: {
-                name: 'BlastApi',
-                url: 'https://eth-sepolia.public.blastapi.io',
-            },
-            tornadoRpc: {
-                name: 'Tornado RPC',
-                url: 'https://tornadocash-rpc.com/sepolia',
-            },
-            oneRpc: {
-                name: '1RPC',
-                url: 'https://1rpc.io/sepolia',
-            },
-            sepolia: {
-                name: 'Sepolia RPC',
-                url: 'https://rpc.sepolia.org',
-            },
-            stackup: {
-                name: 'Stackup',
-                url: 'https://public.stackup.sh/api/v1/node/ethereum-sepolia',
-            },
-            ethpandaops: {
-                name: 'ethpandaops',
-                url: 'https://rpc.sepolia.ethpandaops.io',
-            },
-        },
+        rpcUrls: [
+            'https://rpc.ankr.com/eth_sepolia',
+            'https://eth-sepolia.public.blastapi.io',
+            'https://1rpc.io/sepolia',
+            'https://public.stackup.sh/api/v1/node/ethereum-sepolia',
+            'https://rpc.sepolia.ethpandaops.io',
+            'https://rpc.sepolia.org',
+        ],
         tokens: {
             eth: {
                 instanceAddress: {
@@ -775,120 +842,5 @@ export const defaultConfig: networkConfig = {
                 gasLimit: 700_000,
             },
         },
-        relayerEnsSubdomain: 'sepolia-tornado',
-        pollInterval: 15,
-        constants: {
-            GOVERNANCE_BLOCK: 5594395,
-            NOTE_ACCOUNT_BLOCK: 5594395,
-            ENCRYPTED_NOTES_BLOCK: 5594395,
-            REGISTRY_BLOCK: 5594395,
-            MINING_BLOCK_TIME: 15,
-        },
     },
 };
-
-export const enabledChains = Object.values(NetId).filter((n) => typeof n === 'number') as NetIdType[];
-
-/**
- * Custom config object to extend default config
- *
- * Inspired by getUrlFunc from ethers.js
- * https://github.com/ethers-io/ethers.js/blob/v6/src.ts/utils/fetch.ts#L59
- */
-export let customConfig: networkConfig = {};
-
-/**
- * Add or override existing network config object
- *
- * Could be also called on the UI hook so that the UI could allow people to use custom privacy pools
- */
-export function addNetwork(newConfig: networkConfig) {
-    enabledChains.push(
-        ...Object.keys(newConfig)
-            .map((netId) => Number(netId))
-            .filter((netId) => !enabledChains.includes(netId)),
-    );
-
-    customConfig = {
-        ...customConfig,
-        ...newConfig,
-    };
-}
-
-export function getNetworkConfig(): networkConfig {
-    // customConfig object
-    const allConfig = {
-        ...defaultConfig,
-        ...customConfig,
-    };
-
-    return enabledChains.reduce((acc, curr) => {
-        acc[curr] = allConfig[curr];
-        return acc;
-    }, {} as networkConfig);
-}
-
-export function getConfig(netId: NetIdType) {
-    const allConfig = getNetworkConfig();
-
-    const chainConfig = allConfig[netId];
-
-    if (!chainConfig) {
-        const errMsg = `No config found for network ${netId}!`;
-        throw new Error(errMsg);
-    }
-
-    return chainConfig;
-}
-
-export function getActiveTokens(config: Config): string[] {
-    const { tokens, disabledTokens } = config;
-
-    return Object.keys(tokens).filter((t) => !disabledTokens?.includes(t));
-}
-
-export function getInstanceByAddress(config: Config, address: string) {
-    const { tokens, disabledTokens } = config;
-
-    for (const [currency, { instanceAddress, tokenAddress, symbol, decimals }] of Object.entries(tokens)) {
-        if (disabledTokens?.includes(currency)) {
-            continue;
-        }
-        for (const [amount, instance] of Object.entries(instanceAddress)) {
-            if (instance === address) {
-                return {
-                    amount,
-                    currency,
-                    symbol,
-                    decimals,
-                    tokenAddress,
-                };
-            }
-        }
-    }
-}
-
-export function getRelayerEnsSubdomains() {
-    const allConfig = getNetworkConfig();
-
-    return enabledChains.reduce((acc, chain) => {
-        acc[chain] = allConfig[chain].relayerEnsSubdomain;
-        return acc;
-    }, {} as SubdomainMap);
-}
-
-export function getMultiInstances(netId: NetIdType, config: Config): Record<string, DepositType> {
-    return Object.entries(config.tokens).reduce(
-        (acc, [currency, { instanceAddress }]) => {
-            Object.entries(instanceAddress).forEach(([amount, contractAddress]) => {
-                acc[contractAddress] = {
-                    currency,
-                    amount,
-                    netId,
-                };
-            });
-            return acc;
-        },
-        {} as Record<string, DepositType>,
-    );
-}

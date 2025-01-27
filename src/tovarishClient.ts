@@ -11,7 +11,7 @@ import {
 import { fetchData } from './providers';
 import { CachedRelayerInfo, MinimalEvents } from './events';
 import { ajv, getEventsSchemaValidator, getStatusSchema } from './schemas';
-import { enabledChains, getConfig, NetId, NetIdType } from './networkConfig';
+import { NetId, NetIdType } from './networkConfig';
 
 // Return no more than 5K events per query
 export const MAX_TOVARISH_EVENTS = 5000;
@@ -76,9 +76,11 @@ export class TovarishClient extends RelayerClient {
     }
 
     async askRelayerStatus({
+        netId,
         hostname,
         url,
     }: {
+        netId: NetIdType;
         hostname?: string;
         // optional url if entered manually
         url?: string;
@@ -86,6 +88,7 @@ export class TovarishClient extends RelayerClient {
         relayerAddress?: string;
     }): Promise<TovarishStatus> {
         const status = (await super.askRelayerStatus({
+            netId,
             hostname,
             url,
         })) as TovarishStatus;
@@ -136,9 +139,9 @@ export class TovarishClient extends RelayerClient {
 
         for (const rawStatus of statusArray) {
             const netId = rawStatus?.netId as NetIdType;
-            const config = getConfig(netId);
+            const config = this.tornadoConfig.getConfig(netId);
 
-            const statusValidator = ajv.compile(getStatusSchema(rawStatus?.netId, config, this.tovarish));
+            const statusValidator = ajv.compile(getStatusSchema(config, this.tovarish));
 
             if (!statusValidator(rawStatus)) {
                 continue;
@@ -153,7 +156,7 @@ export class TovarishClient extends RelayerClient {
                 throw new Error('Withdrawal queue is overloaded');
             }
 
-            if (!enabledChains.includes(status.netId)) {
+            if (!this.tornadoConfig.chains.includes(status.netId)) {
                 throw new Error('This relayer serves a different network');
             }
 
@@ -171,17 +174,21 @@ export class TovarishClient extends RelayerClient {
         return tovarishStatus;
     }
 
-    async filterRelayer(relayer: CachedRelayerInfo): Promise<TovarishInfo | RelayerError | undefined> {
+    async filterRelayer(
+        netId: NetIdType,
+        relayer: CachedRelayerInfo,
+    ): Promise<TovarishInfo | RelayerError | undefined> {
         const { ensName, relayerAddress, tovarishHost, tovarishNetworks } = relayer;
 
-        if (!tovarishHost || !tovarishNetworks?.includes(this.netId)) {
+        if (!tovarishHost || !tovarishNetworks?.includes(netId)) {
             return;
         }
 
-        const hostname = `${tovarishHost}/${this.netId}`;
+        const hostname = `${tovarishHost}/${netId}`;
 
         try {
             const status = await this.askRelayerStatus({
+                netId,
                 hostname,
                 relayerAddress,
             });
@@ -218,13 +225,16 @@ export class TovarishClient extends RelayerClient {
         }
     }
 
-    async getValidRelayers(relayers: CachedRelayerInfo[]): Promise<{
+    async getValidRelayers(
+        netId: NetIdType,
+        relayers: CachedRelayerInfo[],
+    ): Promise<{
         validRelayers: TovarishInfo[];
         invalidRelayers: RelayerError[];
     }> {
         const invalidRelayers: RelayerError[] = [];
 
-        const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(relayer)))).filter(
+        const validRelayers = (await Promise.all(relayers.map((relayer) => this.filterRelayer(netId, relayer)))).filter(
             (r) => {
                 if (!r) {
                     return false;

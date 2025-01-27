@@ -1,4 +1,4 @@
-import { Config, NetIdType } from '../networkConfig';
+import { Config } from '../networkConfig';
 import { addressSchemaType, bnSchemaType } from '.';
 export interface statusInstanceType {
     type: string;
@@ -10,7 +10,7 @@ export interface statusInstanceType {
         };
         tokenAddress?: typeof addressSchemaType;
         symbol?: {
-            enum: string[];
+            type: string;
         };
         decimals: {
             enum: number[];
@@ -95,4 +95,4 @@ export interface statusSchema {
     };
     required: string[];
 }
-export declare function getStatusSchema(netId: NetIdType, config: Config, tovarish: boolean): statusSchema;
+export declare function getStatusSchema(config: Config, tovarish: boolean): statusSchema;

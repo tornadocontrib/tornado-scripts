@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, import/no-duplicates */
 import type * as idb from 'idb';
 import type { OpenDBCallbacks, IDBPDatabase } from 'idb';
-import { getConfig, NetIdType } from './networkConfig';
+import type { NetIdType, TornadoConfig } from './networkConfig';
 
 declare global {
     interface Window {
@@ -321,9 +321,9 @@ export class IndexedDB {
 /**
  * Should check if DB is initialized well
  */
-export async function getIndexedDB(netId?: NetIdType) {
+export async function getIndexedDB(netId?: NetIdType, tornadoConfig?: TornadoConfig) {
     // key-value db for settings
-    if (!netId) {
+    if (!netId || !tornadoConfig) {
         const idb = new IndexedDB({ dbName: 'tornado-scripts' });
         await idb.initDB();
         return idb;
@@ -370,7 +370,7 @@ export async function getIndexedDB(netId?: NetIdType) {
         },
     ];
 
-    const { tokens, nativeCurrency, registryContract, governanceContract } = getConfig(netId);
+    const { tokens, nativeCurrency, registryContract, governanceContract } = tornadoConfig.getConfig(netId);
 
     const stores = [...defaultState];
 
@@ -383,17 +383,6 @@ export async function getIndexedDB(netId?: NetIdType) {
                 {
                     name: 'event',
                     unique: false,
-                },
-            ],
-        });
-
-        stores.push({
-            name: `relayers_${netId}`,
-            keyPath: 'timestamp',
-            indexes: [
-                {
-                    name: 'timestamp',
-                    unique: true,
                 },
             ],
         });

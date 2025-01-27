@@ -1,5 +1,5 @@
 import { IndexedDB } from '../idb';
-import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor, BaseRevenueService, BaseRevenueServiceConstructor, CachedRelayers, BaseMultiTornadoService, BaseMultiTornadoServiceConstructor } from './base';
+import { BaseTornadoService, BaseTornadoServiceConstructor, BaseEchoService, BaseEchoServiceConstructor, BaseEncryptedNotesService, BaseEncryptedNotesServiceConstructor, BaseGovernanceService, BaseGovernanceServiceConstructor, BaseRegistryService, BaseRegistryServiceConstructor, BaseRevenueService, BaseRevenueServiceConstructor, BaseMultiTornadoService, BaseMultiTornadoServiceConstructor } from './base';
 import { BaseEvents, MinimalEvents, DepositsEvents, WithdrawalsEvents, CachedEvents, EchoEvents, EncryptedNotesEvents, AllGovernanceEvents, AllRelayerRegistryEvents, StakeBurnedEvents, MultiDepositsEvents, MultiWithdrawalsEvents } from './types';
 export declare function saveDBEvents<T extends MinimalEvents>({ idb, instanceName, newEvents, lastBlock, }: {
     idb: IndexedDB;
@@ -100,16 +100,12 @@ export declare class DBRegistryService extends BaseRegistryService {
     staticUrl: string;
     idb: IndexedDB;
     zipDigest?: string;
-    relayerJsonDigest?: string;
     constructor(params: DBRegistryServiceConstructor);
     getEventsFromDB(): Promise<BaseEvents<AllRelayerRegistryEvents>>;
     getEventsFromCache(): Promise<CachedEvents<AllRelayerRegistryEvents>>;
     saveEvents({ newEvents, lastBlock, }: BaseEvents<AllRelayerRegistryEvents> & {
         newEvents: AllRelayerRegistryEvents[];
     }): Promise<void>;
-    getRelayersFromDB(): Promise<CachedRelayers>;
-    getRelayersFromCache(): Promise<CachedRelayers>;
-    saveRelayers(cachedRelayers: CachedRelayers): Promise<void>;
 }
 export interface DBRevenueServiceConstructor extends BaseRevenueServiceConstructor {
     staticUrl: string;

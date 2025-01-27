@@ -1,9 +1,9 @@
 import { BaseContract, Provider, EventLog } from 'ethers';
-import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, Aggregator } from 'tornado-contracts';
+import { Tornado, TornadoRouter, TornadoProxyLight, Governance, RelayerRegistry, Echoer, TovarishAggregator } from 'tornado-contracts';
 import type { MerkleTree } from 'fixed-merkle-tree';
 import { BatchEventsService, BatchBlockService, BatchTransactionService, BatchEventOnProgress, BatchBlockOnProgress } from '../batch';
 import { fetchDataOptions } from '../providers';
-import { type NetIdType, type SubdomainMap } from '../networkConfig';
+import { TornadoConfig, type NetIdType, type SubdomainMap } from '../networkConfig';
 import { RelayerParams } from '../relayerClient';
 import type { TovarishClient } from '../tovarishClient';
 import type { ERC20, ReverseRecords } from '../typechain';
@@ -158,12 +158,12 @@ export interface GovernanceVotes extends GovernanceVotedEvents {
 }
 export interface BaseGovernanceServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     Governance: Governance;
-    Aggregator: Aggregator;
+    Aggregator: TovarishAggregator;
     ReverseRecords: ReverseRecords;
 }
 export declare class BaseGovernanceService extends BaseEventsService<AllGovernanceEvents> {
     Governance: Governance;
-    Aggregator: Aggregator;
+    Aggregator: TovarishAggregator;
     ReverseRecords: ReverseRecords;
     batchTransactionService: BatchTransactionService;
     constructor(serviceConstructor: BaseGovernanceServiceConstructor);
@@ -181,7 +181,6 @@ export declare class BaseGovernanceService extends BaseEventsService<AllGovernan
         balance: bigint;
     }>;
 }
-export declare function getTovarishNetworks(registryService: BaseRegistryService, relayers: CachedRelayerInfo[]): Promise<void>;
 /**
  * Essential params:
  * ensName, relayerAddress, hostnames
@@ -189,49 +188,26 @@ export declare function getTovarishNetworks(registryService: BaseRegistryService
  */
 export interface CachedRelayerInfo extends RelayerParams {
     isRegistered?: boolean;
-    registeredAddress?: string;
+    isPrior?: boolean;
     stakeBalance?: string;
     hostnames: SubdomainMap;
     tovarishHost?: string;
     tovarishNetworks?: number[];
 }
-export interface CachedRelayers {
-    lastBlock: number;
-    timestamp: number;
-    relayers: CachedRelayerInfo[];
-    fromCache?: boolean;
-}
 export interface BaseRegistryServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
+    tornadoConfig: TornadoConfig;
     RelayerRegistry: RelayerRegistry;
-    Aggregator: Aggregator;
-    relayerEnsSubdomains: SubdomainMap;
+    Aggregator: TovarishAggregator;
 }
 export declare class BaseRegistryService extends BaseEventsService<AllRelayerRegistryEvents> {
-    Aggregator: Aggregator;
-    relayerEnsSubdomains: SubdomainMap;
+    tornadoConfig: TornadoConfig;
+    Aggregator: TovarishAggregator;
     updateInterval: number;
     constructor(serviceConstructor: BaseRegistryServiceConstructor);
     getInstanceName(): string;
     getTovarishType(): string;
     formatEvents(events: EventLog[]): Promise<AllRelayerRegistryEvents[]>;
-    /**
-     * Get saved or cached relayers
-     */
-    getRelayersFromDB(): Promise<CachedRelayers>;
-    /**
-     * Relayers from remote cache (Either from local cache, CDN, or from IPFS)
-     */
-    getRelayersFromCache(): Promise<CachedRelayers>;
-    getSavedRelayers(): Promise<CachedRelayers>;
-    getLatestRelayers(): Promise<CachedRelayers>;
-    /**
-     * Handle saving relayers
-     */
-    saveRelayers({ lastBlock, timestamp, relayers }: CachedRelayers): Promise<void>;
-    /**
-     * Get cached or latest relayer and save to local
-     */
-    updateRelayers(): Promise<CachedRelayers>;
+    getLatestRelayers(knownRelayers?: string[]): Promise<CachedRelayerInfo[]>;
 }
 export interface BaseRevenueServiceConstructor extends Omit<BaseEventsServiceConstructor, 'contract' | 'type'> {
     RelayerRegistry: RelayerRegistry;
