@@ -24,7 +24,7 @@ function requireSimpleHash () {
 	if (hasRequiredSimpleHash) return simpleHash;
 	hasRequiredSimpleHash = 1;
 	Object.defineProperty(simpleHash, "__esModule", { value: true });
-	simpleHash.simpleHash = undefined;
+	simpleHash.simpleHash = void 0;
 	/***
 	 * This is insecure hash function, just for example only
 	 * @param data
@@ -33,7 +33,7 @@ function requireSimpleHash () {
 	 */
 	function simpleHash$1(data, seed, hashLength = 40) {
 	    const str = data.join('');
-	    let i, l, hval = seed !== null && seed !== undefined ? seed : 0x811c9dcc5;
+	    let i, l, hval = seed !== null && seed !== void 0 ? seed : 0x811c9dcc5;
 	    for (i = 0, l = str.length; i < l; i++) {
 	        hval ^= str.charCodeAt(i);
 	        hval += (hval << 1) + (hval << 4) + (hval << 6) + (hval << 8) + (hval << 24);
@@ -54,7 +54,7 @@ function requireBaseTree () {
 	if (hasRequiredBaseTree) return BaseTree;
 	hasRequiredBaseTree = 1;
 	Object.defineProperty(BaseTree, "__esModule", { value: true });
-	BaseTree.BaseTree = undefined;
+	BaseTree.BaseTree = void 0;
 	let BaseTree$1 = class BaseTree {
 	    get capacity() {
 	        return 2 ** this.levels;
@@ -70,7 +70,7 @@ function requireBaseTree () {
 	    }
 	    get root() {
 	        var _a;
-	        return (_a = this._layers[this.levels][0]) !== null && _a !== undefined ? _a : this._zeros[this.levels];
+	        return (_a = this._layers[this.levels][0]) !== null && _a !== void 0 ? _a : this._zeros[this.levels];
 	    }
 	    /**
 	     * Find an element in the tree
@@ -214,7 +214,7 @@ var hasRequiredFixedMerkleTree;
 function requireFixedMerkleTree () {
 	if (hasRequiredFixedMerkleTree) return FixedMerkleTree;
 	hasRequiredFixedMerkleTree = 1;
-	var __importDefault = (FixedMerkleTree.__importDefault) || function (mod) {
+	var __importDefault = (FixedMerkleTree && FixedMerkleTree.__importDefault) || function (mod) {
 	    return (mod && mod.__esModule) ? mod : { "default": mod };
 	};
 	Object.defineProperty(FixedMerkleTree, "__esModule", { value: true });
@@ -337,11 +337,11 @@ var hasRequiredPartialMerkleTree;
 function requirePartialMerkleTree () {
 	if (hasRequiredPartialMerkleTree) return PartialMerkleTree;
 	hasRequiredPartialMerkleTree = 1;
-	var __importDefault = (PartialMerkleTree.__importDefault) || function (mod) {
+	var __importDefault = (PartialMerkleTree && PartialMerkleTree.__importDefault) || function (mod) {
 	    return (mod && mod.__esModule) ? mod : { "default": mod };
 	};
 	Object.defineProperty(PartialMerkleTree, "__esModule", { value: true });
-	PartialMerkleTree.PartialMerkleTree = undefined;
+	PartialMerkleTree.PartialMerkleTree = void 0;
 	const simpleHash_1 = __importDefault(/*@__PURE__*/ requireSimpleHash());
 	const BaseTree_1 = /*@__PURE__*/ requireBaseTree();
 	let PartialMerkleTree$1 = class PartialMerkleTree extends BaseTree_1.BaseTree {
@@ -351,7 +351,7 @@ function requirePartialMerkleTree () {
 	            throw new Error('Invalid number of elements');
 	        this._edgeLeafProof = edgePath;
 	        this._initialRoot = edgePath.pathRoot;
-	        this.zeroElement = zeroElement !== null && zeroElement !== undefined ? zeroElement : 0;
+	        this.zeroElement = zeroElement !== null && zeroElement !== void 0 ? zeroElement : 0;
 	        this._edgeLeaf = { data: edgeElement, index: edgeIndex };
 	        this._leavesAfterEdge = leaves;
 	        this.levels = levels;
@@ -437,7 +437,7 @@ function requirePartialMerkleTree () {
 	                pathPositions[level] = 0;
 	            }
 	            const [proofPos, proofEl] = this._proofMap.get(level);
-	            pathElements[level] = (_a = pathElements[level]) !== null && _a !== undefined ? _a : (proofPos === leafIndex ? proofEl : this._zeros[level]);
+	            pathElements[level] = (_a = pathElements[level]) !== null && _a !== void 0 ? _a : (proofPos === leafIndex ? proofEl : this._zeros[level]);
 	            elIndex >>= 1;
 	        }
 	        return {
@@ -504,11 +504,11 @@ function requireLib () {
 	if (hasRequiredLib) return lib;
 	hasRequiredLib = 1;
 	(function (exports) {
-		var __importDefault = (lib.__importDefault) || function (mod) {
+		var __importDefault = (lib && lib.__importDefault) || function (mod) {
 		    return (mod && mod.__esModule) ? mod : { "default": mod };
 		};
 		Object.defineProperty(exports, "__esModule", { value: true });
-		exports.MerkleTree = exports.simpleHash = exports.PartialMerkleTree = undefined;
+		exports.MerkleTree = exports.simpleHash = exports.PartialMerkleTree = void 0;
 		const FixedMerkleTree_1 = __importDefault(/*@__PURE__*/ requireFixedMerkleTree());
 		Object.defineProperty(exports, "MerkleTree", { enumerable: true, get: function () { return FixedMerkleTree_1.default; } });
 		var PartialMerkleTree_1 = /*@__PURE__*/ requirePartialMerkleTree();

@@ -206,7 +206,7 @@ async function multiQueryFilter(address, contract, event, fromBlock, toBlock) {
   }
   const { fragment, topics } = await getSubInfo(contract.interface, event);
   const filter = {
-    address: address === "*" ? undefined : address,
+    address: address === "*" ? void 0 : address,
     topics,
     fromBlock,
     toBlock
@@ -590,7 +590,7 @@ const fetchGetUrlFunc = (options = {}) => async (req, _signal) => {
     ...options,
     method: req.method || "POST",
     headers: req.headers,
-    body: req.body || undefined,
+    body: req.body || void 0,
     timeout: options.timeout || req.timeout,
     cancelSignal: _signal,
     returnResponse: true
@@ -657,10 +657,14 @@ const populateTransaction = async (signer, tx) => {
     const errMsg = `populateTransaction: signer mismatch for tx, wants ${tx.from} have ${signer.address}`;
     throw new Error(errMsg);
   }
-  const [feeData, nonce] = await Promise.all([
-    tx.maxFeePerGas || tx.gasPrice ? undefined : provider.getFeeData(),
-    tx.nonce || tx.nonce === 0 ? undefined : provider.getTransactionCount(signer.address, "pending")
+  const [chainId, feeData, nonce] = await Promise.all([
+    tx.chainId || tx.chainId === 0n ? void 0 : provider.getNetwork().then((n) => Number(n.chainId)),
+    tx.maxFeePerGas || tx.gasPrice ? void 0 : provider.getFeeData(),
+    tx.nonce || tx.nonce === 0 ? void 0 : provider.getTransactionCount(signer.address, "pending")
   ]);
+  if (chainId) {
+    tx.chainId = chainId;
+  }
   if (feeData) {
     if (feeData.maxFeePerGas) {
       if (!tx.type) {
@@ -711,7 +715,7 @@ class TornadoWallet extends Wallet {
   }
   static fromMnemonic(mneomnic, provider, index = 0, options) {
     const defaultPath = `m/44'/60'/0'/0/${index}`;
-    const { privateKey } = HDNodeWallet.fromPhrase(mneomnic, undefined, defaultPath);
+    const { privateKey } = HDNodeWallet.fromPhrase(mneomnic, void 0, defaultPath);
     return new TornadoWallet(privateKey, provider, options);
   }
   async populateTransaction(tx) {
@@ -1610,7 +1614,7 @@ class BaseEventsService {
     newEvents,
     lastBlock
   }) {
-    return undefined;
+    return void 0;
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /**
@@ -1738,7 +1742,7 @@ class BaseTornadoService extends BaseEventsService {
         return await this.merkleTreeService.verifyTree(depositEvents);
       }
     }
-    return undefined;
+    return void 0;
   }
   async getLatestEvents({
     fromBlock
@@ -1992,6 +1996,7 @@ function parseDescription(id, text) {
     case 13:
       text = text.replace(/\\\\n\\\\n(\s)?(\\n)?/g, "\\n");
       break;
+    // Fix invalid JSON in proposal 15: replace single quotes with double and add comma before description
     case 15:
       text = text.replaceAll("'", '"');
       text = text.replace('"description"', ',"description"');
@@ -1999,6 +2004,7 @@ function parseDescription(id, text) {
     case 16:
       text = text.replace("#16: ", "");
       break;
+    // Add title to empty (without title and description) hacker proposal 21
     case 21:
       return {
         title: "Proposal #21: Restore Governance",
@@ -2162,7 +2168,7 @@ class BaseGovernanceService extends BaseEventsService {
       return {
         ...event,
         title,
-        proposerName: proposerNames[proposer] || undefined,
+        proposerName: proposerNames[proposer] || void 0,
         description,
         forVotes,
         againstVotes,
@@ -2201,8 +2207,8 @@ class BaseGovernanceService extends BaseEventsService {
         ...event,
         contact,
         message,
-        fromName: ensNames[from] || undefined,
-        voterName: ensNames[voter] || undefined
+        fromName: ensNames[from] || void 0,
+        voterName: ensNames[voter] || void 0
       };
     });
     return votes;
@@ -8611,7 +8617,7 @@ class Config {
       netId: this.netId,
       networkName: this.networkName,
       currencyName: this.currencyName,
-      nativeCurrency: this.nativeCurrency !== this.currencyName.toLowerCase() ? this.nativeCurrency : undefined,
+      nativeCurrency: this.nativeCurrency !== this.currencyName.toLowerCase() ? this.nativeCurrency : void 0,
       explorerUrl: this.explorerUrl,
       homepageUrl: this.homepageUrl,
       blockTime: this.blockTime,
@@ -8619,9 +8625,9 @@ class Config {
       merkleTreeHeight: this.merkleTreeHeight,
       emptyElement: this.emptyElement,
       stablecoin: this.stablecoin,
-      multicallContract: this.multicallContract !== MULTICALL_ADDRESS ? this.multicallContract : undefined,
-      routerContract: this.routerContract !== TORNADO_PROXY_LIGHT_ADDRESS ? this.routerContract : undefined,
-      echoContract: this.echoContract !== ECHOER_ADDRESS ? this.echoContract : undefined,
+      multicallContract: this.multicallContract !== MULTICALL_ADDRESS ? this.multicallContract : void 0,
+      routerContract: this.routerContract !== TORNADO_PROXY_LIGHT_ADDRESS ? this.routerContract : void 0,
+      echoContract: this.echoContract !== ECHOER_ADDRESS ? this.echoContract : void 0,
       offchainOracleContract: this.offchainOracleContract,
       tornContract: this.tornContract,
       governanceContract: this.governanceContract,
@@ -8769,11 +8775,9 @@ const defaultConfig = {
     governanceSubgraph: "tornadocash/tornado-governance",
     rpcUrls: [
       "https://rpc.mevblocker.io",
-      "https://eth.public-rpc.com",
       "https://ethereum.keydonix.com/v1/mainnet",
       "https://api.securerpc.com/v1",
       "https://1rpc.io/eth",
-      "https://rpc.ankr.com/eth",
       "https://public.stackup.sh/api/v1/node/ethereum-mainnet"
     ],
     tokens: {
@@ -8867,10 +8871,8 @@ const defaultConfig = {
     rpcUrls: [
       "https://bsc-dataseed.bnbchain.org",
       "https://bsc-dataseed1.ninicoin.io",
-      "https://bscrpc.com",
       "https://1rpc.io/bnb",
       "https://binance.nodereal.io",
-      "https://rpc.ankr.com/bsc",
       "https://public.stackup.sh/api/v1/node/bsc-mainnet"
     ],
     tokens: {
@@ -8933,7 +8935,6 @@ const defaultConfig = {
       "https://polygon-rpc.com",
       "https://polygon.lava.build",
       "https://1rpc.io/matic",
-      "https://rpc.ankr.com/polygon",
       "https://public.stackup.sh/api/v1/node/polygon-mainnet"
     ],
     tokens: {
@@ -8963,7 +8964,6 @@ const defaultConfig = {
     relayerEnsSubdomain: "optimism-tornado",
     tornadoSubgraph: "tornadocash/optimism-tornado-subgraph",
     rpcUrls: [
-      "https://rpc.ankr.com/optimism",
       "https://mainnet.optimism.io",
       "https://1rpc.io/op",
       "https://optimism.lava.build",
@@ -8999,7 +8999,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/arbitrum-tornado-subgraph",
     rpcUrls: [
       "https://arb1.arbitrum.io/rpc",
-      "https://rpc.ankr.com/arbitrum",
       "https://1rpc.io/arb",
       "https://public.stackup.sh/api/v1/node/arbitrum-one"
     ],
@@ -9034,7 +9033,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/base-tornado-subgraph",
     rpcUrls: [
       "https://mainnet.base.org",
-      "https://rpc.ankr.com/base",
       "https://1rpc.io/base",
       "https://public.stackup.sh/api/v1/node/base-mainnet"
     ],
@@ -9097,7 +9095,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/blast-tornado-subgraph",
     rpcUrls: [
       "https://rpc.blast.io",
-      "https://rpc.ankr.com/blast",
       "https://blast-rpc.publicnode.com",
       "https://blastl2-mainnet.public.blastapi.io"
     ],
@@ -9130,7 +9127,6 @@ const defaultConfig = {
     tornadoSubgraph: "tornadocash/xdai-tornado-subgraph",
     rpcUrls: [
       "https://rpc.gnosischain.com",
-      "https://rpc.ankr.com/gnosis",
       "https://gnosis-mainnet.public.blastapi.io",
       "https://1rpc.io/gnosis",
       "https://gnosis-rpc.publicnode.com"
@@ -9161,7 +9157,6 @@ const defaultConfig = {
     relayerEnsSubdomain: "avalanche-tornado",
     tornadoSubgraph: "tornadocash/avalanche-tornado-subgraph",
     rpcUrls: [
-      "https://rpc.ankr.com/avalanche",
       "https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc",
       "https://1rpc.io/avax/c",
       "https://api.avax.network/ext/bc/C/rpc",
@@ -9201,7 +9196,6 @@ const defaultConfig = {
     relayerEnsSubdomain: "sepolia-tornado",
     tornadoSubgraph: "tornadocash/sepolia-tornado-subgraph",
     rpcUrls: [
-      "https://rpc.ankr.com/eth_sepolia",
       "https://eth-sepolia.public.blastapi.io",
       "https://1rpc.io/sepolia",
       "https://public.stackup.sh/api/v1/node/ethereum-sepolia",

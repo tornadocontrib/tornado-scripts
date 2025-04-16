@@ -378,11 +378,9 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         governanceSubgraph: 'tornadocash/tornado-governance',
         rpcUrls: [
             'https://rpc.mevblocker.io',
-            'https://eth.public-rpc.com',
             'https://ethereum.keydonix.com/v1/mainnet',
             'https://api.securerpc.com/v1',
             'https://1rpc.io/eth',
-            'https://rpc.ankr.com/eth',
             'https://public.stackup.sh/api/v1/node/ethereum-mainnet',
         ],
         tokens: {
@@ -476,10 +474,8 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         rpcUrls: [
             'https://bsc-dataseed.bnbchain.org',
             'https://bsc-dataseed1.ninicoin.io',
-            'https://bscrpc.com',
             'https://1rpc.io/bnb',
             'https://binance.nodereal.io',
-            'https://rpc.ankr.com/bsc',
             'https://public.stackup.sh/api/v1/node/bsc-mainnet',
         ],
         tokens: {
@@ -542,7 +538,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
             'https://polygon-rpc.com',
             'https://polygon.lava.build',
             'https://1rpc.io/matic',
-            'https://rpc.ankr.com/polygon',
             'https://public.stackup.sh/api/v1/node/polygon-mainnet',
         ],
         tokens: {
@@ -572,7 +567,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         relayerEnsSubdomain: 'optimism-tornado',
         tornadoSubgraph: 'tornadocash/optimism-tornado-subgraph',
         rpcUrls: [
-            'https://rpc.ankr.com/optimism',
             'https://mainnet.optimism.io',
             'https://1rpc.io/op',
             'https://optimism.lava.build',
@@ -608,7 +602,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         tornadoSubgraph: 'tornadocash/arbitrum-tornado-subgraph',
         rpcUrls: [
             'https://arb1.arbitrum.io/rpc',
-            'https://rpc.ankr.com/arbitrum',
             'https://1rpc.io/arb',
             'https://public.stackup.sh/api/v1/node/arbitrum-one',
         ],
@@ -643,7 +636,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         tornadoSubgraph: 'tornadocash/base-tornado-subgraph',
         rpcUrls: [
             'https://mainnet.base.org',
-            'https://rpc.ankr.com/base',
             'https://1rpc.io/base',
             'https://public.stackup.sh/api/v1/node/base-mainnet',
         ],
@@ -706,7 +698,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         tornadoSubgraph: 'tornadocash/blast-tornado-subgraph',
         rpcUrls: [
             'https://rpc.blast.io',
-            'https://rpc.ankr.com/blast',
             'https://blast-rpc.publicnode.com',
             'https://blastl2-mainnet.public.blastapi.io',
         ],
@@ -739,7 +730,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         tornadoSubgraph: 'tornadocash/xdai-tornado-subgraph',
         rpcUrls: [
             'https://rpc.gnosischain.com',
-            'https://rpc.ankr.com/gnosis',
             'https://gnosis-mainnet.public.blastapi.io',
             'https://1rpc.io/gnosis',
             'https://gnosis-rpc.publicnode.com',
@@ -770,7 +760,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         relayerEnsSubdomain: 'avalanche-tornado',
         tornadoSubgraph: 'tornadocash/avalanche-tornado-subgraph',
         rpcUrls: [
-            'https://rpc.ankr.com/avalanche',
             'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc',
             'https://1rpc.io/avax/c',
             'https://api.avax.network/ext/bc/C/rpc',
@@ -810,7 +799,6 @@ export const defaultConfig: Record<NetIdType, ConfigParams> = {
         relayerEnsSubdomain: 'sepolia-tornado',
         tornadoSubgraph: 'tornadocash/sepolia-tornado-subgraph',
         rpcUrls: [
-            'https://rpc.ankr.com/eth_sepolia',
             'https://eth-sepolia.public.blastapi.io',
             'https://1rpc.io/sepolia',
             'https://public.stackup.sh/api/v1/node/ethereum-sepolia',

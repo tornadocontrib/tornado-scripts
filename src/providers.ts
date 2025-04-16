@@ -295,10 +295,15 @@ export const populateTransaction = async (
         throw new Error(errMsg);
     }
 
-    const [feeData, nonce] = await Promise.all([
+    const [chainId, feeData, nonce] = await Promise.all([
+        tx.chainId || tx.chainId === 0n ? undefined : provider.getNetwork().then((n) => Number(n.chainId)),
         tx.maxFeePerGas || tx.gasPrice ? undefined : provider.getFeeData(),
         tx.nonce || tx.nonce === 0 ? undefined : provider.getTransactionCount(signer.address, 'pending'),
     ]);
+
+    if (chainId) {
+        tx.chainId = chainId;
+    }
 
     if (feeData) {
         // EIP-1559
